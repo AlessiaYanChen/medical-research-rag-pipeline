@@ -2,82 +2,98 @@
 
 ## Introduction
 
-This project is a modular medical-research RAG pipeline built around a clear document-processing path:
+This project is a modular medical-research RAG pipeline built around the following document path:
 
-1. PDF parsing
-2. table normalization
-3. unified chunk generation
-4. vector persistence
-5. document-scoped semantic retrieval
+1. Document parsing
+2. Table normalization
+3. Unified chunking
+4. Vector persistence
+5. Retrieval and optional re-ranking
+6. Research reasoning over retrieved evidence
 
-The current implementation covers both ingestion and retrieval-side concerns. A source PDF is converted into Markdown and structured tables, table metadata noise is trimmed, narrative text and tables are chunked with different strategies, the resulting `Chunk` objects are persisted into Qdrant, and a retrieval service queries document-scoped semantic context for downstream generation.
+The current implementation supports both ingestion and question answering. A source PDF is parsed into Markdown and tables, tables are cleaned before chunking, text and tables are chunked differently, chunks are stored in Qdrant, evidence is retrieved from the indexed knowledge base, and a reasoning layer can synthesize a research answer with an LLM.
 
 ## Architectural Principles
 
 ### Hexagonal Architecture
 
-The codebase follows a Hexagonal Architecture (Ports and Adapters) approach. Core application logic is defined in terms of domain models and port contracts, while concrete technologies such as Marker and Qdrant are implemented as adapters behind those contracts.
+The codebase follows Hexagonal Architecture, also known as Ports and Adapters.
 
-This pattern was chosen for one reason: decoupling business logic from infrastructure choices. The chunking and normalization rules should not depend on a specific parser or vector database. By isolating integrations behind ports, the system can evolve without rewriting core logic.
+Core rules:
+- domain models stay independent of infrastructure
+- application services depend on port contracts
+- technology integrations are implemented as adapters
 
-### Why Ports and Adapters Here
+This pattern was chosen to decouple core document and retrieval logic from specific tooling choices such as Marker, Qdrant, cross-encoder rerankers, and LLM providers.
 
-In a RAG pipeline, infrastructure churn is expected:
+### Why This Pattern Fits the System
 
-- PDF parsers change
-- table extraction quality varies by provider
-- vector databases may be swapped or upgraded
-- embedding strategies may change independently of chunk semantics
+This pipeline has multiple moving parts that are likely to change independently:
 
-Hexagonal Architecture keeps those changes local. Application services continue to operate on stable models such as `Chunk`, while adapters translate to and from external systems.
+- PDF parsers
+- table extraction behavior
+- vector stores
+- embedding providers
+- re-rankers
+- LLM providers
+
+Hexagonal Architecture keeps those dependencies localized. Application services continue to operate on stable internal types such as `Chunk`, while adapters translate to and from external systems.
 
 ## System Flow
 
-### End-to-End Sequence
+### Ingestion and Query Path
 
-The current document path is:
+The current end-to-end flow is:
 
-`PDF -> MarkerParser -> Markdown + table artifacts -> TableNormalizer -> UnifiedChunker -> QdrantRepository -> RetrievalService`
+`PDF -> MarkerParser -> Markdown + Tables -> TableNormalizer -> UnifiedChunker -> QdrantRepository -> RetrievalService -> ReasoningService`
 
-### Sequence Narrative
+### Sequence Description
 
 1. A PDF is parsed by `MarkerParser`.
-2. Marker output is separated into narrative Markdown and extracted table artifacts.
-3. `TableNormalizer` trims title rows and metadata rows from table-shaped data before chunking.
+2. Marker output is split into:
+   - narrative Markdown
+   - structured table artifacts
+3. `TableNormalizer` trims metadata rows and title-like rows from extracted tables.
 4. `UnifiedChunker` processes the document as a whole:
-   - text is chunked by paragraph-aware sliding windows
-   - tables are preserved as atomic structural units
-5. `QdrantRepository` converts `Chunk` objects into Qdrant `PointStruct` payloads and upserts them in batches.
-6. `RetrievalService` embeds a query, calls the vector repository search contract, and formats retrieved chunks into LLM-ready context text.
+   - text is chunked with paragraph-aware sliding windows
+   - tables are preserved as atomic structural chunks
+5. `QdrantRepository` converts `Chunk` objects into Qdrant points and upserts them in batches.
+6. `RetrievalService` embeds the query, runs vector search, and optionally re-ranks the initial result pool.
+7. Retrieved chunks are formatted into readable evidence blocks.
+8. `ReasoningService` can pass that evidence into an LLM to synthesize a research answer.
 
-### Flow Diagram
+### System Diagram
 
 ```mermaid
 flowchart LR
     A[PDF Document] --> B[MarkerParser]
     B --> C[Markdown Text]
-    B --> D[Table Artifacts JSON/CSV]
+    B --> D[Structured Tables]
     D --> E[TableNormalizer]
     C --> F[UnifiedChunker]
     E --> F
-    F --> G[Chunk + ChunkMetadata]
+    F --> G[Chunk and ChunkMetadata]
     G --> H[QdrantRepository]
-    H --> I[Qdrant Collection]
+    H --> I[(Qdrant Collection)]
     J[User Query] --> K[RetrievalService]
     I --> K
-    K --> L[Formatted Retrieval Context]
+    K --> L[Retrieved Evidence]
+    L --> M[ReasoningService]
+    M --> N[OpenAI or Azure OpenAI]
+    N --> O[Research Insight]
 ```
 
 ## Component Breakdown
 
 | Module | Responsibility | Current Examples |
 | --- | --- | --- |
-| `src/domain/` | Core business models and system-internal data contracts. No direct infrastructure logic. | `domain/models/chunk.py` |
-| `src/ports/` | Cross-cutting port definitions for adapters used by the ingestion pipeline. | `ports/parser_port.py` |
-| `src/app/` | Application-layer services and orchestration logic for normalization, chunking, and retrieval formatting. | `app/tables/table_normalizer.py`, `app/tables/table_chunker.py`, `app/services/retrieval_service.py` |
-| `src/app/ports/` | Application-facing repository contracts used by adapters. | `app/ports/repositories/vector_repository.py` |
-| `src/adapters/` | Technology-specific parser implementations. | `adapters/parsing/marker_parser.py` |
-| `src/app/adapters/` | Application-side infrastructure adapters for persistence and vector search. | `app/adapters/vectorstores/qdrant_repository.py` |
+| `src/domain/` | Core business models and stable internal data contracts. No direct infrastructure logic. | `domain/models/chunk.py` |
+| `src/ports/` | Cross-cutting parser contract used by ingestion. | `ports/parser_port.py` |
+| `src/adapters/` | Parser-side technology adapters. | `adapters/parsing/marker_parser.py` |
+| `src/app/` | Application-layer orchestration, chunking, normalization, retrieval formatting, and reasoning. | `app/tables/table_normalizer.py`, `app/tables/table_chunker.py`, `app/services/retrieval_service.py`, `app/services/reasoning_service.py` |
+| `src/app/ports/` | Application-facing contracts for vector storage, reranking, and LLM generation. | `app/ports/repositories/vector_repository.py`, `app/ports/re_ranker_port.py`, `app/ports/llm_port.py` |
+| `src/app/adapters/` | Infrastructure adapters for vector stores, rerankers, and LLM providers. | `app/adapters/vectorstores/qdrant_repository.py`, `app/adapters/rerankers/transformers_reranker.py`, `app/adapters/llm/openai_llm_adapter.py` |
+| `scripts/` | Operational entry points for local testing and the UI. | `scripts/test_single_pdf.py`, `scripts/test_e2e_flow.py`, `scripts/ui_app.py` |
 
 ## Data Model
 
@@ -97,7 +113,7 @@ class ChunkMetadata:
 
 ### Chunk
 
-`Chunk` is the persistence-ready document unit used by the chunker and vector repository:
+`Chunk` is the persistence-ready retrieval unit used across chunking, storage, and retrieval:
 
 ```python
 @dataclass(frozen=True)
@@ -109,76 +125,126 @@ class Chunk:
 
 ### Why Metadata Is Nested
 
-The nested `ChunkMetadata` structure was chosen to keep primary vector content separate from filterable attributes. This maps cleanly to Qdrant, where:
+The nested metadata structure was chosen for clean separation of concerns:
 
-- `content` is the text used for embedding
-- `metadata` fields become payload values for filtering
+- `content` is the text used for embedding and prompt context
+- `metadata` contains filterable and traceable attributes
 
-This separation prevents payload concerns from leaking into chunk text logic and makes future metadata expansion explicit through `ChunkMetadata.extra`.
+This maps directly onto Qdrant’s payload model and makes future metadata growth explicit through `ChunkMetadata.extra`.
 
-### Retrieval Output Shape
+### Why This Works Well for Qdrant
 
-`RetrievalService` converts retrieved `Chunk` objects into a formatted string for the downstream LLM:
+Qdrant stores:
+- an internal point ID
+- an embedding vector
+- payload metadata
 
-```text
-Source: [parent_header]
-[content]
-```
+The repository maps:
+- `chunk.id` to a deterministic Qdrant-safe point ID
+- `chunk.content` into payload for traceability
+- `chunk.metadata.*` into payload fields for future filtering and display
 
-This keeps the repository contract focused on structured retrieval while allowing the application layer to control prompt-facing formatting.
+## Retrieval and Reasoning Contracts
+
+### VectorRepositoryPort
+
+The vector repository contract isolates search and persistence from Qdrant-specific APIs.
+
+Current responsibilities:
+- `upsert_chunks(chunks)`
+- `search(vector, doc_id=None, limit=...)`
+
+### ReRankerPort
+
+The re-ranker contract isolates second-stage ranking logic from the retrieval service.
+
+Current responsibility:
+- `rank(query, chunks, top_n)`
+
+### LLMPort
+
+The LLM contract isolates answer generation from a specific provider.
+
+Current responsibility:
+- `generate(prompt)`
 
 ## Design Decisions
 
 ### Atomic Structural Chunking for Tables
 
-Tables are not split into smaller semantic fragments. `UnifiedChunker` treats each table as one atomic chunk and prepends a context header containing:
+Tables are preserved as atomic units instead of being split into smaller text fragments. Each table chunk includes context such as:
 
 - source file
 - table index
 - nearest preceding section header
 
-This preserves structure and reduces the risk of destroying relational meaning during retrieval.
+This protects the relational meaning of tabular data during retrieval and reasoning.
 
-### Recursive Semantic Chunking for Text
+### Paragraph-Aware Text Chunking
 
-Narrative Markdown is chunked using a paragraph-aware sliding window. The implementation does not split mid-paragraph, which keeps text chunks semantically coherent while still enforcing chunk-size constraints.
+Narrative Markdown is chunked with a sliding window that does not break mid-paragraph. This keeps text chunks coherent while still enforcing size limits.
 
-### Idempotent Vector Persistence
+### Two-Stage Retrieval
 
-`QdrantRepository` uses Qdrant upsert semantics keyed by `Chunk.id`. Re-ingesting the same chunk ID updates the existing point instead of creating duplicates. This is critical for repeatable ingestion runs and partial reprocessing.
+Retrieval is implemented as:
 
-### Metadata-Scoped Retrieval
+1. vector search from Qdrant
+2. optional cross-encoder re-ranking
 
-`RetrievalService` depends on the `VectorRepositoryPort.search(...)` contract and currently scopes semantic search by `doc_id`. This enables document-bounded retrieval, which is useful for traceable summarization and evidence-restricted prompting.
+This gives the re-ranker a broader candidate pool while keeping the final output focused.
 
-### Artifact-Aware Chunking
+### Idempotent Persistence
 
-`UnifiedChunker` can load table artifacts from the same relative `data/` subdirectory as the current document. This makes chunk generation resilient to pipelines where Markdown and table artifacts are emitted as sibling files.
+`QdrantRepository` uses upsert semantics keyed by deterministic IDs. Re-ingesting the same logical chunk updates the existing record rather than creating duplicates.
 
-## Future-Proofing
+### Knowledge-Base Retrieval
 
-### Adding a New Parser
+Retrieval is currently scoped to the active collection and can search across the indexed knowledge base, rather than being limited to a single document.
 
-To add a new parser:
+### Retrieval Formatting at the Application Layer
 
-1. implement the `ParserPort` contract
-2. place the technology-specific code in an adapter module
-3. return the same parsed document structure used by the current application services
+`RetrievalService` is responsible for formatting retrieved chunks into readable evidence blocks. This keeps the repository focused on structured retrieval while letting the application layer control prompt-facing and UI-facing presentation.
 
-This allows the rest of the pipeline to remain unchanged.
+### Reasoning Built on Retrieval
 
-### Adding a New Vector Store
+The system does not bypass retrieval when generating research answers. `ReasoningService` is layered on top of `RetrievalService`, which keeps:
 
-To add a new vector store:
+- evidence retrieval testable
+- LLM prompting replaceable
+- reasoning isolated from storage concerns
 
-1. implement `VectorRepositoryPort`
-2. map `Chunk` and `ChunkMetadata` to the target store's document format
-3. support both `upsert_chunks(...)` and `search(...)`
-4. keep batching, idempotency, and payload persistence behavior consistent
+## Runtime View
 
-The application layer should continue to depend only on the repository port, not on Qdrant-specific APIs.
+### Local Development Path
 
-## Current Reference Path
+Current local operation typically looks like this:
+
+1. Start Qdrant
+2. Run Streamlit UI
+3. Upload one or more PDFs
+4. Ingest them into the current collection
+5. Retrieve evidence or ask a research question
+
+### UI Diagram
+
+```mermaid
+flowchart TD
+    A[Streamlit UI] --> B[Upload PDF]
+    B --> C[Ingestion Pipeline]
+    C --> D[(Qdrant)]
+    A --> E[Retrieve Evidence]
+    E --> F[RetrievalService]
+    F --> D
+    F --> G[Optional Re-ranker]
+    G --> H[Rendered Evidence Cards]
+    A --> I[Ask Research Question]
+    I --> F
+    F --> J[ReasoningService]
+    J --> K[OpenAI or Azure OpenAI]
+    K --> L[Rendered Research Insight]
+```
+
+## Current Reference Paths
 
 ```mermaid
 flowchart TD
@@ -189,5 +255,55 @@ flowchart TD
     E --> F[src/app/ports/repositories/vector_repository.py]
     F --> G[src/app/adapters/vectorstores/qdrant_repository.py]
     F --> H[src/app/services/retrieval_service.py]
-    G --> H
+    I[src/app/ports/re_ranker_port.py] --> J[src/app/adapters/rerankers/transformers_reranker.py]
+    I --> H
+    H --> K[src/app/services/reasoning_service.py]
+    L[src/app/ports/llm_port.py] --> M[src/app/adapters/llm/openai_llm_adapter.py]
+    L --> K
+    N[scripts/ui_app.py] --> H
+    N --> K
 ```
+
+## Future-Proofing
+
+### Adding a New Parser
+
+To add a new parser:
+
+1. implement `ParserPort`
+2. place the integration in an adapter module
+3. return the same parsed document structure
+
+The rest of the ingestion pipeline should remain unchanged.
+
+### Adding a New Vector Store
+
+To add a new vector store:
+
+1. implement `VectorRepositoryPort`
+2. map `Chunk` and `ChunkMetadata` to the target store
+3. support both persistence and search contracts
+4. preserve idempotent behavior
+
+### Adding a New Re-Ranker
+
+To add a new re-ranker:
+
+1. implement `ReRankerPort`
+2. keep the interface chunk-in, chunk-out
+3. preserve metadata and original chunk identity
+
+### Adding a New LLM Provider
+
+To add a new LLM provider:
+
+1. implement `LLMPort`
+2. keep prompt assembly in the application layer
+3. keep provider-specific request logic inside the adapter
+
+## Current Limitations
+
+- the default embedding function used in the UI and test flow is still a deterministic placeholder, not a production semantic embedding model
+- the persistent knowledge-base registry is maintained locally and can drift from Qdrant if records are changed outside the app
+- Marker extraction quality depends on document layout and OCR performance
+- local re-ranking may require a first-run model download
