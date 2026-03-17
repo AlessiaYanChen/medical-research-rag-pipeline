@@ -11,9 +11,19 @@ from src.domain.models.chunk import Chunk, ChunkMetadata
 class UnifiedChunker:
     """Chunk mixed markdown + table artifacts into a unified sequence of Chunk models."""
 
-    def __init__(self, max_chars: int = 900, overlap_paragraphs: int = 1) -> None:
+    DEFAULT_OPENING_HEADER = "Document Metadata/Abstract"
+
+    def __init__(
+        self,
+        max_chars: int = 900,
+        overlap_paragraphs: int = 1,
+        child_sentence_window: int = 2,
+        child_sentence_overlap: int = 1,
+    ) -> None:
         self.max_chars = max_chars
         self.overlap_paragraphs = max(0, overlap_paragraphs)
+        self.child_sentence_window = max(1, child_sentence_window)
+        self.child_sentence_overlap = max(0, min(child_sentence_overlap, self.child_sentence_window - 1))
 
     def chunk_document(
         self,
@@ -34,11 +44,13 @@ class UnifiedChunker:
         blocks = self._split_blocks(markdown_text)
 
         chunks: list[Chunk] = []
-        chunk_counter = 0
-        active_header = "Unknown"
+        parent_counter = 0
+        active_header = self.DEFAULT_OPENING_HEADER
+        active_section_role = self._classify_section_role(active_header)
         table_index = 0
         pending_paragraphs: list[str] = []
         pending_header = active_header
+        first_structural_header_seen = False
 
         for block in blocks:
             stripped = block.strip()
@@ -47,24 +59,29 @@ class UnifiedChunker:
 
             header = self._extract_header(stripped)
             if header is not None:
-                built_chunks, chunk_counter = self._build_text_chunks(
+                built_chunks, parent_counter = self._build_text_chunks(
                     doc_id=doc_id,
                     parent_header=pending_header,
                     paragraphs=pending_paragraphs,
-                    chunk_id_start=chunk_counter + 1,
+                    parent_id_start=parent_counter + 1,
                 )
                 chunks.extend(built_chunks)
                 pending_paragraphs = []
-                active_header = header
+                active_header = self._normalize_header(
+                    header=header,
+                    is_first_header=not first_structural_header_seen,
+                )
+                active_section_role = self._classify_section_role(active_header)
                 pending_header = active_header
+                first_structural_header_seen = True
                 continue
 
             if self._is_table_block(stripped):
-                built_chunks, chunk_counter = self._build_text_chunks(
+                built_chunks, parent_counter = self._build_text_chunks(
                     doc_id=doc_id,
                     parent_header=pending_header,
                     paragraphs=pending_paragraphs,
-                    chunk_id_start=chunk_counter + 1,
+                    parent_id_start=parent_counter + 1,
                 )
                 chunks.extend(built_chunks)
                 pending_paragraphs = []
@@ -76,15 +93,15 @@ class UnifiedChunker:
                 )
                 chunks.append(
                     self._build_table_chunk(
-                        chunk_id=self._make_chunk_id(doc_id, chunk_counter + 1),
+                        chunk_id=self._make_table_chunk_id(doc_id, table_index),
                         doc_id=doc_id,
                         source_file=source_file,
                         table_index=table_index,
                         parent_header=active_header,
                         table_artifact=artifact,
+                        section_role=active_section_role,
                     )
                 )
-                chunk_counter += 1
                 continue
 
             pending_paragraphs.append(stripped)
@@ -95,21 +112,21 @@ class UnifiedChunker:
             table_index += 1
             chunks.append(
                 self._build_table_chunk(
-                    chunk_id=self._make_chunk_id(doc_id, chunk_counter + 1),
+                    chunk_id=self._make_table_chunk_id(doc_id, table_index),
                     doc_id=doc_id,
                     source_file=source_file,
                     table_index=table_index,
                     parent_header=active_header,
                     table_artifact=table_artifacts[table_index - 1],
+                    section_role=active_section_role,
                 )
             )
-            chunk_counter += 1
 
-        built_chunks, chunk_counter = self._build_text_chunks(
+        built_chunks, parent_counter = self._build_text_chunks(
             doc_id=doc_id,
             parent_header=pending_header,
             paragraphs=pending_paragraphs,
-            chunk_id_start=chunk_counter + 1,
+            parent_id_start=parent_counter + 1,
         )
         chunks.extend(built_chunks)
 
@@ -175,6 +192,15 @@ class UnifiedChunker:
             return re.sub(r"^#{1,6}\s+", "", line).strip()
         return None
 
+    @classmethod
+    def _normalize_header(cls, header: str, is_first_header: bool) -> str:
+        cleaned = header.strip()
+        if not cleaned:
+            return cls.DEFAULT_OPENING_HEADER
+        if is_first_header and not cls._looks_like_structural_header(cleaned):
+            return cls.DEFAULT_OPENING_HEADER
+        return cleaned
+
     @staticmethod
     def _is_table_block(block: str) -> bool:
         lines = [line.strip() for line in block.splitlines() if line.strip()]
@@ -190,16 +216,16 @@ class UnifiedChunker:
         doc_id: str,
         parent_header: str,
         paragraphs: list[str],
-        chunk_id_start: int,
+        parent_id_start: int,
     ) -> tuple[list[Chunk], int]:
         if not paragraphs:
-            return [], chunk_id_start - 1
+            return [], parent_id_start - 1
 
         chunks: list[Chunk] = []
         start = 0
         total = len(paragraphs)
         step_floor = max(1, self.overlap_paragraphs)
-        next_chunk_id = chunk_id_start
+        next_parent_id = parent_id_start
 
         while start < total:
             current: list[str] = []
@@ -214,26 +240,64 @@ class UnifiedChunker:
                 chars = candidate_size
                 idx += 1
 
-            content = "\n\n".join(current)
-            chunks.append(
-                Chunk(
-                    id=self._make_chunk_id(doc_id, next_chunk_id),
-                    content=content,
-                    metadata=ChunkMetadata(
-                        doc_id=doc_id,
-                        chunk_type="text",
-                        parent_header=parent_header,
-                        page_number=self._extract_page_number(content),
-                    ),
+            parent_content = "\n\n".join(current)
+            parent_id = self._make_parent_chunk_id(doc_id, next_parent_id)
+            chunks.extend(
+                self._build_child_text_chunks(
+                    doc_id=doc_id,
+                    parent_id=parent_id,
+                    parent_content=parent_content,
+                    parent_header=parent_header,
+                    section_role=self._classify_section_role(parent_header),
+                    content_role=self._classify_parent_content_role(parent_header, parent_content),
                 )
             )
-            next_chunk_id += 1
+            next_parent_id += 1
 
             if idx >= total:
                 break
             start = max(start + step_floor, idx - self.overlap_paragraphs)
 
-        return chunks, next_chunk_id - 1
+        return chunks, next_parent_id - 1
+
+    def _build_child_text_chunks(
+        self,
+        doc_id: str,
+        parent_id: str,
+        parent_content: str,
+        parent_header: str,
+        section_role: str,
+        content_role: str,
+    ) -> list[Chunk]:
+        sentences = self._split_sentences(parent_content)
+        page_number = self._extract_page_number(parent_content)
+        if not sentences:
+            sentences = [parent_content]
+
+        child_windows = self._build_child_sentence_windows(sentences)
+        return [
+            Chunk(
+                id=self._make_child_chunk_id(parent_id, child_index + 1),
+                content=child_window["content"],
+                metadata=ChunkMetadata(
+                    doc_id=doc_id,
+                    chunk_type="text",
+                    parent_header=parent_header,
+                    page_number=page_number,
+                    extra={
+                        "content_role": content_role,
+                        "section_role": section_role,
+                        "parent_id": parent_id,
+                        "parent_content": parent_content,
+                        "parent_sentences": sentences,
+                        "child_index": child_index + 1,
+                        "child_sentence_start": child_window["start"],
+                        "child_sentence_end": child_window["end"],
+                    },
+                ),
+            )
+            for child_index, child_window in enumerate(child_windows)
+        ]
 
     def _build_table_chunk(
         self,
@@ -243,6 +307,7 @@ class UnifiedChunker:
         table_index: int,
         parent_header: str,
         table_artifact: dict[str, Any],
+        section_role: str,
     ) -> Chunk:
         table_payload = self._table_payload(table_artifact)
         context_header = (
@@ -256,6 +321,7 @@ class UnifiedChunker:
         if page_number is None:
             page_number = self._extract_page_number(table_payload)
 
+        table_role = self._classify_table_content_role(parent_header=parent_header, table_payload=table_payload, section_role=section_role)
         return Chunk(
             id=chunk_id,
             content=content,
@@ -264,6 +330,10 @@ class UnifiedChunker:
                 chunk_type="table",
                 parent_header=parent_header,
                 page_number=page_number,
+                extra={
+                    "content_role": table_role,
+                    "section_role": section_role,
+                },
             ),
         )
 
@@ -287,5 +357,137 @@ class UnifiedChunker:
         return None
 
     @staticmethod
-    def _make_chunk_id(doc_id: str, sequence: int) -> str:
-        return f"{doc_id}:{sequence:05d}"
+    def _split_sentences(text: str) -> list[str]:
+        normalized = re.sub(r"\s+", " ", text).strip()
+        if not normalized:
+            return []
+        return [
+            sentence.strip()
+            for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", normalized)
+            if sentence.strip()
+        ]
+
+    def _build_child_sentence_windows(self, sentences: list[str]) -> list[dict[str, Any]]:
+        if len(sentences) <= self.child_sentence_window:
+            return [
+                {
+                    "start": 0,
+                    "end": len(sentences),
+                    "content": " ".join(sentences).strip(),
+                }
+            ]
+
+        windows: list[dict[str, Any]] = []
+        step = max(1, self.child_sentence_window - self.child_sentence_overlap)
+        for start in range(0, len(sentences), step):
+            window = sentences[start : start + self.child_sentence_window]
+            if not window:
+                continue
+            windows.append(
+                {
+                    "start": start,
+                    "end": start + len(window),
+                    "content": " ".join(window).strip(),
+                }
+            )
+            if start + self.child_sentence_window >= len(sentences):
+                break
+        return windows
+
+    @staticmethod
+    def _make_parent_chunk_id(doc_id: str, sequence: int) -> str:
+        return f"{doc_id}:P{sequence:05d}"
+
+    @staticmethod
+    def _make_child_chunk_id(parent_id: str, child_index: int) -> str:
+        return f"{parent_id}:C{child_index:02d}"
+
+    @staticmethod
+    def _make_table_chunk_id(doc_id: str, table_index: int) -> str:
+        return f"{doc_id}:T{table_index:05d}"
+
+    @staticmethod
+    def _looks_like_structural_header(header: str) -> bool:
+        normalized = header.strip().lower()
+        if normalized in {"unknown", ""}:
+            return False
+        known_tokens = (
+            "abstract",
+            "introduction",
+            "background",
+            "methods",
+            "materials",
+            "results",
+            "discussion",
+            "conclusion",
+            "references",
+            "bibliography",
+            "acknowledg",
+            "funding",
+            "conflict",
+            "author contribution",
+            "data availability",
+        )
+        return any(token in normalized for token in known_tokens)
+
+    @staticmethod
+    def _classify_section_role(header: str) -> str:
+        normalized = header.strip().lower()
+        if normalized in {"unknown", ""}:
+            return "unknown"
+        if any(token in normalized for token in ("reference", "bibliograph")):
+            return "references"
+        if any(token in normalized for token in ("funding", "acknowledg", "competing interest", "conflict of interest", "copyright", "author contribution", "data availability")):
+            return "front_matter"
+        if any(token in normalized for token in ("abstract", "introduction", "background", "methods", "materials", "results", "discussion", "conclusion")):
+            return "body"
+        return "body"
+
+    def _classify_parent_content_role(self, parent_header: str, parent_content: str) -> str:
+        section_role = self._classify_section_role(parent_header)
+        if self._looks_like_reference_block(parent_content):
+            return "reference"
+        if section_role == "references":
+            return "reference"
+        if section_role == "front_matter":
+            return "front_matter"
+        if section_role == "unknown" and self._looks_like_front_matter_block(parent_content):
+            return "front_matter"
+        return "child"
+
+    def _classify_table_content_role(self, parent_header: str, table_payload: str, section_role: str) -> str:
+        if section_role == "references" or self._looks_like_reference_block(table_payload):
+            return "reference"
+        if section_role == "front_matter":
+            return "front_matter"
+        return "table"
+
+    @staticmethod
+    def _looks_like_reference_block(text: str) -> bool:
+        normalized = " ".join(text.lower().split())
+        patterns = (
+            r"\bet al\.",
+            r"\bdoi[:/]",
+            r"\bjournal\b",
+            r"\bvol(?:ume)?\b",
+            r"\bpmid\b",
+            r"\bissn\b",
+            r"\bhttp[s]?://",
+        )
+        score = sum(1 for pattern in patterns if re.search(pattern, normalized))
+        return score >= 2
+
+    @staticmethod
+    def _looks_like_front_matter_block(text: str) -> bool:
+        normalized = " ".join(text.lower().split())
+        patterns = (
+            r"\bcorrespond(?:ence|ing)\b",
+            r"\baffiliation\b",
+            r"\bcopyright\b",
+            r"\bcompeting interests?\b",
+            r"\bfunding\b",
+            r"\bdata availability\b",
+            r"@[a-z0-9.-]+",
+        )
+        score = sum(1 for pattern in patterns if re.search(pattern, normalized))
+        return score >= 2

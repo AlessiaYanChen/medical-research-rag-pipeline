@@ -17,7 +17,8 @@ class ReasoningService:
         self._llm = llm_client
 
     def research(self, query: str, doc_id: str | None = None, limit: int = 8) -> str:
-        context = self._retrieval_service.retrieve(query=query, doc_id=doc_id, limit=limit)
+        retrieved_chunks = self._retrieval_service.retrieve(query=query, doc_id=doc_id, limit=limit)
+        context = self._retrieval_service.serialize_for_prompt(retrieved_chunks)
         prompt = build_research_prompt(query=query, context=context)
         return self._llm.generate(prompt)
 

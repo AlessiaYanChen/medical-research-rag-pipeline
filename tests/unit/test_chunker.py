@@ -58,13 +58,16 @@ See details on page 7 for expanded stratification notes.
     assert table_chunk.metadata.page_number == 6
 
     text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    assert all(chunk.metadata.extra["content_role"] == "child" for chunk in text_chunks)
+    assert all(chunk.metadata.extra["parent_id"].startswith("DOC-001:P") for chunk in text_chunks)
+    assert all(chunk.metadata.extra["parent_content"] for chunk in text_chunks)
     assert any(
-        "The following table summarizes the primary lipid markers." in chunk.content
+        "The following table summarizes the primary lipid markers." in chunk.metadata.extra["parent_content"]
         and chunk.metadata.parent_header == "Results"
         for chunk in text_chunks
     )
     assert any(
-        "Interpretation indicates a stable separation between groups." in chunk.content
+        "Interpretation indicates a stable separation between groups." in chunk.metadata.extra["parent_content"]
         and chunk.metadata.parent_header == "Results"
         for chunk in text_chunks
     )
@@ -106,3 +109,73 @@ def test_unified_chunker_loads_sibling_table_artifacts_from_document_path(tmp_pa
     assert "Table Index: 1" in table_chunks[0].content
     assert "Source File: RAPID.pdf" in table_chunks[0].content
     assert table_chunks[0].metadata.page_number == 4
+
+
+def test_unified_chunker_emits_multiple_child_spans_for_one_parent() -> None:
+    markdown = """# Results
+
+Sentence one introduces the cohort. Sentence two describes the intervention. Sentence three reports the main biomarker effect. Sentence four gives the safety outcome.
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0, child_sentence_window=2, child_sentence_overlap=1)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-003",
+        source_file="RAPID.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    assert len(text_chunks) == 3
+    assert len({chunk.metadata.extra["parent_id"] for chunk in text_chunks}) == 1
+    assert text_chunks[0].metadata.extra["child_sentence_start"] == 0
+    assert text_chunks[0].metadata.extra["child_sentence_end"] == 2
+    assert text_chunks[1].metadata.extra["child_sentence_start"] == 1
+    assert text_chunks[1].metadata.extra["child_sentence_end"] == 3
+    assert text_chunks[0].content == "Sentence one introduces the cohort. Sentence two describes the intervention."
+    assert text_chunks[1].content == "Sentence two describes the intervention. Sentence three reports the main biomarker effect."
+    assert "Sentence four gives the safety outcome." in text_chunks[2].content
+
+
+def test_unified_chunker_marks_reference_sections_as_reference_role() -> None:
+    markdown = """# References
+
+Smith J, Doe P, et al. Detection of pathogens in bronchoalveolar lavage. J Clin Microbiol. doi:10.1000/example
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-004",
+        source_file="RAPID.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    assert len(text_chunks) >= 1
+    assert all(chunk.metadata.extra["content_role"] == "reference" for chunk in text_chunks)
+    assert all(chunk.metadata.extra["section_role"] == "references" for chunk in text_chunks)
+
+
+def test_unified_chunker_normalizes_title_like_opening_header_to_document_metadata_abstract() -> None:
+    markdown = """# Blood Culture Negative Endocarditis: A Review of Laboratory Diagnostic Approaches
+
+This opening block behaves like title and abstract material rather than a stable section label.
+
+## Discussion
+
+Discussion evidence follows after the opening summary.
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-005",
+        source_file="review.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    assert text_chunks[0].metadata.parent_header == UnifiedChunker.DEFAULT_OPENING_HEADER
+    assert text_chunks[0].metadata.extra["section_role"] == "body"
+    assert text_chunks[1].metadata.parent_header == "Discussion"

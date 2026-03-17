@@ -279,16 +279,26 @@ Run an end-to-end ingestion and retrieval flow:
 .\.venv\Scripts\python.exe scripts/test_e2e_flow.py --pdf "data/raw_pdfs/your_file.pdf" --query "What does the paper say about lipid biomarkers?" --recreate-collection
 ```
 
+Run the retrieval evaluation harness against an indexed collection:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
+Export stored chunks from Qdrant for validation:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/export_qdrant_chunks.py --collection medical_research_chunks_v1 --csv-out data/exports/current_chunks_v1.csv
+```
+
 ## Current Limitations
 
-- the default embedding function in the test/UI flow is still a deterministic placeholder, not a production semantic embedding model
+- retrieval quality still needs broader evaluation across multiple papers and query types
 - Marker output quality depends on the document layout and OCR quality
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally
+- evaluation is still based on a small curated benchmark, not a broad corpus-wide test set
 
-## Next Practical Steps
+## Roadmap
 
-1. Replace the placeholder embedding function with a real embedding provider.
-2. Add structured citation output to the reasoning layer.
-3. Add corpus management and reconciliation between Qdrant and the local registry.
-4. Add a production deployment path for the UI and vector store.
+See [ROADMAP.md](C:\github\medical-research-rag-pipeline\ROADMAP.md) for the planned path from current single-document validation to a few-hundred-document corpus, starting with roughly 300 PDFs.

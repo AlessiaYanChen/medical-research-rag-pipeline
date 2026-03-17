@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+from src.app.services.retrieval_service import RetrievedChunk
 from src.app.services.reasoning_service import ReasoningService
 
 
 class FakeRetrievalService:
-    def __init__(self, context: str) -> None:
-        self._context = context
+    def __init__(self, chunks: list[RetrievedChunk]) -> None:
+        self._chunks = chunks
         self.last_args: tuple[str, str | None, int] | None = None
 
-    def retrieve(self, query: str, doc_id: str | None = None, limit: int = 8) -> str:
+    def retrieve(self, query: str, doc_id: str | None = None, limit: int = 8) -> list[RetrievedChunk]:
         self.last_args = (query, doc_id, limit)
-        return self._context
+        return self._chunks
+
+    @staticmethod
+    def serialize_for_prompt(chunks: list[RetrievedChunk]) -> str:
+        return "\n\n".join(
+            f"Source: {chunk.source} | Document: {chunk.doc_id}\n{chunk.content}"
+            for chunk in chunks
+        )
 
 
 class FakeLLM:
@@ -24,7 +32,15 @@ class FakeLLM:
 
 def test_reasoning_service_uses_retrieval_context_and_llm() -> None:
     retrieval = FakeRetrievalService(
-        "Source: Results | Document: DOC-1\nLDL-C improved in the intervention group."
+        [
+            RetrievedChunk(
+                source="Results",
+                doc_id="DOC-1",
+                content="LDL-C improved in the intervention group.",
+                chunk_type="text",
+                content_role="child",
+            )
+        ]
     )
     llm = FakeLLM()
     service = ReasoningService(retrieval_service=retrieval, llm_client=llm)

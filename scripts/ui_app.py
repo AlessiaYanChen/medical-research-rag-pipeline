@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import json
-import math
 import os
 from io import StringIO
 from pathlib import Path
@@ -31,11 +30,12 @@ from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
+from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.adapters.llm.openai_llm_adapter import OpenAILLMAdapter  # noqa: E402
 from src.app.adapters.rerankers.transformers_reranker import TransformersReRanker  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.services.reasoning_service import ReasoningService  # noqa: E402
-from src.app.services.retrieval_service import RetrievalService  # noqa: E402
+from src.app.services.retrieval_service import RetrievedChunk, RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from src.app.tables.table_normalizer import TableNormalizer  # noqa: E402
 from src.ports.parser_port import ParsedTable  # noqa: E402
@@ -45,23 +45,22 @@ UPLOAD_DIR = Path("data/raw_pdfs/uploaded")
 REGISTRY_PATH = Path("data/kb_registry.json")
 
 
-def simple_embedding_fn(texts: list[str], dim: int = 32) -> list[list[float]]:
-    vectors: list[list[float]] = []
-    for text in texts:
-        vector = [0.0] * dim
-        if not text:
-            vectors.append(vector)
-            continue
-
-        encoded = text.encode("utf-8", errors="ignore")
-        for idx, byte in enumerate(encoded):
-            vector[idx % dim] += float(byte)
-
-        norm = math.sqrt(sum(value * value for value in vector))
-        if norm > 0:
-            vector = [value / norm for value in vector]
-        vectors.append(vector)
-    return vectors
+def build_embedding_fn(
+    provider: str,
+    api_key: str,
+    model: str,
+    dimensions: int | None,
+    azure_endpoint: str,
+    azure_api_version: str,
+) -> OpenAIEmbeddingAdapter:
+    return OpenAIEmbeddingAdapter(
+        api_key=api_key,
+        model=model,
+        provider=provider,
+        azure_endpoint=azure_endpoint or None,
+        azure_api_version=azure_api_version or None,
+        dimensions=dimensions,
+    )
 
 
 def parsed_table_to_dataframe(table: ParsedTable) -> pd.DataFrame:
@@ -123,6 +122,14 @@ def ensure_collection(
         )
 
 
+def validate_collection_exists(client: QdrantClient, collection_name: str) -> None:
+    if not client.collection_exists(collection_name):
+        raise RuntimeError(
+            f"Collection '{collection_name}' does not exist in Qdrant yet. "
+            "Ingest at least one PDF into the active collection first."
+        )
+
+
 def ingest_pdf(
     pdf_path: Path,
     doc_id: str,
@@ -130,6 +137,7 @@ def ingest_pdf(
     qdrant_url: str,
     max_chars: int,
     overlap_paragraphs: int,
+    embedding_fn: OpenAIEmbeddingAdapter,
 ) -> dict[str, object]:
     parser = MarkerParser()
     parsed_document = parser.parse(pdf_path)
@@ -147,13 +155,13 @@ def ingest_pdf(
         raise RuntimeError("No chunks were generated from the document.")
 
     client = QdrantClient(url=qdrant_url)
-    vector_size = len(simple_embedding_fn([chunks[0].content])[0])
+    vector_size = len(embedding_fn([chunks[0].content])[0])
     ensure_collection(client, collection_name, vector_size)
 
     repository = QdrantRepository(
         qdrant_client=client,
         collection_name=collection_name,
-        embedding_fn=simple_embedding_fn,
+        embedding_fn=embedding_fn,
     )
     repository.upsert_chunks(chunks)
 
@@ -175,20 +183,24 @@ def ask_question(
     limit: int,
     use_reranker: bool,
     reranker_model: str,
-) -> str:
+    embedding_fn: OpenAIEmbeddingAdapter,
+    include_tables: bool,
+) -> list[RetrievedChunk]:
     client = QdrantClient(url=qdrant_url)
+    validate_collection_exists(client, collection_name)
     repository = QdrantRepository(
         qdrant_client=client,
         collection_name=collection_name,
-        embedding_fn=simple_embedding_fn,
+        embedding_fn=embedding_fn,
     )
     re_ranker = None
     if use_reranker:
         re_ranker = TransformersReRanker(model_name=reranker_model)
     retrieval_service = RetrievalService(
         repo=repository,
-        embedding_fn=simple_embedding_fn,
+        embedding_fn=embedding_fn,
         re_ranker=re_ranker,
+        include_tables=include_tables,
     )
     return retrieval_service.retrieve(query=query, limit=limit)
 
@@ -205,20 +217,24 @@ def ask_research_question(
     azure_api_version: str,
     use_reranker: bool,
     reranker_model: str,
+    embedding_fn: OpenAIEmbeddingAdapter,
+    include_tables: bool,
 ) -> str:
     client = QdrantClient(url=qdrant_url)
+    validate_collection_exists(client, collection_name)
     repository = QdrantRepository(
         qdrant_client=client,
         collection_name=collection_name,
-        embedding_fn=simple_embedding_fn,
+        embedding_fn=embedding_fn,
     )
     re_ranker = None
     if use_reranker:
         re_ranker = TransformersReRanker(model_name=reranker_model)
     retrieval_service = RetrievalService(
         repo=repository,
-        embedding_fn=simple_embedding_fn,
+        embedding_fn=embedding_fn,
         re_ranker=re_ranker,
+        include_tables=include_tables,
     )
     llm_client = OpenAILLMAdapter(
         api_key=llm_api_key,
@@ -271,7 +287,7 @@ def update_collection_docs(collection_name: str, doc_id: str, summary: dict[str,
 
 def init_state() -> None:
     st.session_state.setdefault("ingested_docs", None)
-    st.session_state.setdefault("last_answer", "")
+    st.session_state.setdefault("last_answer", [])
     st.session_state.setdefault("last_research_answer", "")
 
 
@@ -382,40 +398,7 @@ def render_knowledge_base_summary() -> None:
     )
 
 
-def parse_retrieved_context(answer: str) -> list[dict[str, str]]:
-    if not answer.strip():
-        return []
-
-    blocks = re.split(r"\n{2,}(?=Source: )", answer.strip())
-    parsed: list[dict[str, str]] = []
-    for block in blocks:
-        lines = block.splitlines()
-        if not lines:
-            continue
-        first_line = lines[0]
-        match = re.match(r"^Source:\s*(.*?)\s*\|\s*Document:\s*(.+?)\s*$", first_line)
-        if match:
-            source = match.group(1).strip()
-            doc_id = match.group(2).strip()
-        else:
-            source = first_line.removeprefix("Source:").strip()
-            doc_id = ""
-
-        content = "\n".join(lines[1:]).strip()
-        parsed.append({"source": source, "doc_id": doc_id, "content": content})
-    return parsed
-
-
-def _looks_like_csv_block(text: str) -> bool:
-    lines = [line for line in text.splitlines() if line.strip()]
-    csv_candidate_lines = [line for line in lines if line.count(",") >= 1]
-    return len(csv_candidate_lines) >= 3
-
-
 def _parse_csv_table(text: str) -> pd.DataFrame | None:
-    if not _looks_like_csv_block(text):
-        return None
-
     try:
         reader = csv.reader(StringIO(text))
         rows = list(reader)
@@ -452,21 +435,20 @@ def _make_unique_columns(header: list[str], width: int) -> list[str]:
     return unique_header
 
 
-def render_retrieved_context(answer: str, docs: dict[str, dict[str, object]]) -> None:
-    chunks = parse_retrieved_context(answer)
+def render_retrieved_context(chunks: list[RetrievedChunk], docs: dict[str, dict[str, object]]) -> None:
     if not chunks:
         st.info("No retrieval output yet.")
         return
 
     for index, chunk in enumerate(chunks, start=1):
-        doc_summary = docs.get(chunk["doc_id"], {})
-        pdf_path = str(doc_summary.get("pdf_path", "")).strip()
+        doc_summary = docs.get(chunk.doc_id, {})
+        pdf_path = chunk.local_file.strip() or str(doc_summary.get("pdf_path", "")).strip()
 
         with st.container(border=True):
             st.markdown(
                 (
-                    f"<div class='result-title'>Chunk {index}: {chunk['source']}</div>"
-                    f"<div class='result-meta'>Document: {chunk['doc_id'] or 'Unknown'}</div>"
+                    f"<div class='result-title'>Chunk {index}: {chunk.source}</div>"
+                    f"<div class='result-meta'>Document: {chunk.doc_id or 'Unknown'}</div>"
                 ),
                 unsafe_allow_html=True,
             )
@@ -480,10 +462,10 @@ def render_retrieved_context(answer: str, docs: dict[str, dict[str, object]]) ->
                         data=pdf_file.read_bytes(),
                         file_name=pdf_file.name,
                         mime="application/pdf",
-                        key=f"download-{chunk['doc_id']}-{index}",
+                        key=f"download-{chunk.doc_id}-{index}",
                     )
 
-            content = chunk["content"]
+            content = chunk.content
             lines = content.splitlines()
             preface_lines: list[str] = []
             if lines and lines[0].startswith("Source File:"):
@@ -494,9 +476,12 @@ def render_retrieved_context(answer: str, docs: dict[str, dict[str, object]]) ->
                 for line in preface_lines:
                     st.caption(line)
 
-            table_df = _parse_csv_table(content)
-            if table_df is not None:
-                st.dataframe(table_df, use_container_width=True, hide_index=True)
+            if chunk.chunk_type == "table" or chunk.content_role == "table":
+                table_df = _parse_csv_table(content)
+                if table_df is not None:
+                    st.dataframe(table_df, use_container_width=True, hide_index=True)
+                else:
+                    st.markdown(content if content else "_No content_")
             else:
                 st.markdown(content if content else "_No content_")
 
@@ -522,10 +507,47 @@ def main() -> None:
         st.header("Runtime")
         qdrant_url = st.text_input("Qdrant URL", value="http://localhost:6333")
         collection_name = st.text_input("Collection", value="medical_research_chunks")
-        max_chars = st.number_input("Max chars", min_value=200, max_value=4000, value=900, step=100)
+        max_chars = st.number_input("Max chars", min_value=200, max_value=4000, value=1800, step=100)
         overlap_paragraphs = st.number_input("Overlap paragraphs", min_value=0, max_value=5, value=1, step=1)
         retrieval_limit = st.number_input("Retrieval limit", min_value=1, max_value=20, value=5, step=1)
+        st.header("Embeddings")
+        embedding_provider_label = st.selectbox(
+            "Embedding Provider",
+            options=["OpenAI", "Azure OpenAI"],
+            index=0,
+        )
+        embedding_provider = "azure_openai" if embedding_provider_label == "Azure OpenAI" else "openai"
+        embedding_api_key = st.text_input(
+            "Embedding API Key",
+            value=os.getenv("EMBEDDING_API_KEY", os.getenv("OPENAI_API_KEY", "")),
+            type="password",
+        )
+        embedding_model = st.text_input(
+            "Embedding Model / Deployment",
+            value=os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"),
+        )
+        embedding_dimensions = st.number_input(
+            "Embedding Dimensions",
+            min_value=0,
+            max_value=3072,
+            value=int(os.getenv("EMBEDDING_DIMENSIONS", "1024")),
+            step=256,
+            help="Set to 0 to use the provider default output dimension.",
+        )
+        embedding_azure_endpoint = ""
+        embedding_azure_api_version = ""
+        if embedding_provider == "azure_openai":
+            embedding_azure_endpoint = st.text_input(
+                "Embedding Azure Endpoint",
+                value=os.getenv("EMBEDDING_AZURE_OPENAI_ENDPOINT", os.getenv("AZURE_OPENAI_ENDPOINT", "")),
+                placeholder="https://your-resource.openai.azure.com",
+            )
+            embedding_azure_api_version = st.text_input(
+                "Embedding Azure API Version",
+                value=os.getenv("EMBEDDING_AZURE_OPENAI_API_VERSION", os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")),
+            )
         st.header("Retrieval")
+        include_tables = st.checkbox("Include table chunks", value=False)
         use_reranker = st.checkbox("Enable re-ranking", value=False)
         reranker_model = st.text_input(
             "Re-ranker model",
@@ -572,6 +594,25 @@ def main() -> None:
         else:
             st.caption("No documents ingested in this session.")
 
+    embedding_fn: OpenAIEmbeddingAdapter | None = None
+    embedding_setup_error = ""
+    embedding_dimensions_value = None if int(embedding_dimensions) == 0 else int(embedding_dimensions)
+    if embedding_api_key.strip():
+        try:
+            embedding_fn = build_embedding_fn(
+                provider=embedding_provider,
+                api_key=embedding_api_key.strip(),
+                model=embedding_model.strip() or "text-embedding-3-large",
+                dimensions=embedding_dimensions_value,
+                azure_endpoint=embedding_azure_endpoint.strip(),
+                azure_api_version=embedding_azure_api_version.strip(),
+            )
+        except Exception as exc:  # noqa: BLE001
+            embedding_setup_error = str(exc)
+
+    if embedding_setup_error:
+        st.warning(f"Embedding configuration error: {embedding_setup_error}")
+
     upload_col, _ = st.columns([0.9, 1.5], gap="large")
 
     with upload_col:
@@ -585,6 +626,8 @@ def main() -> None:
         if st.button("Ingest Uploaded PDFs", use_container_width=True):
             if not uploaded_files:
                 st.warning("Choose at least one PDF file first.")
+            elif embedding_fn is None:
+                st.warning("Provide embedding credentials in the sidebar before ingesting.")
             else:
                 progress = st.progress(0.0)
                 for index, uploaded_file in enumerate(uploaded_files, start=1):
@@ -598,6 +641,7 @@ def main() -> None:
                             qdrant_url=qdrant_url,
                             max_chars=int(max_chars),
                             overlap_paragraphs=int(overlap_paragraphs),
+                            embedding_fn=embedding_fn,
                         )
                     st.session_state.ingested_docs[doc_id] = summary
                     update_collection_docs(collection_name, doc_id, summary)
@@ -619,22 +663,31 @@ def main() -> None:
             st.warning("Ingest at least one document before running retrieval.")
         elif not query.strip():
             st.warning("Enter a question first.")
+        elif embedding_fn is None:
+            st.warning("Provide embedding credentials in the sidebar before running retrieval.")
         else:
             with st.spinner("Retrieving knowledge-base context"):
-                st.session_state.last_answer = ask_question(
-                    query=query.strip(),
-                    collection_name=collection_name,
-                    qdrant_url=qdrant_url,
-                    limit=int(retrieval_limit),
-                    use_reranker=use_reranker,
-                    reranker_model=reranker_model.strip() or "cross-encoder/ms-marco-MiniLM-L-6-v2",
-                )
+                try:
+                    st.session_state.last_answer = ask_question(
+                        query=query.strip(),
+                        collection_name=collection_name,
+                        qdrant_url=qdrant_url,
+                        limit=int(retrieval_limit),
+                        use_reranker=use_reranker,
+                        reranker_model=reranker_model.strip() or "cross-encoder/ms-marco-MiniLM-L-6-v2",
+                        embedding_fn=embedding_fn,
+                        include_tables=include_tables,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    st.error(str(exc))
 
     if st.button("Ask Research Question", use_container_width=True):
         if not st.session_state.ingested_docs:
             st.warning("Ingest at least one document before running research.")
         elif not query.strip():
             st.warning("Enter a question first.")
+        elif embedding_fn is None:
+            st.warning("Provide embedding credentials in the sidebar before running research.")
         elif not llm_api_key.strip():
             st.warning("Provide an API key in the sidebar.")
         elif llm_provider == "azure_openai" and not azure_endpoint.strip():
@@ -643,19 +696,24 @@ def main() -> None:
             st.warning("Provide an Azure OpenAI API version in the sidebar.")
         else:
             with st.spinner("Synthesizing research insight"):
-                st.session_state.last_research_answer = ask_research_question(
-                    query=query.strip(),
-                    collection_name=collection_name,
-                    qdrant_url=qdrant_url,
-                    limit=int(retrieval_limit),
-                    llm_provider=llm_provider,
-                    llm_api_key=llm_api_key.strip(),
-                    llm_model=llm_model.strip() or "gpt-4o-mini",
-                    azure_endpoint=azure_endpoint.strip(),
-                    azure_api_version=azure_api_version.strip(),
-                    use_reranker=use_reranker,
-                    reranker_model=reranker_model.strip() or "cross-encoder/ms-marco-MiniLM-L-6-v2",
-                )
+                try:
+                    st.session_state.last_research_answer = ask_research_question(
+                        query=query.strip(),
+                        collection_name=collection_name,
+                        qdrant_url=qdrant_url,
+                        limit=int(retrieval_limit),
+                        llm_provider=llm_provider,
+                        llm_api_key=llm_api_key.strip(),
+                        llm_model=llm_model.strip() or "gpt-4o-mini",
+                        azure_endpoint=azure_endpoint.strip(),
+                        azure_api_version=azure_api_version.strip(),
+                        use_reranker=use_reranker,
+                        reranker_model=reranker_model.strip() or "cross-encoder/ms-marco-MiniLM-L-6-v2",
+                        embedding_fn=embedding_fn,
+                        include_tables=include_tables,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    st.error(str(exc))
 
     st.markdown("### Retrieved Context")
     render_retrieved_context(

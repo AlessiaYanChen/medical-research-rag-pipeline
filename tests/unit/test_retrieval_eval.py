@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from src.app.evaluation.retrieval_eval import (
+    build_summary,
+    evaluate_retrieval_results,
+    load_evaluation_queries,
+)
+from src.app.services.retrieval_service import RetrievedChunk
+
+
+def test_load_evaluation_queries_reads_expected_fields(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "queries.json"
+    dataset_path.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "Q01",
+                    "query": "What does the paper conclude?",
+                    "doc_id": "DOC-1",
+                    "expected_docs": ["DOC-1"],
+                    "expected_headers": ["Discussion", "Conclusion"],
+                    "notes": "starter",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    queries = load_evaluation_queries(dataset_path)
+
+    assert len(queries) == 1
+    assert queries[0].id == "Q01"
+    assert queries[0].doc_id == "DOC-1"
+    assert queries[0].expected_docs == ("DOC-1",)
+    assert queries[0].expected_headers == ("Discussion", "Conclusion")
+
+
+def test_evaluate_retrieval_results_counts_noise_and_duplicates(tmp_path: Path) -> None:
+    query = load_evaluation_queries(
+        _write_dataset(
+            tmp_path,
+            [
+                {
+                    "id": "Q01",
+                    "query": "clinical utility",
+                    "expected_docs": ["DOC-1"],
+                    "expected_headers": ["Discussion"],
+                }
+            ]
+        )
+    )[0]
+
+    chunks = [
+        RetrievedChunk(
+            source="Discussion",
+            doc_id="DOC-1",
+            content="Clinical utility is discussed with enough detail to remain useful.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="PCR/ESI-MS allows detection of non-cultivable and fastidious pathogens",
+            doc_id="DOC-1",
+            content="Smith et al. doi:10.1000/example [1, 2, 3]",
+            chunk_type="text",
+            content_role="reference",
+        ),
+        RetrievedChunk(
+            source="Discussion",
+            doc_id="DOC-1",
+            content="Clinical utility is discussed with enough detail to remain useful in practice.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+
+    evaluation = evaluate_retrieval_results(query, chunks)
+
+    assert evaluation["expected_doc_hit"] is True
+    assert evaluation["expected_header_hit"] is True
+    assert evaluation["citation_noise_hits"] == 1
+    assert evaluation["duplicate_hits"] == 1
+    assert evaluation["non_structural_header_hits"] == 1
+    assert evaluation["non_structural_headers"] == ["PCR/ESI-MS allows detection of non-cultivable and fastidious pathogens"]
+
+
+def test_build_summary_aggregates_query_metrics() -> None:
+    summary = build_summary(
+        [
+            {
+                "expected_doc_hit": True,
+                "expected_header_hit": True,
+                "citation_noise_hits": 0,
+                "table_hits": 0,
+                "duplicate_hits": 0,
+                "non_structural_header_hits": 0,
+            },
+            {
+                "expected_doc_hit": False,
+                "expected_header_hit": True,
+                "citation_noise_hits": 2,
+                "table_hits": 1,
+                "duplicate_hits": 1,
+                "non_structural_header_hits": 2,
+            },
+        ]
+    )
+
+    assert summary["queries_total"] == 2
+    assert summary["expected_doc_hit_rate"] == 0.5
+    assert summary["expected_header_hit_rate"] == 1.0
+    assert summary["queries_with_citation_noise"] == 1
+    assert summary["queries_with_table_hits"] == 1
+    assert summary["queries_with_duplicate_hits"] == 1
+    assert summary["queries_with_non_structural_headers"] == 1
+    assert summary["total_non_structural_header_hits"] == 2
+
+
+def _write_dataset(tmp_path: Path, payload: list[dict[str, object]]) -> Path:
+    dataset_path = tmp_path / "queries.json"
+    dataset_path.write_text(json.dumps(payload), encoding="utf-8")
+    return dataset_path

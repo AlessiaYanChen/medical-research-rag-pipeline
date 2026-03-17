@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 from io import StringIO
-import math
+import os
 from pathlib import Path
 import sys
 
@@ -21,6 +21,7 @@ from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
+from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.services.retrieval_service import RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
@@ -52,9 +53,14 @@ def parse_args() -> argparse.Namespace:
         help="Number of chunks to retrieve.",
     )
     parser.add_argument(
+        "--include-tables",
+        action="store_true",
+        help="Include table chunks during retrieval.",
+    )
+    parser.add_argument(
         "--max-chars",
         type=int,
-        default=900,
+        default=1800,
         help="Maximum characters per text chunk.",
     )
     parser.add_argument(
@@ -68,26 +74,50 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Delete and recreate the target collection before upsert.",
     )
+    parser.add_argument(
+        "--embedding-provider",
+        choices=["openai", "azure_openai"],
+        default=os.getenv("EMBEDDING_PROVIDER", "openai"),
+        help="Embedding provider.",
+    )
+    parser.add_argument(
+        "--embedding-api-key",
+        default=os.getenv("EMBEDDING_API_KEY", os.getenv("OPENAI_API_KEY", "")),
+        help="Embedding API key.",
+    )
+    parser.add_argument(
+        "--embedding-model",
+        default=os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"),
+        help="Embedding model or Azure deployment name.",
+    )
+    parser.add_argument(
+        "--embedding-dimensions",
+        type=int,
+        default=int(os.getenv("EMBEDDING_DIMENSIONS", "1024")),
+        help="Embedding dimensions. Use 0 for provider default.",
+    )
+    parser.add_argument(
+        "--embedding-azure-endpoint",
+        default=os.getenv("EMBEDDING_AZURE_OPENAI_ENDPOINT", os.getenv("AZURE_OPENAI_ENDPOINT", "")),
+        help="Azure OpenAI endpoint for embeddings.",
+    )
+    parser.add_argument(
+        "--embedding-azure-api-version",
+        default=os.getenv("EMBEDDING_AZURE_OPENAI_API_VERSION", os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")),
+        help="Azure OpenAI API version for embeddings.",
+    )
     return parser.parse_args()
 
 
-def simple_embedding_fn(texts: list[str], dim: int = 32) -> list[list[float]]:
-    vectors: list[list[float]] = []
-    for text in texts:
-        vector = [0.0] * dim
-        if not text:
-            vectors.append(vector)
-            continue
-
-        encoded = text.encode("utf-8", errors="ignore")
-        for idx, byte in enumerate(encoded):
-            vector[idx % dim] += float(byte)
-
-        norm = math.sqrt(sum(value * value for value in vector))
-        if norm > 0:
-            vector = [value / norm for value in vector]
-        vectors.append(vector)
-    return vectors
+def build_embedding_fn(args: argparse.Namespace) -> OpenAIEmbeddingAdapter:
+    return OpenAIEmbeddingAdapter(
+        api_key=args.embedding_api_key,
+        model=args.embedding_model,
+        provider=args.embedding_provider,
+        azure_endpoint=args.embedding_azure_endpoint or None,
+        azure_api_version=args.embedding_azure_api_version or None,
+        dimensions=None if args.embedding_dimensions == 0 else args.embedding_dimensions,
+    )
 
 
 def normalize_tables(parsed_tables: list[ParsedTable], file_name: str) -> list[dict[str, object]]:
@@ -167,6 +197,15 @@ def main() -> int:
 
     doc_id = args.doc_id or pdf_path.stem
     source_file = pdf_path.name
+    if not args.embedding_api_key:
+        print("ERROR: embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.")
+        return 1
+
+    try:
+        embedding_fn = build_embedding_fn(args)
+    except Exception as exc:  # noqa: BLE001
+        print(f"ERROR: embedding setup failed: {exc}")
+        return 1
 
     try:
         parser = MarkerParser()
@@ -197,7 +236,7 @@ def main() -> int:
 
     try:
         client = QdrantClient(url=args.qdrant_url)
-        vector_size = len(simple_embedding_fn([chunks[0].content])[0])
+        vector_size = len(embedding_fn([chunks[0].content])[0])
         ensure_collection(
             client=client,
             collection_name=args.collection,
@@ -208,15 +247,16 @@ def main() -> int:
         repository = QdrantRepository(
             qdrant_client=client,
             collection_name=args.collection,
-            embedding_fn=simple_embedding_fn,
+            embedding_fn=embedding_fn,
         )
         repository.upsert_chunks(chunks)
 
         retrieval_service = RetrievalService(
             repo=repository,
-            embedding_fn=simple_embedding_fn,
+            embedding_fn=embedding_fn,
+            include_tables=args.include_tables,
         )
-        retrieved_context = retrieval_service.retrieve(
+        retrieved_chunks = retrieval_service.retrieve(
             query=args.query,
             doc_id=doc_id,
             limit=args.limit,
@@ -235,7 +275,11 @@ def main() -> int:
     print(f"Text chunks: {text_chunk_count}")
     print(f"Table chunks: {table_chunk_count}")
     print("\nRetrieved Context\n")
-    print(retrieved_context if retrieved_context else "[no retrieval results]")
+    print(
+        retrieval_service.serialize_for_prompt(retrieved_chunks)
+        if retrieved_chunks
+        else "[no retrieval results]"
+    )
     return 0
 
 
