@@ -11,7 +11,7 @@ This project is a modular medical-research RAG pipeline built around the followi
 5. Retrieval and optional re-ranking
 6. Research reasoning over retrieved evidence
 
-The current implementation supports both ingestion and question answering. A source PDF is parsed into Markdown and tables, tables are cleaned before chunking, text and tables are chunked differently, chunks are stored in Qdrant, evidence is retrieved from the indexed knowledge base, and a reasoning layer can synthesize a research answer with an LLM.
+The current implementation supports both ingestion and question answering. A source PDF is parsed into Markdown and tables, tables are cleaned before chunking, text and tables are chunked differently, chunks are stored in Qdrant, evidence is retrieved from the indexed knowledge base, and a reasoning layer can synthesize a research answer with an LLM. The repo also now includes an explicit retrieval evaluation harness for repeatable benchmark runs.
 
 ## Architectural Principles
 
@@ -184,6 +184,10 @@ This protects the relational meaning of tabular data during retrieval and reason
 
 Narrative Markdown is chunked with a sliding window that does not break mid-paragraph. This keeps text chunks coherent while still enforcing size limits.
 
+### Opening-Section Normalization
+
+The chunker now normalizes page-1 or title-like opening headers to `Document Metadata/Abstract` when the first discovered header is not a stable structural section. This improves retrieval behavior for papers whose opening markdown begins with the full title rather than a usable section label.
+
 ### Two-Stage Retrieval
 
 Retrieval is implemented as:
@@ -303,7 +307,7 @@ To add a new LLM provider:
 
 ## Current Limitations
 
-- the default embedding function used in the UI and test flow is still a deterministic placeholder, not a production semantic embedding model
+- retrieval still surfaces some non-structural subsection or title-like headers, even though page-1/title normalization has improved the opening section behavior
 - the persistent knowledge-base registry is maintained locally and can drift from Qdrant if records are changed outside the app
 - Marker extraction quality depends on document layout and OCR performance
 - local re-ranking may require a first-run model download
