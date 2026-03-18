@@ -21,11 +21,10 @@ class MarkerParser(ParserPort):
         markdown = self._markdown_converter(source_path)
         table_blocks = self._extract_markdown_table_blocks(markdown)
         tables = [self._parse_table_block(block) for block in table_blocks]
-        main_text = self._remove_table_blocks(markdown, table_blocks).strip()
 
         return ParsedDocument(
             source_path=source_path,
-            markdown_text=main_text,
+            markdown_text=markdown.strip(),
             tables=tables,
         )
 
@@ -58,14 +57,6 @@ class MarkerParser(ParserPort):
                 parsed_blocks.append("\n".join(block))
 
         return parsed_blocks
-
-    @staticmethod
-    def _remove_table_blocks(markdown: str, table_blocks: list[str]) -> str:
-        without_tables = markdown
-        for block in table_blocks:
-            without_tables = without_tables.replace(block, "")
-        # Compact excessive whitespace created by block removal.
-        return re.sub(r"\n{3,}", "\n\n", without_tables)
 
     @staticmethod
     def _parse_table_block(table_block: str) -> ParsedTable:

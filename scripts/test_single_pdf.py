@@ -4,6 +4,8 @@ import argparse
 import json
 from pathlib import Path
 import sys
+import time
+import traceback
 
 
 def _ensure_project_root_on_path() -> None:
@@ -40,17 +42,23 @@ def main() -> int:
         return 1
 
     parser = MarkerParser()
+    start_time = time.time()
+    print(f"Starting parse: {pdf_path}")
     try:
         parsed = parser.parse(pdf_path)
     except Exception as exc:  # noqa: BLE001
         print(f"ERROR: Failed to parse PDF: {exc}")
+        print(traceback.format_exc())
         return 1
+    elapsed = time.time() - start_time
+    print(f"Parse completed in {elapsed:.1f}s")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = pdf_path.stem
 
     markdown_path = out_dir / f"{stem}.main_text.md"
     markdown_path.write_text(parsed.markdown_text, encoding="utf-8")
+    print(f"Main text length: {len(parsed.markdown_text)} characters")
 
     for idx, table in enumerate(parsed.tables, start=1):
         table_json_path = out_dir / f"{stem}.table_{idx:02d}.json"
@@ -67,6 +75,11 @@ def main() -> int:
             encoding="utf-8",
         )
         table_csv_path.write_text(table.csv, encoding="utf-8")
+        print(
+            "Table "
+            f"{idx:02d}: headers={len(table.headers)} rows={len(table.rows)} "
+            f"json={table_json_path.name} csv={table_csv_path.name}"
+        )
 
     print(f"Parsed: {pdf_path}")
     print(f"Main text markdown: {markdown_path}")

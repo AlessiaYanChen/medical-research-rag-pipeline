@@ -26,9 +26,10 @@ Final interpretation is based on statistically significant differences.
     assert "This trial compares treatment outcomes." in parsed.markdown_text
     assert "Final interpretation is based on statistically significant differences." in parsed.markdown_text
 
-    # Main text should not contain raw markdown table lines.
-    assert "| Metric | Group A | Group B |" not in parsed.markdown_text
-    assert "| Response Rate | 81% | 67% |" not in parsed.markdown_text
+    # Markdown should preserve raw table placement so the chunker can align
+    # extracted table artifacts with document structure.
+    assert "| Metric | Group A | Group B |" in parsed.markdown_text
+    assert "| Response Rate | 81% | 67% |" in parsed.markdown_text
 
     assert len(parsed.tables) == 1
     table = parsed.tables[0]
