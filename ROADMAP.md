@@ -24,8 +24,8 @@ Implemented:
 
 Current observed issues:
 
-- A few query types still over-rank `Conclusion` or `Document Metadata/Abstract`
 - Cross-document top-1 precision is still weaker than within-document precision
+- Table-oriented cross-document retrieval still does not surface actual table chunks reliably
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs broader query coverage and manual expectation refinement
 
@@ -41,7 +41,7 @@ Objectives:
 
 Tasks:
 
-1. Improve ranking signals for review and stewardship-style queries
+1. Maintain the current section-ranking baseline and avoid regressions
 2. Tune section diversity across Results, Discussion, and Conclusion
 3. Validate top-k behavior across more than one paper
 4. Confirm the current diversity caps hold up for multi-document retrieval
@@ -82,16 +82,16 @@ Current checkpoint:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `0.9375`
   - top-1 expected doc hit rate: `0.875`
-  - top-1 expected header hit rate: `0.8125`
+  - top-1 expected header hit rate: `0.9375`
   - average doc precision: `0.9187`
-  - average header precision: `0.5802`
+  - average header precision: `0.6646`
   - cross-document average doc precision: `0.5667`
   - citation noise queries: `0`
   - table-hit queries: `0`
   - non-structural header queries: `0`
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
-- Query-aware section weighting improved top-1 header quality without reintroducing citation, table, or header-structure noise
+- Query-aware section weighting plus single-document metadata suppression materially improved section quality without reintroducing citation, table, or header-structure noise
 - An experimental document-candidate retrieval stage was evaluated and removed because it underperformed the baseline on cross-document precision
 
 Exit criteria:
@@ -172,14 +172,8 @@ Exit criteria:
 
 Recommended next implementation order:
 
-1. Inspect and tune the remaining query failures:
-   - `Q04` conclusion-vs-results ranking
-   - `Q11` cross-document top-1 doc selection
-   - `Q12` stewardship query falling back to `Document Metadata/Abstract`
-   - `Q13` review query over-ranking `Conclusion`
-   - `Q16` cross-document table-oriented precision
-2. Improve ranking signals for review, stewardship, and evidence-summary queries
-3. Revisit table-oriented retrieval so `include_tables=True` can surface actual table chunks when they are relevant
-4. Expand the benchmark again after the current misses are addressed
-5. Harden corpus metadata for medium-scale ingestion
-6. Reconsider document-level retrieval only if cross-document precision stops improving with ranking/diversity changes
+1. Stop retrieval ranking work at the current benchmark checkpoint and treat it as the new baseline
+2. Revisit table-oriented retrieval so `include_tables=True` can surface actual table chunks when they are relevant
+3. Expand the benchmark again after table-oriented cases are better represented
+4. Harden corpus metadata for medium-scale ingestion
+5. Reconsider document-level retrieval only if cross-document precision stops improving with better metadata and evaluation coverage

@@ -41,10 +41,12 @@ class RetrievalService:
 
     def retrieve(self, query: str, doc_id: str | None = None, limit: int = 5) -> list[RetrievedChunk]:
         query_vector = self._embedding_fn([query])[0]
-        initial_limit = max(limit * 4, 20) if doc_id is not None else max(limit * 8, 40)
+        initial_limit = self._initial_search_limit(query=query, doc_filter=doc_id, limit=limit)
         initial_chunks = self._repo.search(query_vector, doc_id=doc_id, limit=initial_limit)
         filtered_initial_chunks = self._filter_chunks(query=query, chunks=initial_chunks)
-        candidate_limit = max(limit * 4, 20)
+        if doc_id is not None:
+            filtered_initial_chunks = self._suppress_metadata_fallback(query=query, chunks=filtered_initial_chunks)
+        candidate_limit = max(limit * 6, 30) if self._query_prefers_tables(query) else max(limit * 4, 20)
         chunks = self._select_candidate_chunks(query=query, initial_chunks=filtered_initial_chunks, candidate_limit=candidate_limit)
         ranked_chunks = self._rank_chunks(query=query, chunks=chunks)
 
@@ -104,7 +106,20 @@ class RetrievalService:
         )
 
     def _rank_chunks(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
-        return sorted(chunks, key=lambda chunk: self._chunk_priority(query, chunk), reverse=True)
+        docs_with_body_sections = {
+            self._clean_markdown(chunk.metadata.doc_id).lower()
+            for chunk in chunks
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        }
+        return sorted(
+            chunks,
+            key=lambda chunk: self._chunk_priority(
+                query=query,
+                chunk=chunk,
+                docs_with_body_sections=docs_with_body_sections,
+            ),
+            reverse=True,
+        )
 
     def _passes_diversity_limits(
         self,
@@ -158,6 +173,22 @@ class RetrievalService:
                 continue
             filtered.append(chunk)
         return filtered
+
+    def _suppress_metadata_fallback(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
+        if self._query_prefers_metadata(query):
+            return chunks
+
+        has_body_section = any(
+            not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+            for chunk in chunks
+        )
+        if not has_body_section:
+            return chunks
+
+        body_chunks = [
+            chunk for chunk in chunks if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        ]
+        return body_chunks or chunks
 
     def _select_return_content(self, chunk: Chunk) -> str:
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
@@ -214,10 +245,17 @@ class RetrievalService:
         score = sum(1 for pattern in patterns if re.search(pattern, normalized))
         return score >= 2
 
-    def _chunk_priority(self, query: str, chunk: Chunk) -> tuple[int, int, int]:
+    def _chunk_priority(
+        self,
+        query: str,
+        chunk: Chunk,
+        docs_with_body_sections: set[str],
+    ) -> tuple[int, int, int]:
         query_profile = self._query_section_profile(query)
+        query_tokens = self._query_tokens(query)
         header = self._header_for_ranking(chunk).lower()
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
+        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
         header_bonus = 0
         if "document metadata/abstract" in header:
             header_bonus -= 3
@@ -238,15 +276,21 @@ class RetrievalService:
             if section in header:
                 header_bonus += bonus
 
+        if self._is_metadata_like_header(header) and doc_key in docs_with_body_sections:
+            header_bonus -= 5
+
         role_bonus = 0
         if content_role == "table":
-            role_bonus += 3 if self._query_prefers_tables(query) else -2
+            role_bonus += 8 if self._query_prefers_tables(query) else -2
         if content_role == "child":
             role_bonus += 1
         if content_role == "table" and not self._query_prefers_tables(query):
             role_bonus -= 1
+        if self._query_prefers_tables(query) and content_role != "table":
+            role_bonus -= 1
+        lexical_bonus = self._lexical_bonus(query=query, query_tokens=query_tokens, chunk=chunk)
         body_bonus = 0 if "document metadata/abstract" in header else 1
-        return (header_bonus, role_bonus, body_bonus)
+        return (header_bonus, lexical_bonus, role_bonus + body_bonus)
 
     @staticmethod
     def _query_section_profile(query: str) -> dict[str, int]:
@@ -259,17 +303,119 @@ class RetrievalService:
 
         if any(token in normalized for token in ("performance", "sensitivity", "specificity", "findings", "result", "outcome", "outcomes", "data", "diagnostic performance")):
             add_bonus(("result", "results"), 3)
+            add_bonus(("conclusion",), -2)
+        if any(token in normalized for token in ("biomarker", "biomarkers", "differentiat", "marker")):
+            add_bonus(("result", "results", "discussion"), 2)
+            add_bonus(("conclusion",), -3)
         if any(token in normalized for token in ("optimization", "optimiz", "method", "methods", "experimental", "assay", "protocol")):
             add_bonus(("method", "methods", "materials and methods"), 4)
             add_bonus(("result", "results"), 1)
+            add_bonus(("conclusion",), -2)
         if any(token in normalized for token in ("limitation", "limitations", "caveat", "caveats", "implication", "implications", "conclusion", "conclusions", "usefulness", "clinical usefulness")):
             add_bonus(("discussion", "conclusion"), 3)
         if any(token in normalized for token in ("review", "overview", "what does the review say", "approaches", "arguments")):
             add_bonus(("introduction", "discussion", "summary", "abstract"), 2)
-            add_bonus(("conclusion",), -1)
+            add_bonus(("conclusion",), -6)
+        if any(token in normalized for token in ("stewardship", "optimiz", "hospital setting", "blood culture use")):
+            add_bonus(("discussion", "introduction", "summary"), 4)
+            add_bonus(("document metadata/abstract", "abstract"), -7)
+            add_bonus(("conclusion",), -2)
         if RetrievalService._query_prefers_tables(query):
             add_bonus(("result", "results"), 2)
         return bonuses
+
+    @staticmethod
+    def _initial_search_limit(query: str, doc_filter: str | None, limit: int) -> int:
+        if doc_filter is not None:
+            return max(limit * 8, 40)
+        if RetrievalService._query_prefers_tables(query):
+            return max(limit * 12, 60)
+        if RetrievalService._query_prefers_cross_document_titles(query):
+            return max(limit * 10, 50)
+        return max(limit * 8, 40)
+
+    @staticmethod
+    def _query_prefers_cross_document_titles(query: str) -> bool:
+        normalized = query.lower()
+        signals = ("which documents", "which papers", "across the indexed studies", "across studies", "across the corpus")
+        return any(signal in normalized for signal in signals)
+
+    @staticmethod
+    def _query_prefers_metadata(query: str) -> bool:
+        normalized = query.lower()
+        signals = ("abstract", "summary", "overview", "opening summary")
+        return any(signal in normalized for signal in signals)
+
+    @staticmethod
+    def _query_tokens(query: str) -> set[str]:
+        stop_words = {
+            "what", "which", "does", "the", "about", "were", "with", "from", "that", "this",
+            "into", "across", "study", "studies", "paper", "papers", "documents", "document",
+            "indexed", "reported", "report", "findings", "results", "result",
+        }
+        return {
+            token
+            for token in re.findall(r"[a-z0-9]+", query.lower())
+            if len(token) > 3 and token not in stop_words
+        }
+
+    def _lexical_bonus(self, query: str, query_tokens: set[str], chunk: Chunk) -> int:
+        if not query_tokens:
+            return 0
+
+        header_text = self._header_for_ranking(chunk).lower()
+        doc_text = self._doc_text_for_ranking(chunk)
+        content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        title_tokens = self._title_weighted_tokens(query_tokens)
+
+        doc_overlap = sum(1 for token in query_tokens if token in doc_text)
+        header_overlap = sum(1 for token in query_tokens if token in header_text)
+        content_overlap = sum(1 for token in query_tokens if token in content_text)
+        title_overlap = sum(1 for token in title_tokens if token in doc_text)
+
+        lexical_bonus = min(4, content_overlap) + min(3, header_overlap * 2)
+        if self._query_prefers_cross_document_titles(query):
+            lexical_bonus += min(6, title_overlap * 4)
+        else:
+            lexical_bonus += min(2, doc_overlap)
+        return lexical_bonus
+
+    @staticmethod
+    def _title_weighted_tokens(query_tokens: set[str]) -> set[str]:
+        generic_tokens = {
+            "blood",
+            "culture",
+            "cultures",
+            "diagnostic",
+            "diagnosis",
+            "sensitivity",
+            "specificity",
+            "performance",
+            "tabular",
+            "table",
+            "rapid",
+            "testing",
+            "outcomes",
+            "outcome",
+            "findings",
+            "papers",
+            "documents",
+        }
+        return {token for token in query_tokens if token not in generic_tokens}
+
+    @staticmethod
+    def _is_metadata_like_header(header: str) -> bool:
+        return any(token in header for token in ("document metadata/abstract", "abstract", "summary"))
+
+    @staticmethod
+    def _doc_text_for_ranking(chunk: Chunk) -> str:
+        doc_parts = [
+            str(chunk.metadata.doc_id),
+            str(chunk.metadata.extra.get("local_file", "")),
+            str(chunk.metadata.extra.get("source_file", "")),
+        ]
+        normalized = " ".join(part.replace("-", " ").replace("_", " ") for part in doc_parts if part)
+        return RetrievalService._clean_markdown(normalized).lower()
 
     @staticmethod
     def _normalize_header_key(header: str) -> str:

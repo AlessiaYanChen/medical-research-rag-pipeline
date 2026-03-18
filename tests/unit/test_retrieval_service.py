@@ -62,7 +62,7 @@ def test_retrieval_service_formats_header_and_content() -> None:
 
     result = service.retrieve(query="lipid markers", doc_id="DOC-1", limit=2)
 
-    assert repo.last_search_args == ([0.1, 0.2, 0.3], "DOC-1", 20)
+    assert repo.last_search_args == ([0.1, 0.2, 0.3], "DOC-1", 40)
     assert result[0].source == "Results"
     assert result[0].doc_id == "DOC-1"
     assert result[0].content == "LDL-C was elevated in the treatment arm."
@@ -90,7 +90,7 @@ def test_retrieval_service_strips_marker_anchor_and_image_noise() -> None:
 
     result = service.retrieve(query="pneumonia", doc_id="DOC-2", limit=1)
 
-    assert repo.last_search_args == ([0.1, 0.2, 0.3], "DOC-2", 20)
+    assert repo.last_search_args == ([0.1, 0.2, 0.3], "DOC-2", 40)
     assert result[0].source == "Introduction"
     assert "![](" not in result[0].content
     assert "<span" not in result[0].content
@@ -534,7 +534,7 @@ def test_retrieval_service_prefers_discussion_over_abstract() -> None:
     result = service.retrieve(query="clinical usefulness and limitations", doc_id="DOC-9", limit=2)
 
     assert result[0].source == "Discussion"
-    assert result[1].source == "Abstract"
+    assert len(result) == 1
 
 
 def test_retrieval_service_suppresses_near_duplicate_parents() -> None:
@@ -694,7 +694,7 @@ def test_retrieval_service_caps_repeated_section_headers() -> None:
 
     result = service.retrieve(query="clinical usefulness", doc_id="DOC-12", limit=4)
 
-    assert [chunk.source for chunk in result] == ["Discussion", "Discussion", "Abstract"]
+    assert [chunk.source for chunk in result] == ["Discussion", "Discussion"]
 
 
 def test_retrieval_service_limits_per_document_for_cross_corpus_queries() -> None:
@@ -856,3 +856,224 @@ def test_retrieval_service_prefers_methods_for_optimization_queries() -> None:
     result = service.retrieve(query="What experimental optimization steps improved pathogen detection?", doc_id="DOC-14", limit=2)
 
     assert [chunk.source for chunk in result] == ["Methods", "Conclusion"]
+
+
+def test_retrieval_service_prefers_discussion_for_stewardship_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-15:P00001:C01",
+            content="Opening summary with enough context to survive filtering.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-15",
+                chunk_type="text",
+                parent_header="Document Metadata/Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-15:P00001",
+                    "parent_content": "Opening summary with enough context to survive filtering.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-15:P00002:C01",
+            content="Discussion of diagnostic stewardship and optimizing hospital blood culture use.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-15",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-15:P00002",
+                    "parent_content": "Discussion of diagnostic stewardship and optimizing hospital blood culture use.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="What arguments are made for optimizing blood culture use in the hospital setting?", doc_id="DOC-15", limit=2)
+
+    assert [chunk.source for chunk in result] == ["Discussion"]
+
+
+def test_retrieval_service_demotes_metadata_when_body_sections_exist() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-15B:P00001:C01",
+            content="Opening summary with enough context to survive filtering.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-15B",
+                chunk_type="text",
+                parent_header="Document Metadata/Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-15B:P00001",
+                    "parent_content": "Opening summary with enough context to survive filtering.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-15B:P00002:C01",
+            content="Introduction to optimizing blood culture use in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-15B",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-15B:P00002",
+                    "parent_content": "Introduction to optimizing blood culture use in the hospital setting.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="What arguments are made for optimizing blood culture use in the hospital setting?", doc_id="DOC-15B", limit=2)
+
+    assert [chunk.source for chunk in result] == ["Introduction"]
+
+
+def test_retrieval_service_suppresses_metadata_for_single_doc_queries_when_body_exists() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-15C:P00001:C01",
+            content="Opening summary with enough context to survive filtering.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-15C",
+                chunk_type="text",
+                parent_header="Document Metadata/Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-15C:P00001",
+                    "parent_content": "Opening summary with enough context to survive filtering.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-15C:P00002:C01",
+            content="Discussion of arguments for optimizing blood culture use in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-15C",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-15C:P00002",
+                    "parent_content": "Discussion of arguments for optimizing blood culture use in the hospital setting.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="What arguments are made for optimizing blood culture use in the hospital setting?", doc_id="DOC-15C", limit=2)
+
+    assert [chunk.source for chunk in result] == ["Discussion"]
+
+
+def test_retrieval_service_prefers_doc_title_overlap_for_cross_document_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of antimicrobial timing in a randomized clinical trial.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of antimicrobial timing in a randomized clinical trial.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of how diagnostic stewardship should optimize blood culture use in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of how diagnostic stewardship should optimize blood culture use in hospitals.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="Which documents discuss diagnostic stewardship for blood cultures?", limit=2)
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+        "Single site RCT",
+    ]
+
+
+def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-16:T00001",
+            content="Sensitivity,Specificity\n0.88,0.91",
+            metadata=ChunkMetadata(
+                doc_id="DOC-16",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=7,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Sensitivity,Specificity\n0.88,0.91",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-16:P00001:C01",
+                content="Narrative discussion explaining why the assay panel improved triage decisions in practice.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-16",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-16:P00001",
+                    "parent_content": "Narrative discussion explaining why the assay panel improved triage decisions in practice.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", doc_id="DOC-16", limit=2)
+
+    assert [chunk.chunk_type for chunk in result] == ["table", "text"]
