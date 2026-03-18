@@ -257,6 +257,13 @@ def save_uploaded_file(uploaded_file: object) -> Path:
     return destination
 
 
+def _format_runtime_error(exc: Exception) -> str:
+    message = str(exc).strip()
+    if message:
+        return message
+    return f"{exc.__class__.__name__} occurred during runtime."
+
+
 def load_registry() -> dict[str, dict[str, object]]:
     if not REGISTRY_PATH.exists():
         return {}
@@ -630,23 +637,39 @@ def main() -> None:
                 st.warning("Provide embedding credentials in the sidebar before ingesting.")
             else:
                 progress = st.progress(0.0)
+                success_count = 0
+                failed_uploads: list[str] = []
                 for index, uploaded_file in enumerate(uploaded_files, start=1):
-                    pdf_path = save_uploaded_file(uploaded_file)
-                    doc_id = pdf_path.stem
-                    with st.spinner(f"Ingesting {uploaded_file.name}"):
-                        summary = ingest_pdf(
-                            pdf_path=pdf_path,
-                            doc_id=doc_id,
-                            collection_name=collection_name,
-                            qdrant_url=qdrant_url,
-                            max_chars=int(max_chars),
-                            overlap_paragraphs=int(overlap_paragraphs),
-                            embedding_fn=embedding_fn,
-                        )
-                    st.session_state.ingested_docs[doc_id] = summary
-                    update_collection_docs(collection_name, doc_id, summary)
+                    try:
+                        pdf_path = save_uploaded_file(uploaded_file)
+                        doc_id = pdf_path.stem
+                        with st.spinner(f"Ingesting {uploaded_file.name}"):
+                            summary = ingest_pdf(
+                                pdf_path=pdf_path,
+                                doc_id=doc_id,
+                                collection_name=collection_name,
+                                qdrant_url=qdrant_url,
+                                max_chars=int(max_chars),
+                                overlap_paragraphs=int(overlap_paragraphs),
+                                embedding_fn=embedding_fn,
+                            )
+                        st.session_state.ingested_docs[doc_id] = summary
+                        update_collection_docs(collection_name, doc_id, summary)
+                        success_count += 1
+                    except Exception as exc:  # noqa: BLE001
+                        failed_uploads.append(uploaded_file.name)
+                        st.error(f"Failed to ingest {uploaded_file.name}: {_format_runtime_error(exc)}")
                     progress.progress(index / len(uploaded_files))
-                st.success("Ingestion complete.")
+
+                if success_count and not failed_uploads:
+                    st.success(f"Ingestion complete. {success_count} file(s) ingested.")
+                elif success_count and failed_uploads:
+                    st.warning(
+                        f"Ingestion finished with partial failures. "
+                        f"Successful: {success_count}. Failed: {len(failed_uploads)}."
+                    )
+                else:
+                    st.error("Ingestion failed for all uploaded files.")
 
     st.divider()
     render_knowledge_base_summary()
