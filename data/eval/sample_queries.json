@@ -17,6 +17,14 @@
   },
   {
     "id": "Q03",
+    "query": "What conclusions are drawn about the clinical usefulness of PCR/ESI-MS in BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "Conclusion-heavy BAL query."
+  },
+  {
+    "id": "Q04",
     "query": "Which lipid biomarkers differentiated positive and negative cultures?",
     "doc_id": "Culture-Free Lipidomics-Based Screening Test",
     "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
@@ -24,15 +32,24 @@
     "notes": "Refine expected evidence after first manual review."
   },
   {
-    "id": "Q04",
+    "id": "Q05",
     "query": "What sensitivity or specificity findings are reported for the screening approach?",
     "doc_id": "Culture-Free Lipidomics-Based Screening Test",
     "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
     "expected_headers": ["Results", "Discussion"],
-    "notes": "Table-oriented query. Compare include_tables on and off."
+    "include_tables": true,
+    "notes": "Table-oriented query. Keep table mode on for this case."
   },
   {
-    "id": "Q05",
+    "id": "Q06",
+    "query": "What experimental optimization steps improved pathogen detection before clinical validation?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Methods", "Results", "Discussion"],
+    "notes": "Harder section-balance query for optimization content."
+  },
+  {
+    "id": "Q07",
     "query": "What were the main clinical outcomes in the single-site randomized trial?",
     "doc_id": "Single site RCT",
     "expected_docs": ["Single site RCT"],
@@ -40,7 +57,15 @@
     "notes": "Good for checking prose-first retrieval against outcome questions."
   },
   {
-    "id": "Q06",
+    "id": "Q08",
+    "query": "What outcome differences were reported between patient groups in the single-site randomized trial?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "More specific trial-outcomes variant."
+  },
+  {
+    "id": "Q09",
     "query": "What conclusions were drawn about the RAPID test performance?",
     "doc_id": "RAPID",
     "expected_docs": ["RAPID"],
@@ -48,17 +73,57 @@
     "notes": "Good check for conclusion-heavy ranking."
   },
   {
-    "id": "Q07",
+    "id": "Q10",
+    "query": "What evidence is presented for RAPID test diagnostic performance in the results?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "Results-focused RAPID query."
+  },
+  {
+    "id": "Q11",
     "query": "Which documents discuss diagnostic stewardship for blood cultures?",
     "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
     "expected_headers": ["Discussion", "Conclusion", "Introduction"],
     "notes": "Cross-document retrieval with a specific paper target."
   },
   {
-    "id": "Q8",
+    "id": "Q12",
+    "query": "What arguments are made for optimizing blood culture use in the hospital setting?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
+    "notes": "Single-document stewardship query."
+  },
+  {
+    "id": "Q13",
     "query": "What does the review say about blood culture-negative endocarditis laboratory diagnosis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
     "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
     "expected_headers": ["Abstract", "Discussion", "Introduction"],
     "notes": "Review-style query that may surface abstract content."
+  },
+  {
+    "id": "Q14",
+    "query": "Which laboratory approaches are reviewed for diagnosing blood culture-negative endocarditis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "notes": "Review-methods and overview style query."
+  },
+  {
+    "id": "Q15",
+    "query": "Across the indexed studies, which papers report diagnostic performance outcomes for rapid testing?",
+    "expected_docs": ["BAL SM", "RAPID", "Single site RCT"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "notes": "Cross-document precision check over multiple expected docs."
+  },
+  {
+    "id": "Q16",
+    "query": "Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Cross-document table-oriented retrieval case."
   }
 ]

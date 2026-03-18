@@ -3,13 +3,19 @@
 A modular Retrieval-Augmented Generation (RAG) system for medical research PDFs. The current implementation ingests PDFs, extracts narrative text and tables, normalizes tabular artifacts, chunks documents in a structure-aware way, stores chunks in Qdrant, retrieves evidence from the knowledge base, and optionally synthesizes research answers with an LLM.
 
 Current benchmark status:
-- starter retrieval benchmark is passing on the current eight-query evaluation set
+- retrieval is now tracked on a 16-query benchmark with stricter top-1 and precision metrics
 - expected doc hit rate: `1.0`
-- expected header hit rate: `1.0`
+- expected header hit rate: `0.9375`
+- top-1 expected doc hit rate: `0.875`
+- top-1 expected header hit rate: `0.8125`
+- average doc precision: `0.9187`
+- average header precision: `0.5802`
+- cross-document average doc precision: `0.5667`
 - citation noise queries: `0`
 - table-hit queries: `0`
 - non-structural header queries: `0`
-- next benchmark work is expanding coverage and adding stricter quality metrics
+- current ranking direction is query-aware section weighting plus stricter cross-document diversity
+- next benchmark work is fixing the remaining targeted misses and expanding coverage again
 
 ## What It Does
 
@@ -303,6 +309,7 @@ Export stored chunks from Qdrant for validation:
 ## Current Limitations
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
+- a few review, stewardship, and cross-document table-oriented queries still miss the ideal top-1 result
 - Marker output quality depends on the document layout and OCR quality
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally

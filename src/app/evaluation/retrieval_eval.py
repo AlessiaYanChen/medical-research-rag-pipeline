@@ -16,6 +16,7 @@ class EvaluationQuery:
     doc_id: str | None = None
     expected_docs: tuple[str, ...] = ()
     expected_headers: tuple[str, ...] = ()
+    include_tables: bool | None = None
     notes: str = ""
 
 
@@ -37,6 +38,7 @@ def load_evaluation_queries(path: str | Path) -> list[EvaluationQuery]:
         doc_id = str(item.get("doc_id", "")).strip() or None
         expected_docs = tuple(_normalize_expected_list(item.get("expected_docs")))
         expected_headers = tuple(_normalize_expected_list(item.get("expected_headers")))
+        include_tables = _normalize_optional_bool(item.get("include_tables"))
         notes = str(item.get("notes", "")).strip()
         queries.append(
             EvaluationQuery(
@@ -45,6 +47,7 @@ def load_evaluation_queries(path: str | Path) -> list[EvaluationQuery]:
                 doc_id=doc_id,
                 expected_docs=expected_docs,
                 expected_headers=expected_headers,
+                include_tables=include_tables,
                 notes=notes,
             )
         )
@@ -55,12 +58,26 @@ def evaluate_retrieval_results(query: EvaluationQuery, chunks: list[RetrievedChu
     result_docs = [chunk.doc_id for chunk in chunks]
     result_headers = [chunk.source for chunk in chunks]
     result_contents = [chunk.content for chunk in chunks]
+    expected_doc_set = {doc.lower() for doc in query.expected_docs}
+    expected_header_set = {_normalize_header(expected) for expected in query.expected_headers}
 
-    expected_doc_hit = True if not query.expected_docs else any(doc in query.expected_docs for doc in result_docs)
+    expected_doc_hit = True if not query.expected_docs else any(doc.lower() in expected_doc_set for doc in result_docs)
     expected_header_hit = True if not query.expected_headers else any(
-        _normalize_header(header) in {_normalize_header(expected) for expected in query.expected_headers}
+        _normalize_header(header) in expected_header_set
         for header in result_headers
     )
+    top1_expected_doc_hit = True if not query.expected_docs else bool(result_docs and result_docs[0].lower() in expected_doc_set)
+    top1_expected_header_hit = True if not query.expected_headers else bool(
+        result_headers and _normalize_header(result_headers[0]) in expected_header_set
+    )
+    doc_precision = _safe_ratio(
+        sum(1 for doc in result_docs if doc.lower() in expected_doc_set),
+        len(result_docs),
+    ) if query.expected_docs else None
+    header_precision = _safe_ratio(
+        sum(1 for header in result_headers if _normalize_header(header) in expected_header_set),
+        len(result_headers),
+    ) if query.expected_headers else None
 
     table_hits = sum(1 for chunk in chunks if chunk.chunk_type == "table" or chunk.content_role == "table")
     citation_noise_hits = sum(1 for content in result_contents if _looks_citation_heavy(content))
@@ -73,12 +90,17 @@ def evaluate_retrieval_results(query: EvaluationQuery, chunks: list[RetrievedChu
         "doc_filter": query.doc_id or "",
         "expected_docs": list(query.expected_docs),
         "expected_headers": list(query.expected_headers),
+        "include_tables": query.include_tables,
         "notes": query.notes,
         "result_count": len(chunks),
         "result_docs": result_docs,
         "result_headers": result_headers,
         "expected_doc_hit": expected_doc_hit,
         "expected_header_hit": expected_header_hit,
+        "top1_expected_doc_hit": top1_expected_doc_hit,
+        "top1_expected_header_hit": top1_expected_header_hit,
+        "doc_precision": doc_precision,
+        "header_precision": header_precision,
         "table_hits": table_hits,
         "citation_noise_hits": citation_noise_hits,
         "duplicate_hits": duplicate_hits,
@@ -95,10 +117,18 @@ def build_summary(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
         "queries_total": total_queries,
         "expected_doc_hit_rate": _safe_ratio(sum(1 for item in evaluations if item["expected_doc_hit"]), total_queries),
         "expected_header_hit_rate": _safe_ratio(sum(1 for item in evaluations if item["expected_header_hit"]), total_queries),
+        "top1_expected_doc_hit_rate": _safe_ratio(sum(1 for item in evaluations if item["top1_expected_doc_hit"]), total_queries),
+        "top1_expected_header_hit_rate": _safe_ratio(sum(1 for item in evaluations if item["top1_expected_header_hit"]), total_queries),
+        "average_doc_precision": _average_optional(item["doc_precision"] for item in evaluations),
+        "average_header_precision": _average_optional(item["header_precision"] for item in evaluations),
         "queries_with_citation_noise": sum(1 for item in evaluations if item["citation_noise_hits"] > 0),
         "queries_with_table_hits": sum(1 for item in evaluations if item["table_hits"] > 0),
         "queries_with_duplicate_hits": sum(1 for item in evaluations if item["duplicate_hits"] > 0),
         "queries_with_non_structural_headers": sum(1 for item in evaluations if item["non_structural_header_hits"] > 0),
+        "cross_document_queries": sum(1 for item in evaluations if not item["doc_filter"]),
+        "cross_document_average_doc_precision": _average_optional(
+            item["doc_precision"] for item in evaluations if not item["doc_filter"]
+        ),
         "total_table_hits": sum(int(item["table_hits"]) for item in evaluations),
         "total_citation_noise_hits": sum(int(item["citation_noise_hits"]) for item in evaluations),
         "total_duplicate_hits": sum(int(item["duplicate_hits"]) for item in evaluations),
@@ -118,6 +148,21 @@ def _safe_ratio(numerator: int, denominator: int) -> float:
     if denominator == 0:
         return 0.0
     return round(numerator / denominator, 4)
+
+
+def _average_optional(values: Any) -> float | None:
+    filtered = [float(value) for value in values if value is not None]
+    if not filtered:
+        return None
+    return round(sum(filtered) / len(filtered), 4)
+
+
+def _normalize_optional_bool(value: Any) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    raise ValueError("Optional boolean fields must be true, false, or omitted.")
 
 
 def _looks_citation_heavy(text: str) -> bool:

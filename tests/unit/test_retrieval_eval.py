@@ -22,6 +22,7 @@ def test_load_evaluation_queries_reads_expected_fields(tmp_path: Path) -> None:
                     "doc_id": "DOC-1",
                     "expected_docs": ["DOC-1"],
                     "expected_headers": ["Discussion", "Conclusion"],
+                    "include_tables": True,
                     "notes": "starter",
                 }
             ]
@@ -36,6 +37,7 @@ def test_load_evaluation_queries_reads_expected_fields(tmp_path: Path) -> None:
     assert queries[0].doc_id == "DOC-1"
     assert queries[0].expected_docs == ("DOC-1",)
     assert queries[0].expected_headers == ("Discussion", "Conclusion")
+    assert queries[0].include_tables is True
 
 
 def test_evaluate_retrieval_results_counts_noise_and_duplicates(tmp_path: Path) -> None:
@@ -81,6 +83,10 @@ def test_evaluate_retrieval_results_counts_noise_and_duplicates(tmp_path: Path) 
 
     assert evaluation["expected_doc_hit"] is True
     assert evaluation["expected_header_hit"] is True
+    assert evaluation["top1_expected_doc_hit"] is True
+    assert evaluation["top1_expected_header_hit"] is True
+    assert evaluation["doc_precision"] == 1.0
+    assert evaluation["header_precision"] == 0.6667
     assert evaluation["citation_noise_hits"] == 1
     assert evaluation["duplicate_hits"] == 1
     assert evaluation["non_structural_header_hits"] == 1
@@ -93,18 +99,28 @@ def test_build_summary_aggregates_query_metrics() -> None:
             {
                 "expected_doc_hit": True,
                 "expected_header_hit": True,
+                "top1_expected_doc_hit": True,
+                "top1_expected_header_hit": True,
+                "doc_precision": 1.0,
+                "header_precision": 1.0,
                 "citation_noise_hits": 0,
                 "table_hits": 0,
                 "duplicate_hits": 0,
                 "non_structural_header_hits": 0,
+                "doc_filter": "DOC-1",
             },
             {
                 "expected_doc_hit": False,
                 "expected_header_hit": True,
+                "top1_expected_doc_hit": False,
+                "top1_expected_header_hit": False,
+                "doc_precision": 0.25,
+                "header_precision": 0.5,
                 "citation_noise_hits": 2,
                 "table_hits": 1,
                 "duplicate_hits": 1,
                 "non_structural_header_hits": 2,
+                "doc_filter": "",
             },
         ]
     )
@@ -112,11 +128,17 @@ def test_build_summary_aggregates_query_metrics() -> None:
     assert summary["queries_total"] == 2
     assert summary["expected_doc_hit_rate"] == 0.5
     assert summary["expected_header_hit_rate"] == 1.0
+    assert summary["top1_expected_doc_hit_rate"] == 0.5
+    assert summary["top1_expected_header_hit_rate"] == 0.5
+    assert summary["average_doc_precision"] == 0.625
+    assert summary["average_header_precision"] == 0.75
     assert summary["queries_with_citation_noise"] == 1
     assert summary["queries_with_table_hits"] == 1
     assert summary["queries_with_duplicate_hits"] == 1
     assert summary["queries_with_non_structural_headers"] == 1
     assert summary["total_non_structural_header_hits"] == 2
+    assert summary["cross_document_queries"] == 1
+    assert summary["cross_document_average_doc_precision"] == 0.25
 
 
 def _write_dataset(tmp_path: Path, payload: list[dict[str, object]]) -> Path:

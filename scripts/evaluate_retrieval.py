@@ -137,8 +137,13 @@ def write_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
         "query_id",
         "query",
         "doc_filter",
+        "include_tables",
         "expected_doc_hit",
         "expected_header_hit",
+        "top1_expected_doc_hit",
+        "top1_expected_header_hit",
+        "doc_precision",
+        "header_precision",
         "result_count",
         "table_hits",
         "citation_noise_hits",
@@ -162,8 +167,13 @@ def write_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
                     "query_id": row["query_id"],
                     "query": row["query"],
                     "doc_filter": row["doc_filter"],
+                    "include_tables": row["include_tables"],
                     "expected_doc_hit": row["expected_doc_hit"],
                     "expected_header_hit": row["expected_header_hit"],
+                    "top1_expected_doc_hit": row["top1_expected_doc_hit"],
+                    "top1_expected_header_hit": row["top1_expected_header_hit"],
+                    "doc_precision": row["doc_precision"],
+                    "header_precision": row["header_precision"],
                     "result_count": row["result_count"],
                     "table_hits": row["table_hits"],
                     "citation_noise_hits": row["citation_noise_hits"],
@@ -209,16 +219,15 @@ def main() -> int:
         embedding_fn=embedding_fn,
     )
     re_ranker = TransformersReRanker(model_name=args.reranker_model) if args.use_reranker else None
-    retrieval_service = RetrievalService(
-        repo=repository,
-        embedding_fn=embedding_fn,
-        re_ranker=re_ranker,
-        include_tables=args.include_tables,
-    )
-
     query_evaluations: list[dict[str, Any]] = []
     detailed_results: list[dict[str, Any]] = []
     for query in queries:
+        retrieval_service = RetrievalService(
+            repo=repository,
+            embedding_fn=embedding_fn,
+            re_ranker=re_ranker,
+            include_tables=args.include_tables if query.include_tables is None else query.include_tables,
+        )
         retrieved_chunks = retrieval_service.retrieve(
             query=query.query,
             doc_id=query.doc_id,
@@ -233,6 +242,7 @@ def main() -> int:
                 "doc_filter": query.doc_id,
                 "expected_docs": list(query.expected_docs),
                 "expected_headers": list(query.expected_headers),
+                "include_tables": query.include_tables,
                 "notes": query.notes,
                 "evaluation": evaluation,
                 "results": [
@@ -270,9 +280,14 @@ def main() -> int:
     print(f"Queries evaluated: {len(queries)}")
     print(f"Expected doc hit rate: {summary['expected_doc_hit_rate']}")
     print(f"Expected header hit rate: {summary['expected_header_hit_rate']}")
+    print(f"Top-1 expected doc hit rate: {summary['top1_expected_doc_hit_rate']}")
+    print(f"Top-1 expected header hit rate: {summary['top1_expected_header_hit_rate']}")
+    print(f"Average doc precision: {summary['average_doc_precision']}")
+    print(f"Average header precision: {summary['average_header_precision']}")
     print(f"Queries with citation noise: {summary['queries_with_citation_noise']}")
     print(f"Queries with table hits: {summary['queries_with_table_hits']}")
     print(f"Queries with non-structural headers: {summary['queries_with_non_structural_headers']}")
+    print(f"Cross-document average doc precision: {summary['cross_document_average_doc_precision']}")
     print(f"JSON output: {Path(args.json_out)}")
     print(f"CSV output: {Path(args.csv_out)}")
     return 0

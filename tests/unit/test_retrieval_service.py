@@ -8,13 +8,17 @@ class FakeVectorRepository:
     def __init__(self, chunks: list[Chunk]) -> None:
         self._chunks = chunks
         self.last_search_args: tuple[list[float], str | None, int] | None = None
+        self.search_calls: list[tuple[list[float], str | None, int]] = []
 
     def upsert_chunks(self, chunks: list[Chunk]) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def search(self, vector: list[float], doc_id: str | None = None, limit: int = 5) -> list[Chunk]:
         self.last_search_args = (vector, doc_id, limit)
-        return self._chunks[:limit]
+        self.search_calls.append((vector, doc_id, limit))
+        if doc_id is None:
+            return self._chunks[:limit]
+        return [chunk for chunk in self._chunks if chunk.metadata.doc_id == doc_id][:limit]
 
 
 class FakeReRanker:
@@ -114,7 +118,7 @@ def test_retrieval_service_can_query_entire_knowledge_base() -> None:
 
     result = service.retrieve(query="biomarker", limit=1)
 
-    assert repo.last_search_args == ([0.1, 0.2, 0.3], None, 20)
+    assert repo.search_calls[0] == ([0.1, 0.2, 0.3], None, 40)
     assert result[0].doc_id == "DOC-A"
 
 
@@ -765,4 +769,90 @@ def test_retrieval_service_limits_per_document_for_cross_corpus_queries() -> Non
 
     result = service.retrieve(query="clinical utility", limit=4)
 
-    assert [chunk.doc_id for chunk in result] == ["DOC-A", "DOC-A", "DOC-B"]
+    assert [chunk.doc_id for chunk in result] == ["DOC-A", "DOC-B"]
+
+
+def test_retrieval_service_prefers_results_for_performance_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-13:P00001:C01",
+            content="Conclusion summary with enough detail to survive filtering.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13",
+                chunk_type="text",
+                parent_header="Conclusion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13:P00001",
+                    "parent_content": "Conclusion summary with enough detail to survive filtering.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13:P00002:C01",
+            content="Results evidence describing sensitivity and specificity findings in detail.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13:P00002",
+                    "parent_content": "Results evidence describing sensitivity and specificity findings in detail.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="What sensitivity and specificity findings are reported?", doc_id="DOC-13", limit=2)
+
+    assert [chunk.source for chunk in result] == ["Results", "Conclusion"]
+
+
+def test_retrieval_service_prefers_methods_for_optimization_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-14:P00001:C01",
+            content="Conclusion summary with enough detail to survive filtering.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-14",
+                chunk_type="text",
+                parent_header="Conclusion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14:P00001",
+                    "parent_content": "Conclusion summary with enough detail to survive filtering.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-14:P00002:C01",
+            content="Methods evidence describing optimization steps before clinical validation.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-14",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14:P00002",
+                    "parent_content": "Methods evidence describing optimization steps before clinical validation.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="What experimental optimization steps improved pathogen detection?", doc_id="DOC-14", limit=2)
+
+    assert [chunk.source for chunk in result] == ["Methods", "Conclusion"]

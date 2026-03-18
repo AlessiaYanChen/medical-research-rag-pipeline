@@ -41,12 +41,12 @@ class RetrievalService:
 
     def retrieve(self, query: str, doc_id: str | None = None, limit: int = 5) -> list[RetrievedChunk]:
         query_vector = self._embedding_fn([query])[0]
-        initial_limit = max(limit * 4, 20)
+        initial_limit = max(limit * 4, 20) if doc_id is not None else max(limit * 8, 40)
         initial_chunks = self._repo.search(query_vector, doc_id=doc_id, limit=initial_limit)
         filtered_initial_chunks = self._filter_chunks(query=query, chunks=initial_chunks)
         candidate_limit = max(limit * 4, 20)
         chunks = self._select_candidate_chunks(query=query, initial_chunks=filtered_initial_chunks, candidate_limit=candidate_limit)
-        ranked_chunks = self._rank_chunks(chunks)
+        ranked_chunks = self._rank_chunks(query=query, chunks=chunks)
 
         retrieved_chunks: list[RetrievedChunk] = []
         seen_parent_ids: set[str] = set()
@@ -70,6 +70,7 @@ class RetrievalService:
                 doc_counts=doc_counts,
                 doc_filter=doc_id,
                 limit=limit,
+                selected_count=len(retrieved_chunks),
             ):
                 continue
 
@@ -102,8 +103,8 @@ class RetrievalService:
             for chunk in chunks
         )
 
-    def _rank_chunks(self, chunks: list[Chunk]) -> list[Chunk]:
-        return sorted(chunks, key=self._chunk_priority, reverse=True)
+    def _rank_chunks(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
+        return sorted(chunks, key=lambda chunk: self._chunk_priority(query, chunk), reverse=True)
 
     def _passes_diversity_limits(
         self,
@@ -112,6 +113,7 @@ class RetrievalService:
         doc_counts: dict[str, int],
         doc_filter: str | None,
         limit: int,
+        selected_count: int,
     ) -> bool:
         header_key = self._normalize_header_key(self._header_for_display(chunk))
         if header_counts.get(header_key, 0) >= self._max_chunks_for_header(header_key):
@@ -121,7 +123,7 @@ class RetrievalService:
             return True
 
         doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
-        return doc_counts.get(doc_key, 0) < self._max_chunks_for_doc(limit)
+        return doc_counts.get(doc_key, 0) < self._max_chunks_for_doc(limit=limit, selected_count=selected_count)
 
     def _select_candidate_chunks(
         self,
@@ -212,10 +214,13 @@ class RetrievalService:
         score = sum(1 for pattern in patterns if re.search(pattern, normalized))
         return score >= 2
 
-    def _chunk_priority(self, chunk: Chunk) -> tuple[int, int]:
+    def _chunk_priority(self, query: str, chunk: Chunk) -> tuple[int, int, int]:
+        query_profile = self._query_section_profile(query)
         header = self._header_for_ranking(chunk).lower()
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
         header_bonus = 0
+        if "document metadata/abstract" in header:
+            header_bonus -= 3
         if "conclusion" in header:
             header_bonus += 4
         if "result" in header:
@@ -226,12 +231,45 @@ class RetrievalService:
             header_bonus -= 1
         if "method" in header:
             header_bonus -= 1
+        if "introduction" in header:
+            header_bonus -= 1
+
+        for section, bonus in query_profile.items():
+            if section in header:
+                header_bonus += bonus
+
         role_bonus = 0
         if content_role == "table":
-            role_bonus -= 2
+            role_bonus += 3 if self._query_prefers_tables(query) else -2
         if content_role == "child":
             role_bonus += 1
-        return (header_bonus, role_bonus)
+        if content_role == "table" and not self._query_prefers_tables(query):
+            role_bonus -= 1
+        body_bonus = 0 if "document metadata/abstract" in header else 1
+        return (header_bonus, role_bonus, body_bonus)
+
+    @staticmethod
+    def _query_section_profile(query: str) -> dict[str, int]:
+        normalized = query.lower()
+        bonuses: dict[str, int] = {}
+
+        def add_bonus(sections: tuple[str, ...], value: int) -> None:
+            for section in sections:
+                bonuses[section] = bonuses.get(section, 0) + value
+
+        if any(token in normalized for token in ("performance", "sensitivity", "specificity", "findings", "result", "outcome", "outcomes", "data", "diagnostic performance")):
+            add_bonus(("result", "results"), 3)
+        if any(token in normalized for token in ("optimization", "optimiz", "method", "methods", "experimental", "assay", "protocol")):
+            add_bonus(("method", "methods", "materials and methods"), 4)
+            add_bonus(("result", "results"), 1)
+        if any(token in normalized for token in ("limitation", "limitations", "caveat", "caveats", "implication", "implications", "conclusion", "conclusions", "usefulness", "clinical usefulness")):
+            add_bonus(("discussion", "conclusion"), 3)
+        if any(token in normalized for token in ("review", "overview", "what does the review say", "approaches", "arguments")):
+            add_bonus(("introduction", "discussion", "summary", "abstract"), 2)
+            add_bonus(("conclusion",), -1)
+        if RetrievalService._query_prefers_tables(query):
+            add_bonus(("result", "results"), 2)
+        return bonuses
 
     @staticmethod
     def _normalize_header_key(header: str) -> str:
@@ -255,7 +293,11 @@ class RetrievalService:
         return 1
 
     @staticmethod
-    def _max_chunks_for_doc(limit: int) -> int:
+    def _max_chunks_for_doc(limit: int, selected_count: int) -> int:
+        if limit <= 3:
+            return 1
+        if selected_count < 3:
+            return 1
         return max(1, min(2, limit))
 
     @staticmethod
