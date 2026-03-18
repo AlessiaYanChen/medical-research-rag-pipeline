@@ -12,6 +12,7 @@ class UnifiedChunker:
     """Chunk mixed markdown + table artifacts into a unified sequence of Chunk models."""
 
     DEFAULT_OPENING_HEADER = "Document Metadata/Abstract"
+    DEFAULT_OPENING_HEADER_ROLE = "opening_metadata"
 
     def __init__(
         self,
@@ -46,10 +47,15 @@ class UnifiedChunker:
         chunks: list[Chunk] = []
         parent_counter = 0
         active_header = self.DEFAULT_OPENING_HEADER
+        active_original_header = self.DEFAULT_OPENING_HEADER
+        active_header_role = self.DEFAULT_OPENING_HEADER_ROLE
         active_section_role = self._classify_section_role(active_header)
+        active_structural_header = self.DEFAULT_OPENING_HEADER
         table_index = 0
         pending_paragraphs: list[str] = []
         pending_header = active_header
+        pending_original_header = active_original_header
+        pending_header_role = active_header_role
         first_structural_header_seen = False
 
         for block in blocks:
@@ -62,24 +68,36 @@ class UnifiedChunker:
                 built_chunks, parent_counter = self._build_text_chunks(
                     doc_id=doc_id,
                     parent_header=pending_header,
+                    original_parent_header=pending_original_header,
+                    header_role=pending_header_role,
                     paragraphs=pending_paragraphs,
                     parent_id_start=parent_counter + 1,
                 )
                 chunks.extend(built_chunks)
                 pending_paragraphs = []
-                active_header = self._normalize_header(
+                resolved_header = self._resolve_header_context(
                     header=header,
+                    active_structural_header=active_structural_header,
                     is_first_header=not first_structural_header_seen,
                 )
+                active_header = resolved_header["normalized_header"]
+                active_original_header = resolved_header["original_header"]
+                active_header_role = resolved_header["header_role"]
+                active_structural_header = resolved_header["active_structural_header"]
                 active_section_role = self._classify_section_role(active_header)
                 pending_header = active_header
-                first_structural_header_seen = True
+                pending_original_header = active_original_header
+                pending_header_role = active_header_role
+                if resolved_header["is_structural"]:
+                    first_structural_header_seen = True
                 continue
 
             if self._is_table_block(stripped):
                 built_chunks, parent_counter = self._build_text_chunks(
                     doc_id=doc_id,
                     parent_header=pending_header,
+                    original_parent_header=pending_original_header,
+                    header_role=pending_header_role,
                     paragraphs=pending_paragraphs,
                     parent_id_start=parent_counter + 1,
                 )
@@ -98,6 +116,8 @@ class UnifiedChunker:
                         source_file=source_file,
                         table_index=table_index,
                         parent_header=active_header,
+                        original_parent_header=active_original_header,
+                        header_role=active_header_role,
                         table_artifact=artifact,
                         section_role=active_section_role,
                     )
@@ -117,6 +137,8 @@ class UnifiedChunker:
                     source_file=source_file,
                     table_index=table_index,
                     parent_header=active_header,
+                    original_parent_header=active_original_header,
+                    header_role=active_header_role,
                     table_artifact=table_artifacts[table_index - 1],
                     section_role=active_section_role,
                 )
@@ -125,6 +147,8 @@ class UnifiedChunker:
         built_chunks, parent_counter = self._build_text_chunks(
             doc_id=doc_id,
             parent_header=pending_header,
+            original_parent_header=pending_original_header,
+            header_role=pending_header_role,
             paragraphs=pending_paragraphs,
             parent_id_start=parent_counter + 1,
         )
@@ -201,6 +225,49 @@ class UnifiedChunker:
             return cls.DEFAULT_OPENING_HEADER
         return cleaned
 
+    @classmethod
+    def _resolve_header_context(
+        cls,
+        header: str,
+        active_structural_header: str,
+        is_first_header: bool,
+    ) -> dict[str, Any]:
+        cleaned = header.strip()
+        if not cleaned:
+            return {
+                "normalized_header": cls.DEFAULT_OPENING_HEADER,
+                "original_header": cls.DEFAULT_OPENING_HEADER,
+                "header_role": cls.DEFAULT_OPENING_HEADER_ROLE,
+                "active_structural_header": active_structural_header,
+                "is_structural": False,
+            }
+
+        if cls._looks_like_structural_header(cleaned):
+            return {
+                "normalized_header": cleaned,
+                "original_header": cleaned,
+                "header_role": "structural",
+                "active_structural_header": cleaned,
+                "is_structural": True,
+            }
+
+        if is_first_header:
+            return {
+                "normalized_header": cls.DEFAULT_OPENING_HEADER,
+                "original_header": cleaned,
+                "header_role": cls._classify_non_structural_header(cleaned),
+                "active_structural_header": active_structural_header,
+                "is_structural": False,
+            }
+
+        return {
+            "normalized_header": active_structural_header or cls.DEFAULT_OPENING_HEADER,
+            "original_header": cleaned,
+            "header_role": cls._classify_non_structural_header(cleaned),
+            "active_structural_header": active_structural_header or cls.DEFAULT_OPENING_HEADER,
+            "is_structural": False,
+        }
+
     @staticmethod
     def _is_table_block(block: str) -> bool:
         lines = [line.strip() for line in block.splitlines() if line.strip()]
@@ -215,6 +282,8 @@ class UnifiedChunker:
         self,
         doc_id: str,
         parent_header: str,
+        original_parent_header: str,
+        header_role: str,
         paragraphs: list[str],
         parent_id_start: int,
     ) -> tuple[list[Chunk], int]:
@@ -248,6 +317,8 @@ class UnifiedChunker:
                     parent_id=parent_id,
                     parent_content=parent_content,
                     parent_header=parent_header,
+                    original_parent_header=original_parent_header,
+                    header_role=header_role,
                     section_role=self._classify_section_role(parent_header),
                     content_role=self._classify_parent_content_role(parent_header, parent_content),
                 )
@@ -266,6 +337,8 @@ class UnifiedChunker:
         parent_id: str,
         parent_content: str,
         parent_header: str,
+        original_parent_header: str,
+        header_role: str,
         section_role: str,
         content_role: str,
     ) -> list[Chunk]:
@@ -287,6 +360,10 @@ class UnifiedChunker:
                     extra={
                         "content_role": content_role,
                         "section_role": section_role,
+                        "original_parent_header": original_parent_header,
+                        "normalized_parent_header": parent_header,
+                        "header_role": header_role,
+                        "is_low_value": header_role == "citation_like",
                         "parent_id": parent_id,
                         "parent_content": parent_content,
                         "parent_sentences": sentences,
@@ -306,6 +383,8 @@ class UnifiedChunker:
         source_file: str,
         table_index: int,
         parent_header: str,
+        original_parent_header: str,
+        header_role: str,
         table_artifact: dict[str, Any],
         section_role: str,
     ) -> Chunk:
@@ -333,6 +412,10 @@ class UnifiedChunker:
                 extra={
                     "content_role": table_role,
                     "section_role": section_role,
+                    "original_parent_header": original_parent_header,
+                    "normalized_parent_header": parent_header,
+                    "header_role": header_role,
+                    "is_low_value": header_role == "citation_like",
                 },
             ),
         )
@@ -429,6 +512,20 @@ class UnifiedChunker:
             "data availability",
         )
         return any(token in normalized for token in known_tokens)
+
+    @staticmethod
+    def _classify_non_structural_header(header: str) -> str:
+        normalized = header.strip()
+        normalized_lower = normalized.lower()
+        if not normalized:
+            return "opening_metadata"
+        if re.search(r"\b(editorial commentary|commentary by|clinical infectious diseases|doi[:/]|vol(?:ume)?\b|issue\b)\b", normalized_lower):
+            return "citation_like"
+        if len(normalized.split()) <= 4 and re.fullmatch(r"[A-Za-z0-9&/\- ]+", normalized):
+            return "subsection"
+        if normalized.isupper() and len(normalized.split()) <= 8:
+            return "subsection"
+        return "title_like"
 
     @staticmethod
     def _classify_section_role(header: str) -> str:

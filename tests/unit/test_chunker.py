@@ -178,4 +178,59 @@ Discussion evidence follows after the opening summary.
     text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
     assert text_chunks[0].metadata.parent_header == UnifiedChunker.DEFAULT_OPENING_HEADER
     assert text_chunks[0].metadata.extra["section_role"] == "body"
+    assert text_chunks[0].metadata.extra["original_parent_header"] == "Blood Culture Negative Endocarditis: A Review of Laboratory Diagnostic Approaches"
+    assert text_chunks[0].metadata.extra["normalized_parent_header"] == UnifiedChunker.DEFAULT_OPENING_HEADER
+    assert text_chunks[0].metadata.extra["header_role"] == "title_like"
     assert text_chunks[1].metadata.parent_header == "Discussion"
+
+
+def test_unified_chunker_collapses_subsection_header_to_active_structural_header() -> None:
+    markdown = """# Results
+
+Lead results paragraph.
+
+## Clinical Validation
+
+Clinical validation details remain under the Results umbrella for retrieval.
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-006",
+        source_file="study.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    subsection_chunk = text_chunks[1]
+    assert subsection_chunk.metadata.parent_header == "Results"
+    assert subsection_chunk.metadata.extra["original_parent_header"] == "Clinical Validation"
+    assert subsection_chunk.metadata.extra["normalized_parent_header"] == "Results"
+    assert subsection_chunk.metadata.extra["header_role"] == "subsection"
+
+
+def test_unified_chunker_marks_citation_like_header_as_low_value() -> None:
+    markdown = """# Discussion
+
+Main discussion summary.
+
+## Clinical Infectious Diseases 2015;61(7):1071-80
+
+Editorial or citation-like content under a citation-style header.
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-007",
+        source_file="study.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    citation_chunk = text_chunks[1]
+    assert citation_chunk.metadata.parent_header == "Discussion"
+    assert citation_chunk.metadata.extra["original_parent_header"] == "Clinical Infectious Diseases 2015;61(7):1071-80"
+    assert citation_chunk.metadata.extra["header_role"] == "citation_like"
+    assert citation_chunk.metadata.extra["is_low_value"] is True

@@ -75,13 +75,14 @@ class RetrievalService:
 
             seen_parent_ids.add(parent_id)
             selected_contents.append(cleaned_content)
-            header_key = self._normalize_header_key(chunk.metadata.parent_header)
+            display_header = self._header_for_display(chunk)
+            header_key = self._normalize_header_key(display_header)
             header_counts[header_key] = header_counts.get(header_key, 0) + 1
             doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
             doc_counts[doc_key] = doc_counts.get(doc_key, 0) + 1
             retrieved_chunks.append(
                 RetrievedChunk(
-                    source=self._clean_markdown(chunk.metadata.parent_header),
+                    source=display_header,
                     doc_id=self._clean_markdown(chunk.metadata.doc_id),
                     content=cleaned_content,
                     chunk_type=chunk.metadata.chunk_type,
@@ -112,7 +113,7 @@ class RetrievalService:
         doc_filter: str | None,
         limit: int,
     ) -> bool:
-        header_key = self._normalize_header_key(chunk.metadata.parent_header)
+        header_key = self._normalize_header_key(self._header_for_display(chunk))
         if header_counts.get(header_key, 0) >= self._max_chunks_for_header(header_key):
             return False
 
@@ -143,7 +144,7 @@ class RetrievalService:
         for chunk in chunks:
             content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
             section_role = str(chunk.metadata.extra.get("section_role", "body"))
-            parent_header = self._clean_markdown(chunk.metadata.parent_header)
+            parent_header = self._header_for_display(chunk)
             parent_content = str(chunk.metadata.extra.get("parent_content", chunk.content))
             normalized_parent = self._clean_markdown(parent_content)
 
@@ -212,7 +213,7 @@ class RetrievalService:
         return score >= 2
 
     def _chunk_priority(self, chunk: Chunk) -> tuple[int, int]:
-        header = self._clean_markdown(chunk.metadata.parent_header).lower()
+        header = self._header_for_ranking(chunk).lower()
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
         header_bonus = 0
         if "conclusion" in header:
@@ -236,6 +237,14 @@ class RetrievalService:
     def _normalize_header_key(header: str) -> str:
         normalized = RetrievalService._clean_markdown(header).lower()
         return normalized or "unknown"
+
+    def _header_for_display(self, chunk: Chunk) -> str:
+        normalized_header = str(chunk.metadata.extra.get("normalized_parent_header", chunk.metadata.parent_header))
+        return self._clean_markdown(normalized_header)
+
+    def _header_for_ranking(self, chunk: Chunk) -> str:
+        normalized_header = str(chunk.metadata.extra.get("normalized_parent_header", chunk.metadata.parent_header))
+        return self._clean_markdown(normalized_header)
 
     @staticmethod
     def _max_chunks_for_header(header_key: str) -> int:

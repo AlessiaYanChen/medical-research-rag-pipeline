@@ -20,6 +20,7 @@ Implemented:
 - Retrieval evaluation harness with JSON/CSV export
 - Starter benchmark query set for multi-paper validation
 - Page-1/title-like opening header normalization to `Document Metadata/Abstract`
+- Header normalization metadata including original vs normalized parent headers and header-role tagging
 
 Current observed issues:
 
@@ -83,6 +84,7 @@ Current checkpoint:
   - table-hit queries: `0`
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - The benchmark is now passing, but still exposes header-quality debt in some returned subsection/title labels
+- A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
 
 Exit criteria:
 
@@ -162,8 +164,9 @@ Exit criteria:
 
 Recommended next implementation order:
 
-1. Review non-structural header hits and tighten section/header normalization where they still appear
-2. Expand the benchmark query set and make it stricter on section quality, especially top-1 behavior
-3. Add document-level candidate retrieval if cross-document noise appears
-4. Harden corpus metadata for medium-scale ingestion
-5. Improve ranking signals for limitation and conclusion-heavy queries
+1. Re-ingest the benchmark corpus with the new header-normalization metadata and rerun evaluation
+2. Review the remaining non-structural header hits and tighten normalization where they still appear
+3. Expand the benchmark query set and make it stricter on section quality, especially top-1 behavior
+4. Add document-level candidate retrieval if cross-document noise appears
+5. Harden corpus metadata for medium-scale ingestion
+6. Improve ranking signals for limitation and conclusion-heavy queries

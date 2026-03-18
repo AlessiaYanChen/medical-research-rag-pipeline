@@ -280,6 +280,37 @@ def test_retrieval_service_keeps_document_metadata_abstract_available() -> None:
     assert result[0].source == "Document Metadata/Abstract"
 
 
+def test_retrieval_service_uses_normalized_header_for_display_and_ranking() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-4B:00001",
+            content="Subsection content with enough context to remain visible.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-4B",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-4B:P00001",
+                    "parent_content": "Subsection content with enough context to remain visible.",
+                    "original_parent_header": "Clinical Validation",
+                    "normalized_parent_header": "Results",
+                    "header_role": "subsection",
+                },
+            ),
+        )
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="validation findings", doc_id="DOC-4B", limit=1)
+
+    assert len(result) == 1
+    assert result[0].source == "Results"
+
+
 def test_retrieval_service_collapses_multiple_child_hits_to_one_parent() -> None:
     parent_text = (
         "This paragraph contains the full parent context for the intervention arm. "
