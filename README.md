@@ -8,7 +8,8 @@ Current benchmark status:
 - expected header hit rate: `1.0`
 - citation noise queries: `0`
 - table-hit queries: `0`
-- non-structural subsection/title headers are still present in some retrieved outputs and remain an active cleanup target
+- non-structural header queries: `0`
+- next benchmark work is expanding coverage and adding stricter quality metrics
 
 ## What It Does
 
@@ -302,7 +303,6 @@ Export stored chunks from Qdrant for validation:
 ## Current Limitations
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
-- some retrieved chunks still carry non-structural subsection or title-like headers rather than clean section labels
 - Marker output quality depends on the document layout and OCR quality
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally

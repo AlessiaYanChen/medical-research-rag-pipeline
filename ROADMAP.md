@@ -27,7 +27,6 @@ Current observed issues:
 - Abstract can still surface where Results/Discussion should dominate
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs broader query coverage and manual expectation refinement
-- Some retrieval outputs still use non-structural subsection or title-like headers instead of stable section labels
 
 ## Phase 1: Retrieval Quality Stabilization
 
@@ -82,9 +81,10 @@ Current checkpoint:
   - expected header hit rate: `1.0`
   - citation noise queries: `0`
   - table-hit queries: `0`
+  - non-structural header queries: `0`
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
-- The benchmark is now passing, but still exposes header-quality debt in some returned subsection/title labels
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
+- The current starter benchmark is now clean on document, section, citation, table, and header-structure checks
 
 Exit criteria:
 
@@ -164,9 +164,9 @@ Exit criteria:
 
 Recommended next implementation order:
 
-1. Re-ingest the benchmark corpus with the new header-normalization metadata and rerun evaluation
-2. Review the remaining non-structural header hits and tighten normalization where they still appear
-3. Expand the benchmark query set and make it stricter on section quality, especially top-1 behavior
+1. Expand the benchmark query set and make it stricter on section quality, especially top-1 behavior
+2. Add explicit metrics for top-1 section quality and cross-document precision
+3. Add table-oriented evaluation cases with `include_tables=True`
 4. Add document-level candidate retrieval if cross-document noise appears
 5. Harden corpus metadata for medium-scale ingestion
 6. Improve ranking signals for limitation and conclusion-heavy queries

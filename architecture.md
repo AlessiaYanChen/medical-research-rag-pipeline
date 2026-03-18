@@ -307,7 +307,7 @@ To add a new LLM provider:
 
 ## Current Limitations
 
-- retrieval still surfaces some non-structural subsection or title-like headers, even though page-1/title normalization has improved the opening section behavior
+- retrieval quality is currently validated only against a small starter benchmark, so broader corpus-wide behavior is still not well characterized
 - the persistent knowledge-base registry is maintained locally and can drift from Qdrant if records are changed outside the app
 - Marker extraction quality depends on document layout and OCR performance
 - local re-ranking may require a first-run model download
