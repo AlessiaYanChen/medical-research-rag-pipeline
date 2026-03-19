@@ -6,16 +6,17 @@ Current benchmark status:
 - retrieval is now tracked on a 16-query benchmark with stricter top-1 and precision metrics
 - expected doc hit rate: `1.0`
 - expected header hit rate: `0.9375`
-- top-1 expected doc hit rate: `0.875`
+- top-1 expected doc hit rate: `0.9375`
 - top-1 expected header hit rate: `0.9375`
-- average doc precision: `0.9187`
-- average header precision: `0.6646`
-- cross-document average doc precision: `0.5667`
+- average doc precision: `0.9313`
+- average header precision: `0.6323`
+- cross-document average doc precision: `0.6333`
 - citation noise queries: `0`
-- table-hit queries: `0`
+- table-hit queries: `2`
 - non-structural header queries: `0`
 - current retrieval baseline is query-aware section weighting plus single-document metadata suppression
-- next benchmark work is table-oriented retrieval quality and broader evaluation coverage
+- preserving markdown table placement during parsing improved table retrieval after re-ingestion
+- next benchmark work is broader evaluation coverage, with only a narrow stewardship-query miss still outstanding
 
 ## What It Does
 
@@ -310,7 +311,7 @@ Export stored chunks from Qdrant for validation:
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
 - cross-document top-1 document selection is still weaker than within-document ranking
-- table-oriented retrieval still does not reliably surface real table chunks in the current benchmark
+- one stewardship-focused single-document query still falls back to `Document Metadata/Abstract`
 - Marker output quality depends on the document layout and OCR quality
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally
