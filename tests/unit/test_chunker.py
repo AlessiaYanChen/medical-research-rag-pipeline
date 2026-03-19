@@ -234,3 +234,47 @@ Editorial or citation-like content under a citation-style header.
     assert citation_chunk.metadata.extra["original_parent_header"] == "Clinical Infectious Diseases 2015;61(7):1071-80"
     assert citation_chunk.metadata.extra["header_role"] == "citation_like"
     assert citation_chunk.metadata.extra["is_low_value"] is True
+
+
+def test_unified_chunker_normalizes_thematic_markdown_headers_to_stable_sections() -> None:
+    markdown = """# Blood Culture Utilization in the Hospital Setting: a Call for Diagnostic Stewardship
+
+Opening abstract-like material before thematic sections appear.
+
+## THE NEED TO OPTIMIZE HOSPITAL BLOOD CULTURE USE
+
+This section discusses stewardship opportunities for blood culture ordering.
+
+### BLOOD CULTURE COLLECTION PRACTICES
+
+This section discusses preanalytical collection practices.
+
+## PARTNERSHIPS TO ENHANCE BLOOD CULTURE PERFORMANCE AND UTILIZATION
+
+This section discusses broader stewardship implementation.
+
+#### SUMMARY
+
+This section summarizes the main stewardship takeaways.
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-008",
+        source_file="stewardship.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    assert text_chunks[0].metadata.parent_header == UnifiedChunker.DEFAULT_OPENING_HEADER
+    assert text_chunks[1].metadata.parent_header == "Introduction"
+    assert text_chunks[1].metadata.extra["original_parent_header"] == "THE NEED TO OPTIMIZE HOSPITAL BLOOD CULTURE USE"
+    assert text_chunks[1].metadata.extra["header_role"] == "thematic_structural"
+    assert text_chunks[2].metadata.parent_header == "Introduction"
+    assert text_chunks[2].metadata.extra["original_parent_header"] == "BLOOD CULTURE COLLECTION PRACTICES"
+    assert text_chunks[2].metadata.extra["header_role"] == "thematic_structural"
+    assert text_chunks[3].metadata.parent_header == "Discussion"
+    assert text_chunks[3].metadata.extra["original_parent_header"] == "PARTNERSHIPS TO ENHANCE BLOOD CULTURE PERFORMANCE AND UTILIZATION"
+    assert text_chunks[4].metadata.parent_header == "SUMMARY"
+    assert text_chunks[4].metadata.extra["original_parent_header"] == "SUMMARY"

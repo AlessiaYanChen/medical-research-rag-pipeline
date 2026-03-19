@@ -50,13 +50,14 @@ class UnifiedChunker:
         active_original_header = self.DEFAULT_OPENING_HEADER
         active_header_role = self.DEFAULT_OPENING_HEADER_ROLE
         active_section_role = self._classify_section_role(active_header)
+        active_structural_level = 1
         active_structural_header = self.DEFAULT_OPENING_HEADER
         table_index = 0
         pending_paragraphs: list[str] = []
         pending_header = active_header
         pending_original_header = active_original_header
         pending_header_role = active_header_role
-        first_structural_header_seen = False
+        first_header_seen = False
 
         for block in blocks:
             stripped = block.strip()
@@ -76,20 +77,22 @@ class UnifiedChunker:
                 chunks.extend(built_chunks)
                 pending_paragraphs = []
                 resolved_header = self._resolve_header_context(
-                    header=header,
+                    header=header["text"],
+                    header_level=header["level"],
                     active_structural_header=active_structural_header,
-                    is_first_header=not first_structural_header_seen,
+                    active_structural_level=active_structural_level,
+                    is_first_header=not first_header_seen,
                 )
                 active_header = resolved_header["normalized_header"]
                 active_original_header = resolved_header["original_header"]
                 active_header_role = resolved_header["header_role"]
                 active_structural_header = resolved_header["active_structural_header"]
+                active_structural_level = resolved_header["active_structural_level"]
                 active_section_role = self._classify_section_role(active_header)
                 pending_header = active_header
                 pending_original_header = active_original_header
                 pending_header_role = active_header_role
-                if resolved_header["is_structural"]:
-                    first_structural_header_seen = True
+                first_header_seen = True
                 continue
 
             if self._is_table_block(stripped):
@@ -210,10 +213,14 @@ class UnifiedChunker:
         return re.split(r"\n\s*\n", markdown_text.strip())
 
     @staticmethod
-    def _extract_header(block: str) -> str | None:
+    def _extract_header(block: str) -> dict[str, Any] | None:
         line = block.splitlines()[0].strip()
-        if re.match(r"^#{1,6}\s+", line):
-            return re.sub(r"^#{1,6}\s+", "", line).strip()
+        match = re.match(r"^(#{1,6})\s+(.*)$", line)
+        if match:
+            return {
+                "level": len(match.group(1)),
+                "text": match.group(2).strip(),
+            }
         return None
 
     @classmethod
@@ -229,7 +236,9 @@ class UnifiedChunker:
     def _resolve_header_context(
         cls,
         header: str,
+        header_level: int,
         active_structural_header: str,
+        active_structural_level: int,
         is_first_header: bool,
     ) -> dict[str, Any]:
         cleaned = header.strip()
@@ -239,6 +248,7 @@ class UnifiedChunker:
                 "original_header": cls.DEFAULT_OPENING_HEADER,
                 "header_role": cls.DEFAULT_OPENING_HEADER_ROLE,
                 "active_structural_header": active_structural_header,
+                "active_structural_level": active_structural_level,
                 "is_structural": False,
             }
 
@@ -248,6 +258,26 @@ class UnifiedChunker:
                 "original_header": cleaned,
                 "header_role": "structural",
                 "active_structural_header": cleaned,
+                "active_structural_level": header_level,
+                "is_structural": True,
+            }
+
+        if cls._looks_like_thematic_section_header(
+            cleaned,
+            is_first_header=is_first_header,
+        ):
+            normalized_header = cls._normalize_thematic_structural_header(
+                header=cleaned,
+                header_level=header_level,
+                active_structural_header=active_structural_header,
+                active_structural_level=active_structural_level,
+            )
+            return {
+                "normalized_header": normalized_header,
+                "original_header": cleaned,
+                "header_role": "thematic_structural",
+                "active_structural_header": normalized_header,
+                "active_structural_level": header_level,
                 "is_structural": True,
             }
 
@@ -257,6 +287,7 @@ class UnifiedChunker:
                 "original_header": cleaned,
                 "header_role": cls._classify_non_structural_header(cleaned),
                 "active_structural_header": active_structural_header,
+                "active_structural_level": active_structural_level,
                 "is_structural": False,
             }
 
@@ -265,6 +296,7 @@ class UnifiedChunker:
             "original_header": cleaned,
             "header_role": cls._classify_non_structural_header(cleaned),
             "active_structural_header": active_structural_header or cls.DEFAULT_OPENING_HEADER,
+            "active_structural_level": active_structural_level,
             "is_structural": False,
         }
 
@@ -503,6 +535,7 @@ class UnifiedChunker:
             "results",
             "discussion",
             "conclusion",
+            "summary",
             "references",
             "bibliography",
             "acknowledg",
@@ -512,6 +545,61 @@ class UnifiedChunker:
             "data availability",
         )
         return any(token in normalized for token in known_tokens)
+
+    @classmethod
+    def _looks_like_thematic_section_header(cls, header: str, is_first_header: bool) -> bool:
+        normalized = header.strip()
+        normalized_lower = normalized.lower()
+        if not normalized or is_first_header:
+            return False
+        if cls._classify_non_structural_header(normalized) == "citation_like":
+            return False
+        if any(
+            token in normalized_lower
+            for token in (
+                "references",
+                "bibliograph",
+                "acknowledg",
+                "funding",
+                "conflict",
+                "copyright",
+                "data availability",
+            )
+        ):
+            return False
+
+        words = normalized.split()
+        if normalized.isupper() and len(words) >= 4:
+            return True
+        if len(words) >= 5 and re.fullmatch(r"[A-Za-z0-9&/\-(),:; ]+", normalized):
+            return True
+        return False
+
+    @classmethod
+    def _normalize_thematic_structural_header(
+        cls,
+        header: str,
+        header_level: int,
+        active_structural_header: str,
+        active_structural_level: int,
+    ) -> str:
+        normalized = header.strip().lower()
+        if "summary" in normalized:
+            return "Summary"
+        if any(token in normalized for token in ("reference", "bibliograph")):
+            return "References"
+
+        if active_structural_header == cls.DEFAULT_OPENING_HEADER:
+            return "Introduction"
+
+        if header_level > active_structural_level:
+            return active_structural_header
+
+        if active_structural_header == "Introduction":
+            return "Discussion"
+        if active_structural_header == "Discussion":
+            return "Conclusion"
+        return active_structural_header
 
     @staticmethod
     def _classify_non_structural_header(header: str) -> str:
