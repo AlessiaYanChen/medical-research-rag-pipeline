@@ -24,8 +24,6 @@ Implemented:
 
 Current observed issues:
 
-- Cross-document top-1 precision is still weaker than within-document precision
-- Cross-document average document precision is still materially weaker than single-document precision
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs broader query coverage and manual expectation refinement
 
@@ -81,11 +79,11 @@ Current checkpoint:
 - Latest eval run on `medical_research_chunks_v1` showed:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
-  - top-1 expected doc hit rate: `0.9615`
+  - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
-  - average doc precision: `0.8397`
-  - average header precision: `0.7692`
-  - cross-document average doc precision: `0.4792`
+  - average doc precision: `1.0`
+  - average header precision: `0.7974`
+  - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `5`
   - non-structural header queries: `0`
@@ -95,6 +93,7 @@ Current checkpoint:
 - Preserving markdown table placement during parsing materially improved table retrieval and cross-document precision after re-ingestion
 - The thematic-header chunker fix is now part of the ingestion baseline by normalizing markdown thematic headings back to stable retrieval sections while preserving the original header in metadata
 - An experimental document-candidate retrieval stage was evaluated and removed because it underperformed the baseline on cross-document precision
+- Cross-document precision on the current benchmark is now stabilized through singular-target document locking for title queries plus explicit table-only and metric-table filtering for table-oriented retrieval
 
 Exit criteria:
 
@@ -175,7 +174,7 @@ Exit criteria:
 Recommended next implementation order:
 
 1. Stop retrieval ranking work at the current benchmark checkpoint and treat it as the new baseline
-2. Expand the benchmark again now that table-oriented and cross-document cases are surfacing
-3. Inspect the lowest-precision cross-document queries before changing retrieval ranking
+2. Expand the benchmark again now that the current 26-query set is clean on doc-hit and doc-precision metrics
+3. Refine expectations as broader cross-document and review-style cases surface before changing retrieval logic again
 4. Harden corpus metadata for medium-scale ingestion
 5. Reconsider document-level retrieval only if cross-document precision stops improving with better metadata and evaluation coverage

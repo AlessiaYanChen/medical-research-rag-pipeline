@@ -55,9 +55,19 @@ class RetrievalService:
         selected_contents: list[str] = []
         header_counts: dict[str, int] = {}
         doc_counts: dict[str, int] = {}
+        max_selected_title_overlap = 0
         for chunk in ranked_chunks:
             parent_id = str(chunk.metadata.extra.get("parent_id", chunk.id))
             if parent_id in seen_parent_ids:
+                continue
+
+            if self._should_skip_new_document_for_query(
+                query=query,
+                chunk=chunk,
+                doc_filter=doc_id,
+                doc_counts=doc_counts,
+                max_selected_title_overlap=max_selected_title_overlap,
+            ):
                 continue
 
             raw_content = self._select_return_content(chunk)
@@ -83,6 +93,10 @@ class RetrievalService:
             header_counts[header_key] = header_counts.get(header_key, 0) + 1
             doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
             doc_counts[doc_key] = doc_counts.get(doc_key, 0) + 1
+            max_selected_title_overlap = max(
+                max_selected_title_overlap,
+                self._doc_title_overlap(query=query, chunk=chunk),
+            )
             retrieved_chunks.append(
                 RetrievedChunk(
                     source=display_header,
@@ -140,6 +154,39 @@ class RetrievalService:
         doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
         return doc_counts.get(doc_key, 0) < self._max_chunks_for_doc(limit=limit, selected_count=selected_count)
 
+    def _should_skip_new_document_for_query(
+        self,
+        query: str,
+        chunk: Chunk,
+        doc_filter: str | None,
+        doc_counts: dict[str, int],
+        max_selected_title_overlap: int,
+    ) -> bool:
+        if doc_filter is not None or not doc_counts:
+            return False
+        if not self._query_prefers_single_document_target(query):
+            return self._should_skip_zero_title_overlap_doc(
+                query=query,
+                chunk=chunk,
+                max_selected_title_overlap=max_selected_title_overlap,
+            )
+
+        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        return doc_key not in doc_counts
+
+    def _should_skip_zero_title_overlap_doc(
+        self,
+        query: str,
+        chunk: Chunk,
+        max_selected_title_overlap: int,
+    ) -> bool:
+        if max_selected_title_overlap <= 0:
+            return False
+        if not self._query_prefers_cross_document_titles(query):
+            return False
+
+        return self._doc_title_overlap(query=query, chunk=chunk) <= 0
+
     def _select_candidate_chunks(
         self,
         query: str,
@@ -157,6 +204,8 @@ class RetrievalService:
 
     def _filter_chunks(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
         query_prefers_tables = self._query_prefers_tables(query)
+        query_requires_tables = self._query_requires_tables(query)
+        query_requires_metric_tables = self._query_requires_metric_tables(query)
         filtered: list[Chunk] = []
         for chunk in chunks:
             content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
@@ -168,6 +217,10 @@ class RetrievalService:
             if self._is_excluded_section(section_role=section_role, content_role=content_role, parent_header=parent_header):
                 continue
             if self._looks_like_low_value_content(normalized_parent):
+                continue
+            if query_requires_tables and content_role != "table":
+                continue
+            if query_requires_metric_tables and content_role == "table" and not self._table_matches_metric_query(chunk):
                 continue
             if content_role == "table" and not (self._include_tables or query_prefers_tables):
                 continue
@@ -214,6 +267,46 @@ class RetrievalService:
         normalized = query.lower()
         table_signals = ("table", "compare", "comparison", "value", "values", "sensitivity", "specificity", "odds ratio", "ct-value", "ct value", "assay panel")
         return any(signal in normalized for signal in table_signals)
+
+    @staticmethod
+    def _query_requires_tables(query: str) -> bool:
+        normalized = query.lower()
+        return "table" in normalized or "tabular" in normalized
+
+    @staticmethod
+    def _query_requires_metric_tables(query: str) -> bool:
+        normalized = query.lower()
+        if not RetrievalService._query_requires_tables(query):
+            return False
+        metric_signals = ("sensitivity", "specificity", "accuracy", "diagnostic accuracy")
+        return any(signal in normalized for signal in metric_signals)
+
+    @staticmethod
+    def _table_matches_metric_query(chunk: Chunk) -> bool:
+        text_parts = [
+            chunk.content,
+            str(chunk.metadata.extra.get("parent_content", "")),
+            str(chunk.metadata.parent_header),
+            str(chunk.metadata.extra.get("normalized_parent_header", "")),
+        ]
+        normalized = RetrievalService._clean_markdown(" ".join(part for part in text_parts if part)).lower()
+        metric_patterns = (
+            r"\bsensitivity\b",
+            r"\bspecificity\b",
+            r"\baccuracy\b",
+            r"\bdiagnostic accuracy\b",
+            r"\bagreement\b",
+            r"\bdetection rate\b",
+            r"\bfalse positive\b",
+            r"\bfalse negative\b",
+            r"\bppv\b",
+            r"\bnpv\b",
+            r"\bauc\b",
+            r"\broc\b",
+            r"\blod\b",
+            r"\blimit of detection\b",
+        )
+        return any(re.search(pattern, normalized) for pattern in metric_patterns)
 
     @staticmethod
     def _is_excluded_section(section_role: str, content_role: str, parent_header: str) -> bool:
@@ -341,6 +434,16 @@ class RetrievalService:
         return any(signal in normalized for signal in signals)
 
     @staticmethod
+    def _query_prefers_single_document_target(query: str) -> bool:
+        normalized = query.lower()
+        plural_signals = ("which papers", "which documents", "which studies")
+        if any(signal in normalized for signal in plural_signals):
+            return False
+
+        singular_signals = ("which paper", "which indexed paper", "which document", "which indexed document", "which study")
+        return any(signal in normalized for signal in singular_signals)
+
+    @staticmethod
     def _query_prefers_metadata(query: str) -> bool:
         normalized = query.lower()
         signals = ("abstract", "summary", "overview", "opening summary")
@@ -371,7 +474,7 @@ class RetrievalService:
         doc_overlap = sum(1 for token in query_tokens if token in doc_text)
         header_overlap = sum(1 for token in query_tokens if token in header_text)
         content_overlap = sum(1 for token in query_tokens if token in content_text)
-        title_overlap = sum(1 for token in title_tokens if token in doc_text)
+        title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
 
         lexical_bonus = min(4, content_overlap) + min(3, header_overlap * 2)
         if self._query_prefers_cross_document_titles(query):
@@ -379,6 +482,18 @@ class RetrievalService:
         else:
             lexical_bonus += min(2, doc_overlap)
         return lexical_bonus
+
+    def _doc_title_overlap(self, query: str, chunk: Chunk) -> int:
+        query_tokens = self._query_tokens(query)
+        if not query_tokens:
+            return 0
+
+        title_tokens = self._title_weighted_tokens(query_tokens)
+        if not title_tokens:
+            return 0
+
+        doc_text = self._doc_text_for_ranking(chunk)
+        return sum(1 for token in title_tokens if token in doc_text)
 
     @staticmethod
     def _title_weighted_tokens(query_tokens: set[str]) -> set[str]:

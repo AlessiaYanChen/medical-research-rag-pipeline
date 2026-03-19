@@ -1029,7 +1029,99 @@ def test_retrieval_service_prefers_doc_title_overlap_for_cross_document_queries(
 
     assert [chunk.doc_id for chunk in result] == [
         "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
-        "Single site RCT",
+    ]
+
+
+def test_retrieval_service_skips_zero_title_overlap_docs_once_topic_match_found() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of how diagnostic stewardship should optimize blood culture use in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of how diagnostic stewardship should optimize blood culture use in hospitals.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of rapid blood culture diagnostics paired with antimicrobial stewardship support.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of rapid blood culture diagnostics paired with antimicrobial stewardship support.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(query="Which documents discuss diagnostic stewardship for blood cultures?", limit=2)
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+def test_retrieval_service_limits_singular_cross_document_queries_to_top_document() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of how diagnostic stewardship should optimize blood culture use in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of how diagnostic stewardship should optimize blood culture use in hospitals.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of patient outcomes in a randomized clinical trial.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of patient outcomes in a randomized clinical trial.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed paper focuses on optimizing blood culture utilization rather than reporting patient outcomes?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
     ]
 
 
@@ -1076,4 +1168,95 @@ def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:
 
     result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", doc_id="DOC-16", limit=2)
 
-    assert [chunk.chunk_type for chunk in result] == ["table", "text"]
+    assert [chunk.chunk_type for chunk in result] == ["table"]
+
+
+def test_retrieval_service_requires_table_chunks_for_explicit_table_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-17:T00001",
+            content="Source File: DOC-17.pdf | Table Index: 1 | Section: Results\nMarker,Count\nE. coli,12",
+            metadata=ChunkMetadata(
+                doc_id="DOC-17",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=7,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Source File: DOC-17.pdf | Table Index: 1 | Section: Results\nMarker,Count\nE. coli,12",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-17:P00001:C01",
+            content="Narrative discussion about organism counts that should be excluded for an explicit table query.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-17",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-17:P00001",
+                    "parent_content": "Narrative discussion about organism counts that should be excluded for an explicit table query.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(query="Which paper contains a results table comparing identified organisms?", limit=2)
+
+    assert [chunk.chunk_type for chunk in result] == ["table"]
+
+
+def test_retrieval_service_requires_metric_evidence_for_tabular_metric_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-18:T00001",
+            content="Source File: DOC-18.pdf | Table Index: 1 | Section: Results\nSensitivity,Specificity\n0.88,0.91",
+            metadata=ChunkMetadata(
+                doc_id="DOC-18",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Source File: DOC-18.pdf | Table Index: 1 | Section: Results\nSensitivity,Specificity\n0.88,0.91",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-19:T00001",
+            content="Source File: DOC-19.pdf | Table Index: 2 | Section: Results\nPhenotypic Susceptibility Testing,No.\nMicrococcus luteus mismatch,4",
+            metadata=ChunkMetadata(
+                doc_id="DOC-19",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=7,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Source File: DOC-19.pdf | Table Index: 2 | Section: Results\nPhenotypic Susceptibility Testing,No.\nMicrococcus luteus mismatch,4",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", limit=2)
+
+    assert [chunk.doc_id for chunk in result] == ["DOC-18"]

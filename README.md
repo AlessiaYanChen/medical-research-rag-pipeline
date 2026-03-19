@@ -6,18 +6,18 @@ Current benchmark status:
 - retrieval is now tracked on a 26-query benchmark with stricter top-1 and precision metrics
 - expected doc hit rate: `1.0`
 - expected header hit rate: `1.0`
-- top-1 expected doc hit rate: `0.9615`
+- top-1 expected doc hit rate: `1.0`
 - top-1 expected header hit rate: `1.0`
-- average doc precision: `0.8397`
-- average header precision: `0.7692`
-- cross-document average doc precision: `0.4792`
+- average doc precision: `1.0`
+- average header precision: `0.7974`
+- cross-document average doc precision: `1.0`
 - citation noise queries: `1`
 - table-hit queries: `5`
 - non-structural header queries: `0`
-- current retrieval baseline is query-aware section weighting plus single-document metadata suppression
+- current retrieval baseline is query-aware section weighting plus single-document metadata suppression, singular-target document locking for cross-document title queries, and explicit table/metric query filtering
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
-- next benchmark work is broader evaluation coverage plus targeted cross-document precision improvement
+- next benchmark work is broader evaluation coverage plus expectation refinement as the benchmark expands
 
 ## What It Does
 
@@ -311,8 +311,7 @@ Export stored chunks from Qdrant for validation:
 ## Current Limitations
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
-- cross-document top-1 document selection is still weaker than within-document ranking
-- cross-document document precision is still weaker than within-document precision on the 26-query benchmark
+- benchmark quality still depends on manual expectation refinement as cross-document and table-oriented cases are added
 - Marker output quality depends on the document layout and OCR quality
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally

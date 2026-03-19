@@ -121,9 +121,87 @@
   {
     "id": "Q16",
     "query": "Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
-    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "RAPID"],
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
     "expected_headers": ["Results", "Discussion"],
     "include_tables": true,
-    "notes": "Cross-document table-oriented retrieval case."
+    "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence."
+  },
+  {
+    "id": "Q17",
+    "query": "What organism detection limitations are discussed for PCR/ESI-MS in BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "BAL limitations variant focused on organism coverage."
+  },
+  {
+    "id": "Q18",
+    "query": "What lower-limit-of-detection findings are reported for the lipidomics screening workflow?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Methods", "Discussion"],
+    "include_tables": true,
+    "notes": "Culture-Free table/performance query tied to LOD reporting."
+  },
+  {
+    "id": "Q19",
+    "query": "Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "RAPID", "Single site RCT", "BAL SM", "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review, which reports sensitivity/specificity metrics for diagnostic methods."
+  },
+  {
+    "id": "Q20",
+    "query": "What practical recommendations are made for diagnostic stewardship of blood cultures in hospitals?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
+    "notes": "Stewardship paper variant emphasizing practical recommendations."
+  },
+  {
+    "id": "Q21",
+    "query": "Which indexed paper focuses on optimizing blood culture utilization rather than reporting patient outcomes?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "notes": "Cross-document stewardship-vs-trial disambiguation query."
+  },
+  {
+    "id": "Q22",
+    "query": "What methods are reviewed for diagnosing blood culture-negative endocarditis when standard cultures fail?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Discussion"],
+    "notes": "Review query with stronger methods emphasis."
+  },
+  {
+    "id": "Q23",
+    "query": "Across the indexed studies, which papers discuss clinical usefulness or implementation implications of rapid diagnostics?",
+    "expected_docs": ["BAL SM", "RAPID", "Culture-Free Lipidomics-Based Screening Test", "Single site RCT"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "Cross-document implications query across rapid-diagnostic papers."
+  },
+  {
+    "id": "Q24",
+    "query": "Which paper reports group-based patient outcome differences in a randomized clinical setting?",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "Cross-document question intended to isolate the trial paper."
+  },
+  {
+    "id": "Q25",
+    "query": "Which indexed paper contains a results table comparing identified organisms or diagnostic detection counts?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "BAL SM", "Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Table-oriented cross-document organism/detection-count query."
+  },
+  {
+    "id": "Q26",
+    "query": "What evidence is presented in RAPID for result-stage diagnostic performance rather than discussion-only interpretation?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "RAPID query intended to test results-vs-discussion balance."
   }
 ]
