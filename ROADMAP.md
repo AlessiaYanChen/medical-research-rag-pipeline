@@ -31,6 +31,7 @@ Current observed issues:
 - The benchmark still needs continued expectation refinement as broader coverage surfaces header-quality edge cases
 - Hybrid dense+sparse retrieval and ontology-backed query expansion remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
 - The current benchmark is still vulnerable to author-style bias; retrieval should also be checked against clinician-style and out-of-distribution phrasing before scaling to the full corpus
+- Parser changes remain unevaluated against downstream retrieval; parser experimentation should be isolated and benchmark-driven rather than folded directly into the active ingestion path
 
 ## Phase 1: Retrieval Quality Stabilization
 
@@ -187,6 +188,32 @@ Exit criteria:
 - Rebuilds are deterministic
 - Metadata filters are available for large-corpus retrieval
 
+## Phase 4B: Parser Bakeoff
+
+Status: Deferred
+
+Objectives:
+
+- Compare candidate parsers inside this repo without destabilizing the active ingestion workflow
+- Judge parser changes by downstream retrieval quality, not parsing aesthetics alone
+
+Tasks:
+
+1. Add isolated parser bakeoff tooling in this repo, preferably via a script or `experiments/` path
+2. Run a fixed PDF subset through `Marker`, `Docling`, and any lightweight fallback parser candidates
+3. Store parser outputs in separate artifact folders and ingest into separate Qdrant collections
+4. Compare:
+   - header quality
+   - table extraction fidelity
+   - caption or linked-prose recovery
+   - downstream benchmark metrics
+5. Prefer a clean parser replacement over a permanent blended parser pipeline unless a combined approach is deterministic and benchmark-backed
+
+Exit criteria:
+
+- Parser choice is justified by retrieval evidence
+- Experimental parser work does not interfere with active ingestion or the production collection
+
 ## Phase 5: Corpus Rollout
 
 Status: Planned
@@ -217,4 +244,5 @@ Recommended next implementation order:
 4. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
 5. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
 6. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-7. Reconsider document-level retrieval, hybrid retrieval, or query expansion only if benchmark evidence shows the current metadata-first baseline has stopped holding
+7. Add isolated parser bakeoff tooling in-repo before considering any parser migration
+8. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding

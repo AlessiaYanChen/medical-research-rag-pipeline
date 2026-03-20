@@ -23,6 +23,7 @@ Current benchmark status:
 - next benchmark work is header-quality expectation refinement and metadata hardening before more ranking changes
 - hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
+- parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by replacing the active ingestion path prematurely
 
 ## What It Does
 
@@ -337,6 +338,25 @@ Export stored chunks from Qdrant for validation:
 .\.venv\Scripts\python.exe scripts/export_qdrant_chunks.py --collection medical_research_chunks_v1 --csv-out data/exports/current_chunks_v1.csv
 ```
 
+## Parser Bakeoff Guidance
+
+If parser comparison work starts, keep it inside this repo and isolate it from the active ingestion path:
+- treat parser bakeoff work as an experiment, not a production parser swap
+- prefer a separate script or `experiments/` workflow over changes to the primary parser path
+- use separate output folders and separate Qdrant collection names for parser comparisons
+- do not run parser bakeoff ingestion jobs against the active collection while a rebuild/re-ingestion is already running
+- compare candidate parsers on the same fixed PDF subset and evaluate downstream retrieval, not just parsing aesthetics
+
+Recommended evaluation dimensions:
+- header quality
+- table extraction fidelity
+- caption or linked-prose recovery
+- downstream retrieval metrics on the existing benchmark sets
+
+Current parser planning note:
+- `Docling` is the more plausible structural parsing experiment than `pymupdf4llm`
+- if `Docling` wins clearly, prefer `Docling` alone over a permanent `Marker + Docling` blended pipeline unless a combined approach has a deterministic, benchmark-backed merge strategy
+
 ## Current Limitations
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
@@ -350,6 +370,7 @@ Export stored chunks from Qdrant for validation:
 - ontology-backed query expansion is not implemented yet; this is also deferred until failing queries show real abbreviation/synonym mismatch that justifies the added query-policy complexity
 - table retrieval does not yet attach caption/prose context automatically to every returned table chunk; the preferred next path is metadata-linked table context, not a generic "previous paragraph" heuristic
 - the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
+- parser bakeoff tooling is not implemented yet; any parser migration should be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
 
 ## Roadmap
 
