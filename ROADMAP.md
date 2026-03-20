@@ -29,6 +29,8 @@ Current observed issues:
 
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs continued expectation refinement as broader coverage surfaces header-quality edge cases
+- Hybrid dense+sparse retrieval and ontology-backed query expansion remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
+- The current benchmark is still vulnerable to author-style bias; retrieval should also be checked against clinician-style and out-of-distribution phrasing before scaling to the full corpus
 
 ## Phase 1: Retrieval Quality Stabilization
 
@@ -66,6 +68,11 @@ Tasks:
 
 1. Expand the benchmark beyond the current starter set
 2. Create 10-20 real research questions with expected evidence
+3. Add a separate out-of-distribution phrasing track:
+   - clinician-style journal-club questions
+   - abbreviation-heavy questions
+   - paraphrased variants that avoid repo-specific wording
+   - adversarial wording reviewed manually before use
 3. Measure:
    - relevance
    - redundancy
@@ -101,6 +108,7 @@ Current checkpoint:
 - Explicit `Table N` references are now preserved in chunk metadata so explicit table queries can still recover linked evidence when parser output leaves the table callout in narrative text
 - `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection
 - Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
+- Table-context improvement should proceed through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic
 
 Exit criteria:
 
@@ -127,6 +135,26 @@ Exit criteria:
 
 - Retrieval remains relevant across the target corpus size
 - Cross-document noise is materially reduced
+
+## Phase 3B: Recall Extensions
+
+Status: Deferred
+
+Objectives:
+
+- Add recall-oriented retrieval features only if benchmark evidence shows a real lexical or synonym gap
+- Avoid introducing hidden query-policy complexity before the current metadata-first retrieval split is exhausted
+
+Tasks:
+
+1. Evaluate whether hybrid dense+sparse retrieval improves recall on measured failures rather than hypothetical scale concerns
+2. Evaluate ontology-backed query expansion only on benchmark cases with confirmed abbreviation or synonym mismatch
+3. Prefer explicit, auditable retrieval configuration over opaque expansion or branching behavior
+
+Exit criteria:
+
+- Recall extensions are justified by benchmark misses
+- Added retrieval behavior stays observable and testable
 
 ## Phase 4: Metadata and Ingestion Hardening
 
@@ -184,7 +212,9 @@ Exit criteria:
 Recommended next implementation order:
 
 1. Treat the current 26-query set as the stable retrieval baseline and the 43-query set as the active expansion track
-2. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
-3. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
-4. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-5. Reconsider document-level retrieval only if cross-document precision stops holding at the expanded benchmark level
+2. Add a third OOD/adversarial phrasing track for evaluation only, with manual expectation review before it is used to justify retrieval changes
+3. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
+4. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
+5. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
+6. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+7. Reconsider document-level retrieval, hybrid retrieval, or query expansion only if benchmark evidence shows the current metadata-first baseline has stopped holding

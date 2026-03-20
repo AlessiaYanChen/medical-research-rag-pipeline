@@ -21,6 +21,8 @@ Current benchmark status:
 - explicit `Table N` references are now preserved in chunk metadata so explicit table queries can recover linked prose evidence when parser output leaves the table callout in narrative text
 - table chunks now carry semantic metadata such as metric/comparison flags and lightweight captions to support payload-driven filtering after rebuilds
 - next benchmark work is header-quality expectation refinement and metadata hardening before more ranking changes
+- hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
+- benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
 
 ## What It Does
 
@@ -187,6 +189,7 @@ The system currently supports collection-wide retrieval across the active knowle
 Retrieval policy is split as follows:
 - payload/Qdrant filtering handles static eligibility such as references, front matter, low-value chunks, and table-oriented gating
 - application ranking keeps only query-dependent logic such as section weighting, document locking, duplicate suppression, and diversity caps
+- future retrieval extensions should follow the same rule: add new behavior only when benchmark evidence shows a concrete gap, and prefer explicit metadata/filtering over implicit query branching
 
 ### Reasoning
 
@@ -343,6 +346,10 @@ Export stored chunks from Qdrant for validation:
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally
 - evaluation is still based on a curated benchmark, not a broad corpus-wide test set
 - header-quality metrics still contain real ambiguity because some valid evidence is returned from adjacent sections such as `Introduction`, `Methods`, or normalized opening metadata
+- sparse/hybrid retrieval is not implemented yet; this is a deliberate deferral until benchmark evidence shows lexical recall failures that metadata-first filtering cannot address cleanly
+- ontology-backed query expansion is not implemented yet; this is also deferred until failing queries show real abbreviation/synonym mismatch that justifies the added query-policy complexity
+- table retrieval does not yet attach caption/prose context automatically to every returned table chunk; the preferred next path is metadata-linked table context, not a generic "previous paragraph" heuristic
+- the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
 
 ## Roadmap
 
