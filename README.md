@@ -9,17 +9,18 @@ Current benchmark status:
 - expected header hit rate: `1.0`
 - top-1 expected doc hit rate: `1.0`
 - top-1 expected header hit rate: `1.0`
-- average doc precision: `1.0`
-- average header precision: `0.8795`
-- cross-document average doc precision: `1.0`
+- average doc precision: `0.9953`
+- average header precision: `0.8578`
+- cross-document average doc precision: `0.99`
 - citation noise queries: `1`
-- table-hit queries: `7`
+- table-hit queries: `6`
 - non-structural header queries: `0`
-- current retrieval baseline is query-aware section weighting plus single-document metadata suppression, singular-target document locking for cross-document title and trial/study queries, and explicit table/metric query filtering
+- current retrieval baseline is metadata-first filtering in Qdrant plus a smaller query-dependent ranking/diversity layer
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
 - explicit `Table N` references are now preserved in chunk metadata so explicit table queries can recover linked prose evidence when parser output leaves the table callout in narrative text
-- next benchmark work is expectation refinement and metadata hardening before more ranking changes
+- table chunks now carry semantic metadata such as metric/comparison flags and lightweight captions to support payload-driven filtering after rebuilds
+- next benchmark work is header-quality expectation refinement and metadata hardening before more ranking changes
 
 ## What It Does
 
@@ -167,6 +168,7 @@ Tables are separated from the main text instead of being flattened into plain na
 `UnifiedChunker` processes the document as a whole:
 - text is chunked with paragraph-aware sliding windows
 - tables remain atomic units with contextual headers
+- text and table chunks now carry richer retrieval metadata including ingestion/chunking versions, canonical/original headers, local/source file paths, and table semantic flags
 
 ### Retrieval and Re-Ranking
 
@@ -181,6 +183,10 @@ Retrieval is two-stage:
 2. optional cross-encoder re-ranking
 
 The system currently supports collection-wide retrieval across the active knowledge base.
+
+Retrieval policy is split as follows:
+- payload/Qdrant filtering handles static eligibility such as references, front matter, low-value chunks, and table-oriented gating
+- application ranking keeps only query-dependent logic such as section weighting, document locking, duplicate suppression, and diversity caps
 
 ### Reasoning
 
@@ -310,6 +316,12 @@ Run the expanded benchmark without changing the stable baseline dataset:
 .\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
+Deterministically rebuild a collection from the uploaded benchmark PDFs:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
+```
+
 Reparse and replace a single document in an existing collection:
 
 ```powershell
@@ -330,6 +342,7 @@ Export stored chunks from Qdrant for validation:
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally
 - evaluation is still based on a curated benchmark, not a broad corpus-wide test set
+- header-quality metrics still contain real ambiguity because some valid evidence is returned from adjacent sections such as `Introduction`, `Methods`, or normalized opening metadata
 
 ## Roadmap
 

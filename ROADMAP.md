@@ -21,11 +21,14 @@ Implemented:
 - Starter benchmark query set for multi-paper validation
 - Page-1/title-like opening header normalization to `Document Metadata/Abstract`
 - Header normalization metadata including original vs normalized parent headers and header-role tagging
+- Metadata-first retrieval filtering through Qdrant payload filters
+- Deterministic collection rebuild tooling via `scripts/rebuild_collection.py`
+- Table semantic metadata including metric/comparison flags and lightweight captions
 
 Current observed issues:
 
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
-- The benchmark still needs continued expectation refinement as broader coverage surfaces edge cases
+- The benchmark still needs continued expectation refinement as broader coverage surfaces header-quality edge cases
 
 ## Phase 1: Retrieval Quality Stabilization
 
@@ -82,11 +85,11 @@ Current checkpoint:
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
-  - average doc precision: `1.0`
-  - average header precision: `0.8795`
-  - cross-document average doc precision: `1.0`
+  - average doc precision: `0.9953`
+  - average header precision: `0.8578`
+  - cross-document average doc precision: `0.99`
   - citation noise queries: `1`
-  - table-hit queries: `7`
+  - table-hit queries: `6`
   - non-structural header queries: `0`
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
@@ -97,6 +100,7 @@ Current checkpoint:
 - Cross-document precision on the current benchmark is now stabilized through singular-target document locking for title/trial/study queries plus explicit table-only and metric-table filtering for table-oriented retrieval
 - Explicit `Table N` references are now preserved in chunk metadata so explicit table queries can still recover linked evidence when parser output leaves the table callout in narrative text
 - `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection
+- Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
 
 Exit criteria:
 
@@ -144,6 +148,9 @@ Tasks:
    - content role
    - page number
    - parent ID
+   - canonical/original header variants
+   - ingestion/chunking version
+   - table semantics and captions
 3. Add ingestion versioning for chunking and embedding changes
 4. Add dedup detection for re-ingested files
 
@@ -178,6 +185,6 @@ Recommended next implementation order:
 
 1. Treat the current 26-query set as the stable retrieval baseline and the 43-query set as the active expansion track
 2. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
-3. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-4. Add ingestion/version metadata so single-doc repairs are auditable
+3. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
+4. Harden corpus metadata and rebuild workflows for medium-scale ingestion
 5. Reconsider document-level retrieval only if cross-document precision stops holding at the expanded benchmark level
