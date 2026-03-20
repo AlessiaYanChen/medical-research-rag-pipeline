@@ -1,0 +1,48 @@
+{
+  "collections": {
+    "medical_research_chunks_v1": {
+      "Culture-Free Lipidomics-Based Screening Test": {
+        "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+        "pdf_path": "data\\raw_pdfs\\uploaded\\Culture-Free Lipidomics-Based Screening Test.pdf",
+        "chunks": 243,
+        "text_chunks": 241,
+        "table_chunks": 2
+      },
+      "RAPID": {
+        "doc_id": "RAPID",
+        "pdf_path": "data\\raw_pdfs\\uploaded\\RAPID.pdf",
+        "chunks": 256,
+        "text_chunks": 252,
+        "table_chunks": 4
+      },
+      "Single site RCT": {
+        "doc_id": "Single site RCT",
+        "pdf_path": "data\\raw_pdfs\\uploaded\\Single site RCT.pdf",
+        "chunks": 228,
+        "text_chunks": 223,
+        "table_chunks": 5
+      },
+      "BAL SM": {
+        "doc_id": "BAL SM",
+        "pdf_path": "data\\raw_pdfs\\uploaded\\BAL SM.pdf",
+        "chunks": 267,
+        "text_chunks": 265,
+        "table_chunks": 2
+      },
+      "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-": {
+        "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+        "pdf_path": "data\\raw_pdfs\\uploaded\\IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+        "chunks": 299,
+        "text_chunks": 295,
+        "table_chunks": 4
+      },
+      "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship": {
+        "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+        "pdf_path": "data\\raw_pdfs\\uploaded\\fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+        "chunks": 386,
+        "text_chunks": 383,
+        "table_chunks": 3
+      }
+    }
+  }
+}

@@ -25,7 +25,7 @@ Implemented:
 Current observed issues:
 
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
-- The benchmark still needs broader query coverage and manual expectation refinement
+- The benchmark still needs continued expectation refinement as broader coverage surfaces edge cases
 
 ## Phase 1: Retrieval Quality Stabilization
 
@@ -75,17 +75,18 @@ Current checkpoint:
 
 - `scripts/evaluate_retrieval.py` exists and writes JSON/CSV reports
 - `data/eval/sample_queries.json` is in use as a starter evaluation set
-- The starter benchmark was expanded to 26 queries with stricter top-1 and precision metrics
+- The stable retrieval baseline remains the 26-query `data/eval/sample_queries.json` dataset
+- `data/eval/expanded_queries.json` now extends coverage to 43 queries across stewardship, review-style, title-query, and table-oriented retrieval
 - Latest eval run on `medical_research_chunks_v1` showed:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.7974`
+  - average header precision: `0.8795`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
-  - table-hit queries: `5`
+  - table-hit queries: `7`
   - non-structural header queries: `0`
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
@@ -93,7 +94,9 @@ Current checkpoint:
 - Preserving markdown table placement during parsing materially improved table retrieval and cross-document precision after re-ingestion
 - The thematic-header chunker fix is now part of the ingestion baseline by normalizing markdown thematic headings back to stable retrieval sections while preserving the original header in metadata
 - An experimental document-candidate retrieval stage was evaluated and removed because it underperformed the baseline on cross-document precision
-- Cross-document precision on the current benchmark is now stabilized through singular-target document locking for title queries plus explicit table-only and metric-table filtering for table-oriented retrieval
+- Cross-document precision on the current benchmark is now stabilized through singular-target document locking for title/trial/study queries plus explicit table-only and metric-table filtering for table-oriented retrieval
+- Explicit `Table N` references are now preserved in chunk metadata so explicit table queries can still recover linked evidence when parser output leaves the table callout in narrative text
+- `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection
 
 Exit criteria:
 
@@ -173,8 +176,8 @@ Exit criteria:
 
 Recommended next implementation order:
 
-1. Stop retrieval ranking work at the current benchmark checkpoint and treat it as the new baseline
-2. Expand the benchmark again now that the current 26-query set is clean on doc-hit and doc-precision metrics
-3. Refine expectations as broader cross-document and review-style cases surface before changing retrieval logic again
-4. Harden corpus metadata for medium-scale ingestion
-5. Reconsider document-level retrieval only if cross-document precision stops improving with better metadata and evaluation coverage
+1. Treat the current 26-query set as the stable retrieval baseline and the 43-query set as the active expansion track
+2. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
+3. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+4. Add ingestion/version metadata so single-doc repairs are auditable
+5. Reconsider document-level retrieval only if cross-document precision stops holding at the expanded benchmark level

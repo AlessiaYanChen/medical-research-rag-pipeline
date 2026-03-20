@@ -376,6 +376,7 @@ class UnifiedChunker:
     ) -> list[Chunk]:
         sentences = self._split_sentences(parent_content)
         page_number = self._extract_page_number(parent_content)
+        referenced_table_indices = self._extract_table_references(parent_content)
         if not sentences:
             sentences = [parent_content]
 
@@ -398,6 +399,7 @@ class UnifiedChunker:
                         "is_low_value": header_role == "citation_like",
                         "parent_id": parent_id,
                         "parent_content": parent_content,
+                        "referenced_table_indices": referenced_table_indices,
                         "parent_sentences": sentences,
                         "child_index": child_index + 1,
                         "child_sentence_start": child_window["start"],
@@ -448,6 +450,7 @@ class UnifiedChunker:
                     "normalized_parent_header": parent_header,
                     "header_role": header_role,
                     "is_low_value": header_role == "citation_like",
+                    "table_index": table_index,
                 },
             ),
         )
@@ -481,6 +484,15 @@ class UnifiedChunker:
             for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", normalized)
             if sentence.strip()
         ]
+
+    @staticmethod
+    def _extract_table_references(text: str) -> list[int]:
+        return sorted(
+            {
+                int(match.group(1))
+                for match in re.finditer(r"\btable\s+(\d+)\b", text, flags=re.IGNORECASE)
+            }
+        )
 
     def _build_child_sentence_windows(self, sentences: list[str]) -> list[dict[str, Any]]:
         if len(sentences) <= self.child_sentence_window:

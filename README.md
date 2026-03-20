@@ -3,21 +3,23 @@
 A modular Retrieval-Augmented Generation (RAG) system for medical research PDFs. The current implementation ingests PDFs, extracts narrative text and tables, normalizes tabular artifacts, chunks documents in a structure-aware way, stores chunks in Qdrant, retrieves evidence from the knowledge base, and optionally synthesizes research answers with an LLM.
 
 Current benchmark status:
-- retrieval is now tracked on a 26-query benchmark with stricter top-1 and precision metrics
+- retrieval is now tracked on both a stable 26-query benchmark and a broader 43-query expanded benchmark
+- the 26-query `data/eval/sample_queries.json` file remains the stable retrieval baseline; `data/eval/expanded_queries.json` extends coverage for stewardship, review-style, title-query, and table-oriented evaluation
 - expected doc hit rate: `1.0`
 - expected header hit rate: `1.0`
 - top-1 expected doc hit rate: `1.0`
 - top-1 expected header hit rate: `1.0`
 - average doc precision: `1.0`
-- average header precision: `0.7974`
+- average header precision: `0.8795`
 - cross-document average doc precision: `1.0`
 - citation noise queries: `1`
-- table-hit queries: `5`
+- table-hit queries: `7`
 - non-structural header queries: `0`
-- current retrieval baseline is query-aware section weighting plus single-document metadata suppression, singular-target document locking for cross-document title queries, and explicit table/metric query filtering
+- current retrieval baseline is query-aware section weighting plus single-document metadata suppression, singular-target document locking for cross-document title and trial/study queries, and explicit table/metric query filtering
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
-- next benchmark work is broader evaluation coverage plus expectation refinement as the benchmark expands
+- explicit `Table N` references are now preserved in chunk metadata so explicit table queries can recover linked prose evidence when parser output leaves the table callout in narrative text
+- next benchmark work is expectation refinement and metadata hardening before more ranking changes
 
 ## What It Does
 
@@ -302,6 +304,18 @@ Run the retrieval evaluation harness against an indexed collection:
 .\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
+Run the expanded benchmark without changing the stable baseline dataset:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
+Reparse and replace a single document in an existing collection:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
 Export stored chunks from Qdrant for validation:
 
 ```powershell
@@ -315,7 +329,7 @@ Export stored chunks from Qdrant for validation:
 - Marker output quality depends on the document layout and OCR quality
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is a local manifest and can drift from Qdrant if data is changed externally
-- evaluation is still based on a small curated benchmark, not a broad corpus-wide test set
+- evaluation is still based on a curated benchmark, not a broad corpus-wide test set
 
 ## Roadmap
 

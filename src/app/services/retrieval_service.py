@@ -218,9 +218,11 @@ class RetrievalService:
                 continue
             if self._looks_like_low_value_content(normalized_parent):
                 continue
-            if query_requires_tables and content_role != "table":
+            if query_requires_tables and content_role != "table" and not self._chunk_supports_explicit_table_query(chunk):
                 continue
             if query_requires_metric_tables and content_role == "table" and not self._table_matches_metric_query(chunk):
+                continue
+            if query_requires_metric_tables and content_role != "table":
                 continue
             if content_role == "table" and not (self._include_tables or query_prefers_tables):
                 continue
@@ -309,6 +311,15 @@ class RetrievalService:
         return any(re.search(pattern, normalized) for pattern in metric_patterns)
 
     @staticmethod
+    def _chunk_supports_explicit_table_query(chunk: Chunk) -> bool:
+        if str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type)) == "table":
+            return True
+        referenced_table_indices = chunk.metadata.extra.get("referenced_table_indices")
+        if not isinstance(referenced_table_indices, list):
+            return False
+        return any(str(item).strip().isdigit() for item in referenced_table_indices)
+
+    @staticmethod
     def _is_excluded_section(section_role: str, content_role: str, parent_header: str) -> bool:
         normalized_header = parent_header.lower()
         if content_role == "reference" or section_role == "references":
@@ -375,6 +386,8 @@ class RetrievalService:
         role_bonus = 0
         if content_role == "table":
             role_bonus += 8 if self._query_prefers_tables(query) else -2
+        if self._query_requires_tables(query) and self._chunk_supports_explicit_table_query(chunk):
+            role_bonus += 6
         if content_role == "child":
             role_bonus += 1
         if content_role == "table" and not self._query_prefers_tables(query):
@@ -404,6 +417,9 @@ class RetrievalService:
             add_bonus(("method", "methods", "materials and methods"), 4)
             add_bonus(("result", "results"), 1)
             add_bonus(("conclusion",), -2)
+        if any(token in normalized for token in ("compare", "compares", "comparing", "versus", " vs ", "with and without")):
+            add_bonus(("result", "results"), 4)
+            add_bonus(("discussion",), -1)
         if any(token in normalized for token in ("limitation", "limitations", "caveat", "caveats", "implication", "implications", "conclusion", "conclusions", "usefulness", "clinical usefulness")):
             add_bonus(("discussion", "conclusion"), 3)
         if any(token in normalized for token in ("review", "overview", "what does the review say", "approaches", "arguments")):
@@ -440,7 +456,18 @@ class RetrievalService:
         if any(signal in normalized for signal in plural_signals):
             return False
 
-        singular_signals = ("which paper", "which indexed paper", "which document", "which indexed document", "which study")
+        singular_signals = (
+            "which paper",
+            "which indexed paper",
+            "which document",
+            "which indexed document",
+            "which study",
+            "which indexed study",
+            "which trial",
+            "which indexed trial",
+            "which randomized trial",
+            "which indexed randomized trial",
+        )
         return any(signal in normalized for signal in singular_signals)
 
     @staticmethod

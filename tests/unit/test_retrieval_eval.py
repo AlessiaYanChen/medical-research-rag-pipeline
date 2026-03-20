@@ -22,6 +22,7 @@ def test_load_evaluation_queries_reads_expected_fields(tmp_path: Path) -> None:
                     "doc_id": "DOC-1",
                     "expected_docs": ["DOC-1"],
                     "expected_headers": ["Discussion", "Conclusion"],
+                    "labels": ["single_doc", "discussion_preference"],
                     "include_tables": True,
                     "notes": "starter",
                 }
@@ -37,6 +38,7 @@ def test_load_evaluation_queries_reads_expected_fields(tmp_path: Path) -> None:
     assert queries[0].doc_id == "DOC-1"
     assert queries[0].expected_docs == ("DOC-1",)
     assert queries[0].expected_headers == ("Discussion", "Conclusion")
+    assert queries[0].labels == ("single_doc", "discussion_preference")
     assert queries[0].include_tables is True
 
 
@@ -85,6 +87,7 @@ def test_evaluate_retrieval_results_counts_noise_and_duplicates(tmp_path: Path) 
     assert evaluation["expected_header_hit"] is True
     assert evaluation["top1_expected_doc_hit"] is True
     assert evaluation["top1_expected_header_hit"] is True
+    assert evaluation["labels"] == []
     assert evaluation["doc_precision"] == 1.0
     assert evaluation["header_precision"] == 0.6667
     assert evaluation["citation_noise_hits"] == 1

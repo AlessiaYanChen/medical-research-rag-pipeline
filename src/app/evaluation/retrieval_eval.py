@@ -16,6 +16,7 @@ class EvaluationQuery:
     doc_id: str | None = None
     expected_docs: tuple[str, ...] = ()
     expected_headers: tuple[str, ...] = ()
+    labels: tuple[str, ...] = ()
     include_tables: bool | None = None
     notes: str = ""
 
@@ -38,6 +39,7 @@ def load_evaluation_queries(path: str | Path) -> list[EvaluationQuery]:
         doc_id = str(item.get("doc_id", "")).strip() or None
         expected_docs = tuple(_normalize_expected_list(item.get("expected_docs")))
         expected_headers = tuple(_normalize_expected_list(item.get("expected_headers")))
+        labels = tuple(_normalize_expected_list(item.get("labels")))
         include_tables = _normalize_optional_bool(item.get("include_tables"))
         notes = str(item.get("notes", "")).strip()
         queries.append(
@@ -47,6 +49,7 @@ def load_evaluation_queries(path: str | Path) -> list[EvaluationQuery]:
                 doc_id=doc_id,
                 expected_docs=expected_docs,
                 expected_headers=expected_headers,
+                labels=labels,
                 include_tables=include_tables,
                 notes=notes,
             )
@@ -90,6 +93,7 @@ def evaluate_retrieval_results(query: EvaluationQuery, chunks: list[RetrievedChu
         "doc_filter": query.doc_id or "",
         "expected_docs": list(query.expected_docs),
         "expected_headers": list(query.expected_headers),
+        "labels": list(query.labels),
         "include_tables": query.include_tables,
         "notes": query.notes,
         "result_count": len(chunks),

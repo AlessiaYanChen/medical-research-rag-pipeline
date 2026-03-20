@@ -278,3 +278,22 @@ This section summarizes the main stewardship takeaways.
     assert text_chunks[3].metadata.extra["original_parent_header"] == "PARTNERSHIPS TO ENHANCE BLOOD CULTURE PERFORMANCE AND UTILIZATION"
     assert text_chunks[4].metadata.parent_header == "SUMMARY"
     assert text_chunks[4].metadata.extra["original_parent_header"] == "SUMMARY"
+
+
+def test_unified_chunker_tracks_explicit_table_references_in_text_chunks() -> None:
+    markdown = """# Results
+
+Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis.
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-009",
+        source_file="bal.pdf",
+        markdown_text=markdown,
+        tables=[],
+    )
+
+    text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
+    assert len(text_chunks) == 1
+    assert text_chunks[0].metadata.extra["referenced_table_indices"] == [3]

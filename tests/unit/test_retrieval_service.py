@@ -1260,3 +1260,148 @@ def test_retrieval_service_requires_metric_evidence_for_tabular_metric_queries()
     result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", limit=2)
 
     assert [chunk.doc_id for chunk in result] == ["DOC-18"]
+
+
+def test_retrieval_service_limits_which_indexed_study_queries_to_top_document() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Rapid testing enabled antibiotic modifications to occur nearly a day faster than standard of care.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Rapid testing enabled antibiotic modifications to occur nearly a day faster than standard of care.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Rapid test reporting with stewardship support reduced unnecessary antibiotic use in a separate trial.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Rapid test reporting with stewardship support reduced unnecessary antibiotic use in a separate trial.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed study reports rapid antibiotic deescalation timing benefits specifically from the RAPID platform?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["RAPID"]
+
+
+def test_retrieval_service_prefers_results_for_comparison_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Discussion of a rapid diagnostic platform with clinically useful results.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Discussion of a rapid diagnostic platform with clinically useful results.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:T00001",
+            content="Outcome,Control,Rapid Multiplex PCR,Rapid Multiplex PCR + Stewardship\nClinical outcome,...",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Outcome,Control,Rapid Multiplex PCR,Rapid Multiplex PCR + Stewardship\nClinical outcome,...",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Which indexed randomized trial compares rapid test reporting with and without real-time antimicrobial stewardship oversight?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["Single site RCT"]
+
+
+def test_retrieval_service_allows_linked_table_references_for_explicit_table_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis.",
+                    "referenced_table_indices": [3],
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:T00001",
+            content="Source File: Single site RCT.pdf | Table Index: 3 | Section: Results\nRapid Multiplex PCR Panel Result,Standard Culture and Phenotypic Susceptibility Testing,No.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Source File: Single site RCT.pdf | Table Index: 3 | Section: Results\nRapid Multiplex PCR Panel Result,Standard Culture and Phenotypic Susceptibility Testing,No.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Which indexed paper contains a discrepant-results table for respiratory pathogens obtained by PCR/ESI-MS and routine culture?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["BAL SM"]

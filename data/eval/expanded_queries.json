@@ -1,0 +1,352 @@
+[
+  {
+    "id": "Q01",
+    "query": "What does the study say about broad-range pathogen detection in BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "notes": "Starter expectation set for BAL retrieval quality review."
+  },
+  {
+    "id": "Q02",
+    "query": "What limitations or clinical caveats are discussed for PCR/ESI-MS in BAL diagnostics?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "Use this to test discussion preference over abstract."
+  },
+  {
+    "id": "Q03",
+    "query": "What conclusions are drawn about the clinical usefulness of PCR/ESI-MS in BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "Conclusion-heavy BAL query."
+  },
+  {
+    "id": "Q04",
+    "query": "Which lipid biomarkers differentiated positive and negative cultures?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "Refine expected evidence after first manual review."
+  },
+  {
+    "id": "Q05",
+    "query": "What sensitivity or specificity findings are reported for the screening approach?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Table-oriented query. Keep table mode on for this case."
+  },
+  {
+    "id": "Q06",
+    "query": "What experimental optimization steps improved pathogen detection before clinical validation?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Methods", "Results", "Discussion"],
+    "notes": "Harder section-balance query for optimization content."
+  },
+  {
+    "id": "Q07",
+    "query": "What were the main clinical outcomes in the single-site randomized trial?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "Good for checking prose-first retrieval against outcome questions."
+  },
+  {
+    "id": "Q08",
+    "query": "What outcome differences were reported between patient groups in the single-site randomized trial?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "More specific trial-outcomes variant."
+  },
+  {
+    "id": "Q09",
+    "query": "What conclusions were drawn about the RAPID test performance?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "notes": "Good check for conclusion-heavy ranking."
+  },
+  {
+    "id": "Q10",
+    "query": "What evidence is presented for RAPID test diagnostic performance in the results?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "Results-focused RAPID query."
+  },
+  {
+    "id": "Q11",
+    "query": "Which documents discuss diagnostic stewardship for blood cultures?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "notes": "Cross-document retrieval with a specific paper target."
+  },
+  {
+    "id": "Q12",
+    "query": "What arguments are made for optimizing blood culture use in the hospital setting?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
+    "notes": "Single-document stewardship query."
+  },
+  {
+    "id": "Q13",
+    "query": "What does the review say about blood culture-negative endocarditis laboratory diagnosis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Abstract", "Discussion", "Introduction"],
+    "notes": "Review-style query that may surface abstract content."
+  },
+  {
+    "id": "Q14",
+    "query": "Which laboratory approaches are reviewed for diagnosing blood culture-negative endocarditis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "notes": "Review-methods and overview style query."
+  },
+  {
+    "id": "Q15",
+    "query": "Across the indexed studies, which papers report diagnostic performance outcomes for rapid testing?",
+    "expected_docs": ["BAL SM", "RAPID", "Single site RCT"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "notes": "Cross-document precision check over multiple expected docs."
+  },
+  {
+    "id": "Q16",
+    "query": "Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence."
+  },
+  {
+    "id": "Q17",
+    "query": "What organism detection limitations are discussed for PCR/ESI-MS in BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "BAL limitations variant focused on organism coverage."
+  },
+  {
+    "id": "Q18",
+    "query": "What lower-limit-of-detection findings are reported for the lipidomics screening workflow?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Methods", "Discussion"],
+    "include_tables": true,
+    "notes": "Culture-Free table/performance query tied to LOD reporting."
+  },
+  {
+    "id": "Q19",
+    "query": "Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "RAPID", "Single site RCT", "BAL SM", "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review, which reports sensitivity/specificity metrics for diagnostic methods."
+  },
+  {
+    "id": "Q20",
+    "query": "What practical recommendations are made for diagnostic stewardship of blood cultures in hospitals?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
+    "notes": "Stewardship paper variant emphasizing practical recommendations."
+  },
+  {
+    "id": "Q21",
+    "query": "Which indexed paper focuses on optimizing blood culture utilization rather than reporting patient outcomes?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "notes": "Cross-document stewardship-vs-trial disambiguation query."
+  },
+  {
+    "id": "Q22",
+    "query": "What methods are reviewed for diagnosing blood culture-negative endocarditis when standard cultures fail?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Discussion"],
+    "notes": "Review query with stronger methods emphasis."
+  },
+  {
+    "id": "Q23",
+    "query": "Across the indexed studies, which papers discuss clinical usefulness or implementation implications of rapid diagnostics?",
+    "expected_docs": ["BAL SM", "RAPID", "Culture-Free Lipidomics-Based Screening Test", "Single site RCT"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "notes": "Cross-document implications query across rapid-diagnostic papers."
+  },
+  {
+    "id": "Q24",
+    "query": "Which paper reports group-based patient outcome differences in a randomized clinical setting?",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "Cross-document question intended to isolate the trial paper."
+  },
+  {
+    "id": "Q25",
+    "query": "Which indexed paper contains a results table comparing identified organisms or diagnostic detection counts?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "BAL SM", "Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "notes": "Table-oriented cross-document organism/detection-count query."
+  },
+  {
+    "id": "Q26",
+    "query": "What evidence is presented in RAPID for result-stage diagnostic performance rather than discussion-only interpretation?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "notes": "RAPID query intended to test results-vs-discussion balance."
+  },
+  {
+    "id": "Q27",
+    "query": "What intervention types are described for reducing unnecessary blood culture ordering in hospitals?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Introduction", "Conclusion", "Summary"],
+    "labels": ["single_doc", "stewardship", "interventions"],
+    "notes": "Expanded stewardship coverage focused on intervention content instead of generic optimization language."
+  },
+  {
+    "id": "Q28",
+    "query": "What collection-practice or specimen-management factors are highlighted for improving blood culture performance?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Introduction", "Conclusion", "Summary"],
+    "labels": ["single_doc", "stewardship", "implementation"],
+    "notes": "Targets collection-practice material that can otherwise be displaced by title-like stewardship matches."
+  },
+  {
+    "id": "Q29",
+    "query": "What non-culture-based diagnostic tools are reviewed for blood culture-negative endocarditis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Discussion", "Conclusion"],
+    "labels": ["single_doc", "review_style", "methods_overview"],
+    "notes": "Expands review-style coverage beyond general diagnosis wording."
+  },
+  {
+    "id": "Q30",
+    "query": "What sensitivity and specificity findings are reported for metagenomic sequencing in blood culture-negative endocarditis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Methods", "Introduction", "Conclusion"],
+    "include_tables": true,
+    "labels": ["single_doc", "review_style", "diagnostic_metrics", "table_or_metric"],
+    "notes": "Metrics-oriented endocarditis query intended to exercise review retrieval without defaulting to unrelated accuracy papers."
+  },
+  {
+    "id": "Q31",
+    "query": "Which indexed paper reviews diagnostic approaches for blood culture-negative endocarditis rather than hospital blood culture utilization?",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Discussion", "Conclusion"],
+    "labels": ["cross_doc", "review_disambiguation", "title_like"],
+    "notes": "Cross-document disambiguation between the endocarditis review and stewardship paper."
+  },
+  {
+    "id": "Q32",
+    "query": "What role did antimicrobial stewardship or templated communication play in the randomized blood culture trial outcomes?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["single_doc", "trial", "stewardship", "implementation"],
+    "notes": "Strengthens trial coverage around stewardship/result-communication effects rather than only patient outcomes."
+  },
+  {
+    "id": "Q33",
+    "query": "Which indexed papers discuss stewardship involvement alongside rapid diagnostic reporting or result communication?",
+    "expected_docs": ["RAPID", "Single site RCT", "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Results", "Introduction", "Conclusion"],
+    "labels": ["cross_doc", "stewardship", "rapid_diagnostics"],
+    "notes": "Broader cross-document stewardship query spanning the stewardship review and two rapid-diagnostics studies."
+  },
+  {
+    "id": "Q34",
+    "query": "Which indexed paper is titled Randomized Trial Evaluating Clinical Impact of RAPid IDentification and Susceptibility Testing for Gram-negative Bacteremia?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion", "Document Metadata/Abstract"],
+    "labels": ["cross_doc", "title_query", "doc_locking"],
+    "notes": "Explicit title query for the RAPID paper to preserve the current singular-target document locking baseline."
+  },
+  {
+    "id": "Q35",
+    "query": "Which indexed paper is titled Blood Culture Negative Endocarditis: A Review of Laboratory Diagnostic Approaches?",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Conclusion", "Document Metadata/Abstract"],
+    "labels": ["cross_doc", "title_query", "review_disambiguation"],
+    "notes": "Title-oriented cross-document query for the endocarditis review."
+  },
+  {
+    "id": "Q36",
+    "query": "Which indexed study reports antimicrobial deescalation or escalation timing benefits from RAPID identification?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["cross_doc", "rapid_diagnostics", "outcomes"],
+    "notes": "Cross-document RAPID identification query focused on timing benefits rather than generic performance language."
+  },
+  {
+    "id": "Q37",
+    "query": "Which indexed paper investigates detection of bacterial pathogens in bronchoalveolar lavage by PCR/ESI-MS (IRIDICA)?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion", "Document Metadata/Abstract"],
+    "labels": ["cross_doc", "title_query", "bal"],
+    "notes": "Title-like BAL query to make document selection failures visible before changing retrieval again."
+  },
+  {
+    "id": "Q38",
+    "query": "Which indexed paper contains a discrepant-results table for respiratory pathogens obtained by PCR/ESI-MS and routine culture?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["cross_doc", "table_oriented", "bal", "diagnostic_metrics"],
+    "notes": "Table-oriented BAL query grounded in the discrepant-results section rather than generic pathogen detection phrasing."
+  },
+  {
+    "id": "Q39",
+    "query": "Which indexed paper reports discrepant respiratory pathogen results between PCR/ESI-MS and routine culture-based analysis?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["cross_doc", "table_oriented", "bal", "discrepant_results"],
+    "notes": "BAL discrepant-results variant without the word table to separate table-mode dependence from document-selection issues."
+  },
+  {
+    "id": "Q40",
+    "query": "Which indexed study includes data for patients with discrepant results for respiratory pathogens in bronchoalveolar lavage?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion", "Document Metadata/Abstract"],
+    "include_tables": true,
+    "labels": ["cross_doc", "bal", "discrepant_results", "title_like"],
+    "notes": "BAL-specific discrepant-results query that should still isolate the bronchoalveolar lavage paper."
+  },
+  {
+    "id": "Q41",
+    "query": "Which indexed paper reports that RAPID enabled antibiotic modifications nearly a day faster than standard of care?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["cross_doc", "rapid_diagnostics", "timing_benefit", "disambiguation"],
+    "notes": "RAPID timing-benefit query using the distinctive nearly-a-day-faster phrasing seen in the current top hit."
+  },
+  {
+    "id": "Q42",
+    "query": "Which indexed study reports rapid antibiotic deescalation timing benefits specifically from the RAPID platform rather than stewardship-guided communication?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["cross_doc", "rapid_diagnostics", "timing_benefit", "stewardship_disambiguation"],
+    "notes": "Disambiguates RAPID platform timing effects from the single-site trial's stewardship communication framing."
+  },
+  {
+    "id": "Q43",
+    "query": "Which indexed randomized trial compares rapid test reporting with and without real-time antimicrobial stewardship oversight?",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["cross_doc", "trial", "stewardship", "communication"],
+    "notes": "Companion disambiguation query for the single-site RCT so the timing-language overlap is measured in both directions."
+  }
+]
