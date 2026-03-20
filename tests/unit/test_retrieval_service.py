@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from src.app.ports.repositories.vector_repository import MetadataFilter
+from src.app.ports.repositories.vector_repository import VectorSearchFilters
 from src.app.services.retrieval_service import RetrievalService
 from src.domain.models.chunk import Chunk, ChunkMetadata
 
@@ -7,18 +9,68 @@ from src.domain.models.chunk import Chunk, ChunkMetadata
 class FakeVectorRepository:
     def __init__(self, chunks: list[Chunk]) -> None:
         self._chunks = chunks
-        self.last_search_args: tuple[list[float], str | None, int] | None = None
-        self.search_calls: list[tuple[list[float], str | None, int]] = []
+        self.last_search_args: tuple[list[float], str | None, int, VectorSearchFilters | None] | None = None
+        self.search_calls: list[tuple[list[float], str | None, int, VectorSearchFilters | None]] = []
 
     def upsert_chunks(self, chunks: list[Chunk]) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def search(self, vector: list[float], doc_id: str | None = None, limit: int = 5) -> list[Chunk]:
-        self.last_search_args = (vector, doc_id, limit)
-        self.search_calls.append((vector, doc_id, limit))
+    def search(
+        self,
+        vector: list[float],
+        doc_id: str | None = None,
+        limit: int = 5,
+        filters: VectorSearchFilters | None = None,
+    ) -> list[Chunk]:
+        self.last_search_args = (vector, doc_id, limit, filters)
+        self.search_calls.append((vector, doc_id, limit, filters))
+        chunks = self._chunks
         if doc_id is None:
-            return self._chunks[:limit]
-        return [chunk for chunk in self._chunks if chunk.metadata.doc_id == doc_id][:limit]
+            filtered = chunks
+        else:
+            filtered = [chunk for chunk in chunks if chunk.metadata.doc_id == doc_id]
+
+        if filters is not None:
+            if filters.doc_id is not None:
+                filtered = [chunk for chunk in filtered if chunk.metadata.doc_id == filters.doc_id]
+            filtered = [chunk for chunk in filtered if self._matches_all(chunk, filters.must)]
+            filtered = [chunk for chunk in filtered if not self._matches_any(chunk, filters.must_not)]
+            if filters.should:
+                filtered = [
+                    chunk
+                    for chunk in filtered
+                    if self._match_count(chunk, filters.should) >= filters.minimum_should_match
+                ]
+        return filtered[:limit]
+
+    @staticmethod
+    def _matches_all(chunk: Chunk, filters: tuple[MetadataFilter, ...]) -> bool:
+        return all(FakeVectorRepository._matches_filter(chunk, item) for item in filters)
+
+    @staticmethod
+    def _matches_any(chunk: Chunk, filters: tuple[MetadataFilter, ...]) -> bool:
+        return any(FakeVectorRepository._matches_filter(chunk, item) for item in filters)
+
+    @staticmethod
+    def _match_count(chunk: Chunk, filters: tuple[MetadataFilter, ...]) -> int:
+        return sum(1 for item in filters if FakeVectorRepository._matches_filter(chunk, item))
+
+    @staticmethod
+    def _matches_filter(chunk: Chunk, filter_item: MetadataFilter) -> bool:
+        value = chunk.metadata.extra.get(filter_item.key)
+        if value is None:
+            if filter_item.key == "doc_id":
+                value = chunk.metadata.doc_id
+            elif filter_item.key == "chunk_type":
+                value = chunk.metadata.chunk_type
+            elif filter_item.key == "parent_header":
+                value = chunk.metadata.parent_header
+
+        if filter_item.values:
+            if isinstance(value, list):
+                return any(item in filter_item.values for item in value)
+            return value in filter_item.values
+        return value == filter_item.value
 
 
 class FakeReRanker:
@@ -62,7 +114,8 @@ def test_retrieval_service_formats_header_and_content() -> None:
 
     result = service.retrieve(query="lipid markers", doc_id="DOC-1", limit=2)
 
-    assert repo.last_search_args == ([0.1, 0.2, 0.3], "DOC-1", 40)
+    assert repo.last_search_args is not None
+    assert repo.last_search_args[:3] == ([0.1, 0.2, 0.3], "DOC-1", 40)
     assert result[0].source == "Results"
     assert result[0].doc_id == "DOC-1"
     assert result[0].content == "LDL-C was elevated in the treatment arm."
@@ -90,7 +143,8 @@ def test_retrieval_service_strips_marker_anchor_and_image_noise() -> None:
 
     result = service.retrieve(query="pneumonia", doc_id="DOC-2", limit=1)
 
-    assert repo.last_search_args == ([0.1, 0.2, 0.3], "DOC-2", 40)
+    assert repo.last_search_args is not None
+    assert repo.last_search_args[:3] == ([0.1, 0.2, 0.3], "DOC-2", 40)
     assert result[0].source == "Introduction"
     assert "![](" not in result[0].content
     assert "<span" not in result[0].content
@@ -118,7 +172,7 @@ def test_retrieval_service_can_query_entire_knowledge_base() -> None:
 
     result = service.retrieve(query="biomarker", limit=1)
 
-    assert repo.search_calls[0] == ([0.1, 0.2, 0.3], None, 40)
+    assert repo.search_calls[0][:3] == ([0.1, 0.2, 0.3], None, 40)
     assert result[0].doc_id == "DOC-A"
 
 
@@ -423,6 +477,39 @@ def test_retrieval_service_excludes_reference_and_unknown_sections() -> None:
 
     assert len(result) == 1
     assert result[0].source == "Discussion"
+
+
+def test_retrieval_service_pushes_static_exclusions_into_search_filters() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-6A:P00002:C01",
+            content="Useful discussion sentence for the biomarker finding.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-6A",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-6A:P00002",
+                    "parent_content": "Useful discussion sentence for the biomarker finding.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    service.retrieve(query="biomarker finding", doc_id="DOC-6A", limit=1)
+
+    assert repo.last_search_args is not None
+    filters = repo.last_search_args[3]
+    assert filters is not None
+    assert filters.doc_id == "DOC-6A"
+    assert any(item.key == "content_role" and item.values == ("reference", "front_matter") for item in filters.must_not)
+    assert any(item.key == "section_role" and item.values == ("references", "front_matter", "unknown") for item in filters.must_not)
+    assert any(item.key == "is_low_value" and item.value is True for item in filters.must_not)
 
 
 def test_retrieval_service_excludes_tables_by_default() -> None:
@@ -1217,6 +1304,45 @@ def test_retrieval_service_requires_table_chunks_for_explicit_table_queries() ->
     assert [chunk.chunk_type for chunk in result] == ["table"]
 
 
+def test_retrieval_service_adds_should_filters_for_explicit_table_references() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-17A:P00001:C01",
+            content="Table 3 compares discrepant respiratory pathogen results.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-17A",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-17A:P00001",
+                    "parent_content": "Table 3 compares discrepant respiratory pathogen results.",
+                    "referenced_table_indices": [3],
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    service.retrieve(
+        query="Which indexed paper contains Table 3 for discrepant respiratory pathogen results?",
+        limit=1,
+    )
+
+    assert repo.last_search_args is not None
+    filters = repo.last_search_args[3]
+    assert filters is not None
+    assert any(item.key == "content_role" and item.value == "table" for item in filters.should)
+    assert any(item.key == "referenced_table_indices" and item.values == (3,) for item in filters.should)
+
+
 def test_retrieval_service_requires_metric_evidence_for_tabular_metric_queries() -> None:
     chunks = [
         Chunk(
@@ -1260,6 +1386,98 @@ def test_retrieval_service_requires_metric_evidence_for_tabular_metric_queries()
     result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", limit=2)
 
     assert [chunk.doc_id for chunk in result] == ["DOC-18"]
+
+
+def test_retrieval_service_excludes_non_quantitative_sensitivity_tables_for_metric_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-STEW:T00001",
+            content="Source File: stewardship.pdf | Table Index: 1 | Section: Discussion\nEducate staff on blood culture sensitivity factors,Provide feedback on collection practices",
+            metadata=ChunkMetadata(
+                doc_id="DOC-STEW",
+                chunk_type="table",
+                parent_header="Discussion",
+                page_number=3,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Source File: stewardship.pdf | Table Index: 1 | Section: Discussion\nEducate staff on blood culture sensitivity factors,Provide feedback on collection practices",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-METRIC:T00001",
+            content="Source File: metric.pdf | Table Index: 1 | Section: Results\nSensitivity,Specificity\n70%,99%",
+            metadata=ChunkMetadata(
+                doc_id="DOC-METRIC",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=3,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Source File: metric.pdf | Table Index: 1 | Section: Results\nSensitivity,Specificity\n70%,99%",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", limit=2)
+
+    assert [chunk.doc_id for chunk in result] == ["DOC-METRIC"]
+
+
+def test_retrieval_service_prefers_metric_metadata_when_available() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-META:T00001",
+            content="Source File: metric.pdf | Table Index: 1 | Section: Results\nSensitivity,Specificity\n70%,99%",
+            metadata=ChunkMetadata(
+                doc_id="DOC-META",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=3,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "contains_metric_values": True,
+                    "table_semantics": ["metric", "comparison"],
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-NONMETA:T00001",
+            content="Source File: nonmetric.pdf | Table Index: 1 | Section: Discussion\nWorkflow,Recommendation\nA,B",
+            metadata=ChunkMetadata(
+                doc_id="DOC-NONMETA",
+                chunk_type="table",
+                parent_header="Discussion",
+                page_number=3,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "contains_metric_values": False,
+                    "table_semantics": ["comparison"],
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", limit=2)
+
+    assert [chunk.doc_id for chunk in result] == ["DOC-META"]
 
 
 def test_retrieval_service_limits_which_indexed_study_queries_to_top_document() -> None:
@@ -1373,6 +1591,7 @@ def test_retrieval_service_allows_linked_table_references_for_explicit_table_que
                     "parent_id": "DOC-BAL:P00001",
                     "parent_content": "Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis.",
                     "referenced_table_indices": [3],
+                    "has_table_reference": True,
                 },
             ),
         ),
@@ -1402,6 +1621,106 @@ def test_retrieval_service_allows_linked_table_references_for_explicit_table_que
     result = service.retrieve(
         query="Which indexed paper contains a discrepant-results table for respiratory pathogens obtained by PCR/ESI-MS and routine culture?",
         limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["BAL SM"]
+
+
+def test_retrieval_service_excludes_embedded_markdown_table_prose_for_non_table_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-REVIEW:P00001:C01",
+            content="| Advantage | Disadvantage |\n| --- | --- |\n| Rapid | Low specificity |",
+            metadata=ChunkMetadata(
+                doc_id="DOC-REVIEW",
+                chunk_type="text",
+                parent_header="Conclusion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-REVIEW:P00001",
+                    "parent_content": "| Advantage | Disadvantage |\n| --- | --- |\n| Rapid | Low specificity |",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Discussion of rapid diagnostics implementation implications in clinical practice.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-RAPID",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Discussion of rapid diagnostics implementation implications in clinical practice.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Across the indexed studies, which papers discuss clinical usefulness or implementation implications of rapid diagnostics?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["DOC-RAPID"]
+
+
+def test_retrieval_service_filters_generic_linked_table_prose_when_topic_overlap_is_weak() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis.",
+                    "referenced_table_indices": [3],
+                    "has_table_reference": True,
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-UTI:P00001:C01",
+            content="The FLAT assay had a sensitivity of 70% and specificity of 99% with positive and negative predictive values of 93% and 99%, respectively (Table 3).",
+            metadata=ChunkMetadata(
+                doc_id="UTI Paper",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-UTI:P00001",
+                    "parent_content": "The FLAT assay had a sensitivity of 70% and specificity of 99% with positive and negative predictive values of 93% and 99%, respectively (Table 3).",
+                    "referenced_table_indices": [3],
+                    "has_table_reference": True,
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Which indexed paper contains a discrepant-results table for respiratory pathogens obtained by PCR/ESI-MS and routine culture?",
+        limit=1,
     )
 
     assert [chunk.doc_id for chunk in result] == ["BAL SM"]

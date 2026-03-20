@@ -225,6 +225,7 @@ def main() -> int:
             source_file=source_file,
             markdown_text=parsed_document.markdown_text,
             tables=normalized_tables,
+            local_file=str(pdf_path),
         )
     except Exception as exc:  # noqa: BLE001
         print(f"ERROR: chunk preparation failed: {exc}")

@@ -4,6 +4,7 @@ import logging
 from types import SimpleNamespace
 
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository
+from src.app.ports.repositories.vector_repository import MetadataFilter, VectorSearchFilters
 from src.domain.models.chunk import Chunk, ChunkMetadata
 
 
@@ -167,3 +168,31 @@ def test_qdrant_repository_search_can_run_without_doc_filter() -> None:
     repo.search([0.1, 0.2, 0.3], limit=1)
 
     assert client.query_calls[0]["query_filter"] is None
+
+
+def test_qdrant_repository_search_builds_metadata_filters() -> None:
+    client = FakeQdrantClient()
+    repo = QdrantRepository(
+        qdrant_client=client,
+        collection_name="medical_chunks",
+        embedding_fn=lambda texts: [[0.0, 0.0, 0.0] for _ in texts],
+    )
+
+    repo.search(
+        [0.1, 0.2, 0.3],
+        limit=1,
+        filters=VectorSearchFilters(
+            doc_id="DOC-1",
+            must=(MetadataFilter(key="content_role", value="table"),),
+            must_not=(MetadataFilter(key="section_role", values=("references", "front_matter")),),
+            should=(MetadataFilter(key="referenced_table_indices", values=(3,)),),
+        ),
+    )
+
+    query_filter = client.query_calls[0]["query_filter"]
+    assert query_filter is not None
+    assert any(condition.key == "doc_id" for condition in query_filter.must)
+    assert any(condition.key == "content_role" for condition in query_filter.must)
+    assert any(condition.key == "section_role" for condition in query_filter.must_not)
+    assert query_filter.min_should is not None
+    assert any(condition.key == "referenced_table_indices" for condition in query_filter.min_should.conditions)

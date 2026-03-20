@@ -59,6 +59,9 @@ See details on page 7 for expanded stratification notes.
 
     text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
     assert all(chunk.metadata.extra["content_role"] == "child" for chunk in text_chunks)
+    assert all(chunk.metadata.extra["source_file"] == "RAPID.pdf" for chunk in text_chunks)
+    assert all(chunk.metadata.extra["ingestion_version"] == UnifiedChunker.INGESTION_VERSION for chunk in text_chunks)
+    assert all(chunk.metadata.extra["chunking_version"] == UnifiedChunker.CHUNKING_VERSION for chunk in text_chunks)
     assert all(chunk.metadata.extra["parent_id"].startswith("DOC-001:P") for chunk in text_chunks)
     assert all(chunk.metadata.extra["parent_content"] for chunk in text_chunks)
     assert any(
@@ -180,6 +183,8 @@ Discussion evidence follows after the opening summary.
     assert text_chunks[0].metadata.extra["section_role"] == "body"
     assert text_chunks[0].metadata.extra["original_parent_header"] == "Blood Culture Negative Endocarditis: A Review of Laboratory Diagnostic Approaches"
     assert text_chunks[0].metadata.extra["normalized_parent_header"] == UnifiedChunker.DEFAULT_OPENING_HEADER
+    assert text_chunks[0].metadata.extra["header_original"] == "Blood Culture Negative Endocarditis: A Review of Laboratory Diagnostic Approaches"
+    assert text_chunks[0].metadata.extra["header_canonical"] == UnifiedChunker.DEFAULT_OPENING_HEADER
     assert text_chunks[0].metadata.extra["header_role"] == "title_like"
     assert text_chunks[1].metadata.parent_header == "Discussion"
 
@@ -297,3 +302,60 @@ Table 3. Data for patients with discrepant results with respect to respiratory p
     text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
     assert len(text_chunks) == 1
     assert text_chunks[0].metadata.extra["referenced_table_indices"] == [3]
+
+
+def test_unified_chunker_tracks_local_file_and_table_metadata() -> None:
+    markdown = """# Results
+
+Table 2 summarizes sensitivity findings.
+
+| Metric | Value |
+| --- | --- |
+| Sensitivity | 0.88 |
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-010",
+        source_file="study.pdf",
+        markdown_text=markdown,
+        tables=[{"csv": "Metric,Value\nSensitivity,0.88"}],
+        local_file="data/raw_pdfs/study.pdf",
+    )
+
+    text_chunk = next(chunk for chunk in chunks if chunk.metadata.chunk_type == "text")
+    table_chunk = next(chunk for chunk in chunks if chunk.metadata.chunk_type == "table")
+    assert text_chunk.metadata.extra["local_file"] == "data/raw_pdfs/study.pdf"
+    assert table_chunk.metadata.extra["local_file"] == "data/raw_pdfs/study.pdf"
+    assert table_chunk.metadata.extra["table_index"] == 1
+    assert table_chunk.metadata.extra["header_original"] == "Results"
+    assert table_chunk.metadata.extra["header_canonical"] == "Results"
+
+
+def test_unified_chunker_classifies_table_semantics_from_payload_and_metadata() -> None:
+    markdown = """# Results
+
+| Sensitivity | Specificity |
+| --- | --- |
+| 70% | 99% |
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-011",
+        source_file="metric.pdf",
+        markdown_text=markdown,
+        tables=[
+            {
+                "csv": "Sensitivity,Specificity\n70%,99%",
+                "normalization_metadata": {
+                    "rows": [["Table 3. Diagnostic accuracy summary"]],
+                },
+            }
+        ],
+    )
+
+    table_chunk = next(chunk for chunk in chunks if chunk.metadata.chunk_type == "table")
+    assert table_chunk.metadata.extra["contains_metric_values"] is True
+    assert "metric" in table_chunk.metadata.extra["table_semantics"]
+    assert table_chunk.metadata.extra["table_caption"] == "Table 3. Diagnostic accuracy summary"

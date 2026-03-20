@@ -149,6 +149,7 @@ def ingest_pdf(
         source_file=pdf_path.name,
         markdown_text=parsed_document.markdown_text,
         tables=normalized_tables,
+        local_file=str(pdf_path),
     )
 
     if not chunks:
@@ -173,6 +174,8 @@ def ingest_pdf(
         "chunks": len(chunks),
         "text_chunks": text_chunk_count,
         "table_chunks": table_chunk_count,
+        "ingestion_version": UnifiedChunker.INGESTION_VERSION,
+        "chunking_version": UnifiedChunker.CHUNKING_VERSION,
     }
 
 

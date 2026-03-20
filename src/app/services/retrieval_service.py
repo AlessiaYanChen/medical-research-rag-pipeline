@@ -6,7 +6,11 @@ import logging
 import re
 
 from src.app.ports.re_ranker_port import ReRankerPort
-from src.app.ports.repositories.vector_repository import VectorRepositoryPort
+from src.app.ports.repositories.vector_repository import (
+    MetadataFilter,
+    VectorRepositoryPort,
+    VectorSearchFilters,
+)
 from src.domain.models.chunk import Chunk
 
 
@@ -42,7 +46,12 @@ class RetrievalService:
     def retrieve(self, query: str, doc_id: str | None = None, limit: int = 5) -> list[RetrievedChunk]:
         query_vector = self._embedding_fn([query])[0]
         initial_limit = self._initial_search_limit(query=query, doc_filter=doc_id, limit=limit)
-        initial_chunks = self._repo.search(query_vector, doc_id=doc_id, limit=initial_limit)
+        initial_chunks = self._repo.search(
+            query_vector,
+            doc_id=doc_id,
+            limit=initial_limit,
+            filters=self._build_search_filters(query=query, doc_id=doc_id),
+        )
         filtered_initial_chunks = self._filter_chunks(query=query, chunks=initial_chunks)
         if doc_id is not None:
             filtered_initial_chunks = self._suppress_metadata_fallback(query=query, chunks=filtered_initial_chunks)
@@ -209,25 +218,63 @@ class RetrievalService:
         filtered: list[Chunk] = []
         for chunk in chunks:
             content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
-            section_role = str(chunk.metadata.extra.get("section_role", "body"))
-            parent_header = self._header_for_display(chunk)
             parent_content = str(chunk.metadata.extra.get("parent_content", chunk.content))
             normalized_parent = self._clean_markdown(parent_content)
 
-            if self._is_excluded_section(section_role=section_role, content_role=content_role, parent_header=parent_header):
-                continue
             if self._looks_like_low_value_content(normalized_parent):
                 continue
-            if query_requires_tables and content_role != "table" and not self._chunk_supports_explicit_table_query(chunk):
+            if (
+                not query_prefers_tables
+                and content_role != "table"
+                and self._looks_like_embedded_markdown_table(parent_content)
+            ):
+                continue
+            if (
+                query_requires_tables
+                and content_role != "table"
+                and self._chunk_supports_explicit_table_query(chunk)
+                and not self._linked_table_reference_supports_query(query=query, chunk=chunk)
+            ):
                 continue
             if query_requires_metric_tables and content_role == "table" and not self._table_matches_metric_query(chunk):
                 continue
-            if query_requires_metric_tables and content_role != "table":
-                continue
-            if content_role == "table" and not (self._include_tables or query_prefers_tables):
-                continue
             filtered.append(chunk)
         return filtered
+
+    def _build_search_filters(self, query: str, doc_id: str | None) -> VectorSearchFilters:
+        must_not = [
+            MetadataFilter(key="content_role", values=("reference", "front_matter")),
+            MetadataFilter(key="section_role", values=("references", "front_matter", "unknown")),
+            MetadataFilter(key="is_low_value", value=True),
+        ]
+        should: list[MetadataFilter] = []
+        must: list[MetadataFilter] = []
+
+        if not (self._include_tables or self._query_prefers_tables(query)):
+            must_not.append(MetadataFilter(key="content_role", value="table"))
+
+        if self._query_requires_metric_tables(query):
+            must.append(MetadataFilter(key="content_role", value="table"))
+        elif self._query_requires_tables(query):
+            should.append(MetadataFilter(key="content_role", value="table"))
+            referenced_table_indices = self._query_table_indices(query)
+            if referenced_table_indices:
+                should.append(
+                    MetadataFilter(
+                        key="referenced_table_indices",
+                        values=tuple(referenced_table_indices),
+                    )
+                )
+            else:
+                should.append(MetadataFilter(key="has_table_reference", value=True))
+
+        return VectorSearchFilters(
+            doc_id=doc_id,
+            must=tuple(must),
+            must_not=tuple(must_not),
+            should=tuple(should),
+            minimum_should_match=1,
+        )
 
     def _suppress_metadata_fallback(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
         if self._query_prefers_metadata(query):
@@ -284,7 +331,72 @@ class RetrievalService:
         return any(signal in normalized for signal in metric_signals)
 
     @staticmethod
+    def _query_table_indices(query: str) -> list[int]:
+        return sorted(
+            {
+                int(match.group(1))
+                for match in re.finditer(r"\btable\s+(\d+)\b", query, flags=re.IGNORECASE)
+            }
+        )
+
+    def _linked_table_reference_supports_query(self, query: str, chunk: Chunk) -> bool:
+        referenced_table_indices = chunk.metadata.extra.get("referenced_table_indices")
+        if not isinstance(referenced_table_indices, list) or not referenced_table_indices:
+            return False
+
+        query_table_indices = self._query_table_indices(query)
+        if query_table_indices:
+            return any(index in referenced_table_indices for index in query_table_indices)
+
+        query_tokens = self._table_reference_query_tokens(query)
+        if not query_tokens:
+            return True
+
+        text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        text_tokens = self._tokenize(text)
+        overlap = sum(1 for token in query_tokens if token in text_tokens)
+        return overlap >= min(3, len(query_tokens))
+
+    @staticmethod
+    def _table_reference_query_tokens(query: str) -> set[str]:
+        generic_tokens = {
+            "which",
+            "indexed",
+            "paper",
+            "papers",
+            "study",
+            "studies",
+            "document",
+            "documents",
+            "contains",
+            "contain",
+            "table",
+            "tabular",
+            "results",
+            "result",
+            "data",
+            "reported",
+            "report",
+            "findings",
+            "finds",
+            "obtained",
+        }
+        return {
+            token
+            for token in RetrievalService._query_tokens(query)
+            if token not in generic_tokens
+        }
+
+    @staticmethod
     def _table_matches_metric_query(chunk: Chunk) -> bool:
+        contains_metric_values = chunk.metadata.extra.get("contains_metric_values")
+        if isinstance(contains_metric_values, bool):
+            return contains_metric_values
+
+        table_semantics = chunk.metadata.extra.get("table_semantics")
+        if isinstance(table_semantics, list) and any(str(item).strip().lower() == "metric" for item in table_semantics):
+            return True
+
         text_parts = [
             chunk.content,
             str(chunk.metadata.extra.get("parent_content", "")),
@@ -308,7 +420,33 @@ class RetrievalService:
             r"\blod\b",
             r"\blimit of detection\b",
         )
-        return any(re.search(pattern, normalized) for pattern in metric_patterns)
+        if not any(re.search(pattern, normalized) for pattern in metric_patterns):
+            return False
+
+        quantitative_signals = (
+            r"\b\d+(?:\.\d+)?\s*%",
+            r"\b\d+\.\d+\b",
+            r"\bpositive predictive\b",
+            r"\bnegative predictive\b",
+            r"\bppv\b",
+            r"\bnpv\b",
+            r"\bauc\b",
+            r"\broc\b",
+            r"\blod\b",
+            r"\blimit of detection\b",
+        )
+        return any(re.search(pattern, normalized) for pattern in quantitative_signals)
+
+    @staticmethod
+    def _looks_like_embedded_markdown_table(text: str) -> bool:
+        normalized = text.strip()
+        if normalized.count("|") < 6:
+            return False
+        if re.search(r"\|\s*-{3,}", normalized):
+            return True
+        lines = [line.strip() for line in normalized.splitlines() if line.strip()]
+        tableish_lines = sum(1 for line in lines if line.count("|") >= 2)
+        return tableish_lines >= 3
 
     @staticmethod
     def _chunk_supports_explicit_table_query(chunk: Chunk) -> bool:
@@ -318,19 +456,6 @@ class RetrievalService:
         if not isinstance(referenced_table_indices, list):
             return False
         return any(str(item).strip().isdigit() for item in referenced_table_indices)
-
-    @staticmethod
-    def _is_excluded_section(section_role: str, content_role: str, parent_header: str) -> bool:
-        normalized_header = parent_header.lower()
-        if content_role == "reference" or section_role == "references":
-            return True
-        if section_role == "front_matter":
-            return True
-        if normalized_header in {"unknown", ""}:
-            return True
-        if any(token in normalized_header for token in ("reference", "bibliograph", "acknowledg", "funding", "conflict", "competing interest", "author contribution", "data availability", "copyright")):
-            return True
-        return False
 
     @staticmethod
     def _looks_like_low_value_content(text: str) -> bool:

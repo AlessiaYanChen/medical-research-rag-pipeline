@@ -1,0 +1,67 @@
+{
+  "collection": "medical_research_chunks_v1",
+  "pdf_dir": "data\\raw_pdfs\\uploaded",
+  "glob": "*.pdf",
+  "doc_count": 7,
+  "chunk_count": 2054,
+  "ingestion_version": "ingestion_v2",
+  "chunking_version": "chunking_v2",
+  "docs": [
+    {
+      "doc_id": "BAL SM",
+      "source_file": "BAL SM.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\BAL SM.pdf",
+      "chunk_count": 268,
+      "text_chunk_count": 266,
+      "table_chunk_count": 2
+    },
+    {
+      "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+      "source_file": "Culture-Free Lipidomics-Based Screening Test.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\Culture-Free Lipidomics-Based Screening Test.pdf",
+      "chunk_count": 243,
+      "text_chunk_count": 241,
+      "table_chunk_count": 2
+    },
+    {
+      "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "source_file": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+      "chunk_count": 386,
+      "text_chunk_count": 383,
+      "table_chunk_count": 3
+    },
+    {
+      "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "source_file": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+      "chunk_count": 299,
+      "text_chunk_count": 295,
+      "table_chunk_count": 4
+    },
+    {
+      "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+      "source_file": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf",
+      "chunk_count": 374,
+      "text_chunk_count": 368,
+      "table_chunk_count": 6
+    },
+    {
+      "doc_id": "RAPID",
+      "source_file": "RAPID.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\RAPID.pdf",
+      "chunk_count": 256,
+      "text_chunk_count": 252,
+      "table_chunk_count": 4
+    },
+    {
+      "doc_id": "Single site RCT",
+      "source_file": "Single site RCT.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\Single site RCT.pdf",
+      "chunk_count": 228,
+      "text_chunk_count": 223,
+      "table_chunk_count": 5
+    }
+  ]
+}

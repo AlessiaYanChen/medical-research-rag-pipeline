@@ -121,10 +121,13 @@
   {
     "id": "Q16",
     "query": "Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
-    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
     "expected_headers": ["Results", "Discussion"],
     "include_tables": true,
-    "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence."
+    "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence. The rebuilt corpus now also surfaces the nartey UTI metric table as valid evidence."
   },
   {
     "id": "Q17",
@@ -146,10 +149,17 @@
   {
     "id": "Q19",
     "query": "Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
-    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test", "RAPID", "Single site RCT", "BAL SM", "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "RAPID",
+      "Single site RCT",
+      "BAL SM",
+      "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
     "expected_headers": ["Results", "Discussion"],
     "include_tables": true,
-    "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review, which reports sensitivity/specificity metrics for diagnostic methods."
+    "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics."
   },
   {
     "id": "Q20",

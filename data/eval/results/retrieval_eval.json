@@ -11,14 +11,14 @@
     "expected_header_hit_rate": 1.0,
     "top1_expected_doc_hit_rate": 1.0,
     "top1_expected_header_hit_rate": 1.0,
-    "average_doc_precision": 1.0,
-    "average_header_precision": 0.8795,
+    "average_doc_precision": 0.9953,
+    "average_header_precision": 0.8578,
     "queries_with_citation_noise": 1,
-    "queries_with_table_hits": 7,
+    "queries_with_table_hits": 6,
     "queries_with_duplicate_hits": 0,
     "queries_with_non_structural_headers": 0,
     "cross_document_queries": 20,
-    "cross_document_average_doc_precision": 1.0,
+    "cross_document_average_doc_precision": 0.99,
     "total_table_hits": 9,
     "total_citation_noise_hits": 1,
     "total_duplicate_hits": 0,
@@ -182,7 +182,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "In clinical practice however, samples from only a selected group of patients will be chosen for analysis by PCR/ ESI-MS. The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches."
+          "content": "In clinical practice however, samples from only a selected group of patients will be chosen for analysis by PCR/ ESI-MS. The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches. In conclusion, our study demonstrates overall reliable detection of respiratory pathogens by PCR/ESI-MS directly from BAL samples."
         },
         {
           "rank": 2,
@@ -191,7 +191,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches. In conclusion, our study demonstrates overall reliable detection of respiratory pathogens by PCR/ESI-MS directly from BAL samples. PCR/ESI-MS thus provides an interestingly tool for the rapid detection of a wide range of pathogens from polymicrobial samples."
+          "content": "In only one PCR/ESI-MS-negative sample, growth of normal respiratory flora was reported. Detailed microbiological diagnostics of BAL samples may be valuable information to the clinician depending on the clinical status of the patient. When the analytical performance of PCR/ESI-MS in detection of primary or potential pathogens was analyzed, we found that the method in general was not inferior to culture-based methods in detection of these microorganisms. The vast majority of pathogens detected by culture, 52/60 (87%), could be detected by PCR/ESI-MS."
         },
         {
           "rank": 3,
@@ -232,8 +232,9 @@
         "labels": [],
         "include_tables": null,
         "notes": "Conclusion-heavy BAL query.",
-        "result_count": 3,
+        "result_count": 4,
         "result_docs": [
+          "BAL SM",
           "BAL SM",
           "BAL SM",
           "BAL SM"
@@ -241,6 +242,7 @@
         "result_headers": [
           "Discussion",
           "Discussion",
+          "Results",
           "Introduction"
         ],
         "expected_doc_hit": true,
@@ -248,14 +250,14 @@
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.6667,
+        "header_precision": 0.5,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 2
+        "distinct_header_count": 3
       },
       "results": [
         {
@@ -278,6 +280,15 @@
         },
         {
           "rank": 3,
+          "doc_id": "BAL SM",
+          "source": "Results",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%) BAL samples (Table 1). Semi-quantitative PCR/ESI-MS levels for 3/4 culture-negative samples were low or moderate (S2 Fig\\). Interestingly, two of these patients had been culture-positive for H. influenzae two weeks before the study sample was taken."
+        },
+        {
+          "rank": 4,
           "doc_id": "BAL SM",
           "source": "Introduction",
           "chunk_type": "text",
@@ -696,7 +707,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "In contrast, in this trial we did not observe differences in clinical or cost outcomes between patients in intervention and control arms. This may be due to the use of different study designs, the fact that this trial was not powered to detect differences in LOS, mortality, or cost, and/or the fact that 70% of our study subjects were receiving at least 1 active agent at time of enrollment and were generally being overtreated, rather than undertreated. In addition, our institution's baseline antimicrobial stewardship program, low resistance rates, high rate of infectious diseases consultation (48%), and baseline use of advanced technologies including MALDI-TOF MS and <sup>a</sup> Toxicities include seizures, Clostridium difficile infection, hepatitis, myelosuppression, renal insufficiency, prolonged QTc interval, and rash that occurred within 2 weeks following enrollment and were documented in the medical record. <sup>b</sup> Multidrug-resistant organisms including vancomycin-resistant enterococci, methicillin-resistant Staphylococcus aureus, extended-spectrum cephalosporinresistant Enterobacteriaceae, and Pseudomonas aeruginosa and Acinetobacter species resistant to \u22653 antibiotic classes. <sup>c</sup> Statistically significant compared to control group."
+          "content": "This study has limitations, including that it was performed at a single center and may not be generalizable to other institutions with different patient populations, prescribing and stewardship practices, and antimicrobial resistance rates. The study was not powered for subgroup analyses or to detect differences in secondary outcomes including LOS and mortality. Investigators were not blinded to study arm, and infectious diseases \"curbside\" consultations were not captured. We did not include a control group without rmPCR testing but with stewardship of all positive blood cultures."
         },
         {
           "rank": 5,
@@ -877,7 +888,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "The RAPID test had few discrepancies compared with conventional methods of organism ID and AST. On-panel organisms may not have been identified by the RAPID test because of poor mixing (the company changed the mixing protocol after the study), the presence of a low number of cells in the sample, the presence of slow-growing organisms, or other factors. The most common AST discrepancies observed between RAPID and conventional testing were minor errors (ie, intermediate by one method and susceptible or resistant by the other method); such \"wobble\" around the breakpoint can occur even when the same susceptibility assay is repeated using identical isolates."
+          "content": "Abbreviations: MDRO, multidrug-resistant organism. The RAPID test had few discrepancies compared with conventional methods of organism ID and AST. On-panel organisms may not have been identified by the RAPID test because of poor mixing (the company changed the mixing protocol after the study), the presence of a low number of cells in the sample, the presence of slow-growing organisms, or other factors. The most common AST discrepancies observed between RAPID and conventional testing were minor errors (ie, intermediate by one method and susceptible or resistant by the other method); such \"wobble\" around the breakpoint can occur even when the same susceptibility assay is repeated using identical isolates."
         },
         {
           "rank": 3,
@@ -1099,13 +1110,15 @@
         "labels": [],
         "include_tables": null,
         "notes": "Single-document stewardship query.",
-        "result_count": 3,
+        "result_count": 4,
         "result_docs": [
+          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
         ],
         "result_headers": [
+          "Discussion",
           "Discussion",
           "Introduction",
           "Conclusion"
@@ -1137,6 +1150,15 @@
         {
           "rank": 2,
           "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+          "source": "Discussion",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Optimal time to draw blood for culture: periodicity and time in relation to fever. Bedside clinical providers' blood culture education has focused on expeditious collection of blood cultures prior to antibiotic administration to maximize the yield of blood cultures (45\\), especially in patients with septic shock, when early antibiotic administration is critical for improved patient outcomes. The yield of blood cultures in these patients was recently evaluated among 325 adults presenting to the emergency department with severe sepsis/septic shock. The authors found that blood culture positivities were 31% for patients whose blood cultures were obtained before antibiotics and 19% for patients whose blood cultures were obtained up to 4 h post-antibiotic administration (45)."
+        },
+        {
+          "rank": 3,
+          "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "source": "Introduction",
           "chunk_type": "text",
           "content_role": "child",
@@ -1144,7 +1166,7 @@
           "content": "Similarly, guidelines for routine blood cultures prior to insertion of peripherally inserted central catheters (PICCs) were modified to include only patients with risk factors for persistent bacteremia or concern for endovascular infection. In addition to defining when blood cultures are appropriate, improvement efforts would benefit from a standardized blood culture utilization rate for different hospital settings. The American Society for Microbiology has suggested a blood culture utilization rate of 103 to 188 blood cultures/1,000 patient days, although this recommendation is not evidence based and does not take into account the patient population \\(27\\). Published blood culture rates in intensive care units (ICUs) are variable."
         },
         {
-          "rank": 3,
+          "rank": 4,
           "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "source": "Conclusion",
           "chunk_type": "text",
@@ -1358,32 +1380,34 @@
         "labels": [],
         "include_tables": null,
         "notes": "Cross-document precision check over multiple expected docs.",
-        "result_count": 4,
+        "result_count": 5,
         "result_docs": [
           "Single site RCT",
           "RAPID",
           "BAL SM",
-          "Single site RCT"
+          "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+          "RAPID"
         ],
         "result_headers": [
           "DISCUSSION",
           "DISCUSSION",
           "Introduction",
+          "Methods",
           "Document Metadata/Abstract"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
-        "doc_precision": 1.0,
-        "header_precision": 0.5,
+        "doc_precision": 0.8,
+        "header_precision": 0.4,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
-        "distinct_doc_count": 3,
-        "distinct_header_count": 3
+        "distinct_doc_count": 4,
+        "distinct_header_count": 4
       },
       "results": [
         {
@@ -1411,16 +1435,25 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "It should be noted that the applied assay was intended for use in sterile fluids and not BAL. A re-designed, research-use-only version of the instrument was recently tested in LRT secretions. This study demonstrated the improved detection of bacterial pathogens in patients under antibiotic treatment with 49/104 (47%) hits in culture-negative samples [17]. However, the study considered only primary detections for evaluation and performance on polymicrobial samples was neglected."
+          "content": "LightCycler SeptiFast from Roche Diagnostics [11] have broader coverage but lack important respiratory pathogens. Similarly, poor performance and insufficient coverage has been reported for the Unyvero multiplex PCR device (Curetis AG) for direct point-of-care detection of respiratory pathogens \\[12, [13\\]](#page-12-0). Assays such as the RB5 Anyplex II kit (Seegene) are designed for detection of few atypical bacterial pathogens only. There is thus an obvious need for a rapid method covering both common and atypical microorganisms directly from LRT specimens."
         },
         {
           "rank": 4,
-          "doc_id": "Single site RCT",
+          "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+          "source": "Methods",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "PCR.<sup>26</sup> Broad range PCR method was thought to have higher false-positive results due to contamination of specimen during the extraction process and inhibitor\u2013DNA interaction.<sup>27,28</sup> Commercial PCR methods are available for identification of common pathogen in sepsis patient. SepsiFast, based on multiplex real-time PCR, is an automated system for identifying 25 pathogens.<sup>29</sup> The advantage of the SepsiFast is the short time needed for results (about 5 to 8 hours).<sup>26</sup> Another more widely used PCR method is SepsiTest/molzym, which employs semiautomated system based on broad range PCR plus sequence analysis of amplicons to detect and identify a broad range of pathogens. SepsiTest has a crucial degradation step that degrades contaminating human DNA.<sup>30</sup> SepsiTest is also used for analysis of blood and excised valve from patients due to wide variety of etiological agents of infective endocarditis patients.<sup>31</sup> In addition, SepsiTest allows for identification of 345 pathogens including bacteria and fungus.<sup>26</sup> However, a systematic review to determine the clinical effectiveness and cost-effectiveness of SepsiTest and SepsiFast showed no randomized clinical trial evidence indicating any of the tests significantly improved patient outcomes, such as mortality or duration in an intensive care unit or hospital.<sup>32</sup> Moreover, the ideal diagnosis tool should be cost-effective for prevalent use, but the cost of SepsiFast system is approximately 75,000 USD, and the SepsiTest costs between 75,000 and 200,000 USD excluding the cost of reagents.<sup>33</sup>"
+        },
+        {
+          "rank": 5,
+          "doc_id": "RAPID",
           "source": "Document Metadata/Abstract",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "Studies evaluating the clinical impact of rapid blood culture diagnostics have been limited by observational study designs and use of historical controls \\[5\u2013[11\\]](#page-9-0).Whereas studies suggest that antimicrobial use, length of stay (LOS), mortality, and/or cost may be reduced through use of rapid blood culture diagnostic tests \\[5, 6, 9, 11\u2013[14\\]](#page-9-0), practice changes other than implementation of the novel tests may have affected outcomes. Additionally, prior studies have evaluated bundled interventions in which rapid tests were implemented with antimicrobial stewardship initiatives, making it impossible to determine whether the rapid test or the stewardship intervention alone might have been effective \\[5, 6, 8, 11, 15, [16\\]](#page-9-0). Furthermore, real-time antimicrobial stewardship is notfeasible in hospitals without stewardship programs."
+          "content": "Division of Pediatric Infectious Diseases, Vanderbilt University, Nashville, Tennessee, USA, 2 Biostatistics Center, George Washington University, Rockville, Maryland, USA, 3 Division of Clinical Microbiology, Mayo Clinic, Rochester, Minnesota, USA, 4 Department of Mathematics and Statistics, Boston University, Boston, Massachusetts, USA, 5 Divisions of Pathology and Infectious Diseases, University of California, Los Angeles, California, USA, and 6 Division of Infectious Diseases, University of California, San Francisco, California, USA Background. Rapid blood culture diagnostics are of unclear benefit for patients with gram-negative bacilli (GNB) bloodstream infections (BSIs). We conducted a multicenter, randomized, controlled trial comparing outcomes of patients with GNB BSIs who had blood culture testing with standard-of-care (SOC) culture and antimicrobial susceptibility testing (AST) vs rapid organism identification (ID) and phenotypic AST using the Accelerate Pheno System (RAPID). Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship (AS) review or RAPID with AS. The primary outcome was time to first antibiotic modification within 72 hours of randomization."
         }
       ]
     },
@@ -1429,7 +1462,8 @@
       "query": "Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
       "doc_filter": null,
       "expected_docs": [
-        "Culture-Free Lipidomics-Based Screening Test"
+        "Culture-Free Lipidomics-Based Screening Test",
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
       ],
       "expected_headers": [
         "Results",
@@ -1437,13 +1471,14 @@
       ],
       "labels": [],
       "include_tables": true,
-      "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence.",
+      "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence. The rebuilt corpus now also surfaces the nartey UTI metric table as valid evidence.",
       "evaluation": {
         "query_id": "Q16",
         "query": "Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
         "doc_filter": "",
         "expected_docs": [
-          "Culture-Free Lipidomics-Based Screening Test"
+          "Culture-Free Lipidomics-Based Screening Test",
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
         ],
         "expected_headers": [
           "Results",
@@ -1451,12 +1486,14 @@
         ],
         "labels": [],
         "include_tables": true,
-        "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence.",
-        "result_count": 1,
+        "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence. The rebuilt corpus now also surfaces the nartey UTI metric table as valid evidence.",
+        "result_count": 2,
         "result_docs": [
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
           "Culture-Free Lipidomics-Based Screening Test"
         ],
         "result_headers": [
+          "RESULTS",
           "Discussion"
         ],
         "expected_doc_hit": true,
@@ -1465,17 +1502,26 @@
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
         "header_precision": 1.0,
-        "table_hits": 1,
+        "table_hits": 2,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
-        "distinct_doc_count": 1,
-        "distinct_header_count": 1
+        "distinct_doc_count": 2,
+        "distinct_header_count": 2
       },
       "results": [
         {
           "rank": 1,
+          "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+          "source": "RESULTS",
+          "chunk_type": "table",
+          "content_role": "table",
+          "page_number": null,
+          "content": "Source File: nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf | Table Index: 3 | Section: RESULTS\n,,UTI results,,\r\n,,Culture +,,\r\nPositive predictive,Positive predictive,True positive,Positive predictive,Positive predictive\r\nvalue = 95%,value = 95%,(62),value = 95%,value = 95%\r\nNegative predictive,Negative predictive,False negative,Negative predictive,Negative predictive\r\nvalue = 92%,value = 92%,(26),value = 92%,value = 92%\r\n,,Sensitivity = 70%,,"
+        },
+        {
+          "rank": 2,
           "doc_id": "Culture-Free Lipidomics-Based Screening Test",
           "source": "Discussion",
           "chunk_type": "table",
@@ -1513,8 +1559,9 @@
         "labels": [],
         "include_tables": null,
         "notes": "BAL limitations variant focused on organism coverage.",
-        "result_count": 3,
+        "result_count": 4,
         "result_docs": [
+          "BAL SM",
           "BAL SM",
           "BAL SM",
           "BAL SM"
@@ -1522,6 +1569,7 @@
         "result_headers": [
           "Discussion",
           "Discussion",
+          "Results",
           "Introduction"
         ],
         "expected_doc_hit": true,
@@ -1529,14 +1577,14 @@
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.6667,
+        "header_precision": 0.5,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 2
+        "distinct_header_count": 3
       },
       "results": [
         {
@@ -1559,6 +1607,15 @@
         },
         {
           "rank": 3,
+          "doc_id": "BAL SM",
+          "source": "Results",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%) BAL samples (Table 1). Semi-quantitative PCR/ESI-MS levels for 3/4 culture-negative samples were low or moderate (S2 Fig\\). Interestingly, two of these patients had been culture-positive for H. influenzae two weeks before the study sample was taken."
+        },
+        {
+          "rank": 4,
           "doc_id": "BAL SM",
           "source": "Introduction",
           "chunk_type": "text",
@@ -1611,7 +1668,7 @@
           "Results",
           "Discussion",
           "Discussion",
-          "Introduction"
+          "Conclusion"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
@@ -1667,11 +1724,11 @@
         {
           "rank": 5,
           "doc_id": "Culture-Free Lipidomics-Based Screening Test",
-          "source": "Introduction",
+          "source": "Conclusion",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "Specifically, lysozyme hydrolyzes the \u03b2-1,4-glycosidic bonds between N-acetylmuramic acid and N-acetylglucosamine in the peptidoglycan layer of bacterial cell walls \\(12\u201314). By integrating lysozyme digestion before FLAT lipid extraction, we hypothesized that the yield of detectable gram-positive membrane lipids, specifically cardiolipin, would improve significantly. In this study, we first determined the optimal condition of lysozyme treatment and established the limit of detection (LOD) of our assay. Following these optimizations, we validated the method in a clinical cohort with confirmed gram-positive bacterial infections to assess detection efficiency."
+          "content": "This study highlights the effectiveness of lysozyme treatment in improving the direct detection of gram-positive uropathogens from urine samples by FLAT. The optimized FLAT method achieved an overall detection rate of 95% in a clinical cohort of 76 patients with confirmed gram-positive infections. Importantly, combining lysozyme with a 60-minute incubation at 37\u00b0C significantly enhanced the release and detection of cardiolipins from gram-positive bacteria, while maintaining reliable detection of lipid A from gram-negative species; thereby enabling a unified workflow for comprehensive screening of UTIs. Moreover, the optimized FLAT method successfully identified polymicrobial samples containing gram-positive and gram-negative bacteria."
         }
       ]
     },
@@ -1684,7 +1741,8 @@
         "RAPID",
         "Single site RCT",
         "BAL SM",
-        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
+        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
       ],
       "expected_headers": [
         "Results",
@@ -1692,7 +1750,7 @@
       ],
       "labels": [],
       "include_tables": true,
-      "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review, which reports sensitivity/specificity metrics for diagnostic methods.",
+      "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics.",
       "evaluation": {
         "query_id": "Q19",
         "query": "Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
@@ -1702,7 +1760,8 @@
           "RAPID",
           "Single site RCT",
           "BAL SM",
-          "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
+          "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
         ],
         "expected_headers": [
           "Results",
@@ -1710,20 +1769,20 @@
         ],
         "labels": [],
         "include_tables": true,
-        "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review, which reports sensitivity/specificity metrics for diagnostic methods.",
+        "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics.",
         "result_count": 5,
         "result_docs": [
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
           "Single site RCT",
-          "RAPID",
           "BAL SM",
-          "BAL SM",
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
           "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
         ],
         "result_headers": [
           "RESULTS",
           "RESULTS",
           "Discussion",
-          "Discussion",
+          "DISCUSSION",
           "Conclusion"
         ],
         "expected_doc_hit": true,
@@ -1743,21 +1802,21 @@
       "results": [
         {
           "rank": 1,
+          "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+          "source": "RESULTS",
+          "chunk_type": "table",
+          "content_role": "table",
+          "page_number": null,
+          "content": "Source File: nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf | Table Index: 3 | Section: RESULTS\n,,UTI results,,\r\n,,Culture +,,\r\nPositive predictive,Positive predictive,True positive,Positive predictive,Positive predictive\r\nvalue = 95%,value = 95%,(62),value = 95%,value = 95%\r\nNegative predictive,Negative predictive,False negative,Negative predictive,Negative predictive\r\nvalue = 92%,value = 92%,(26),value = 92%,value = 92%\r\n,,Sensitivity = 70%,,"
+        },
+        {
+          "rank": 2,
           "doc_id": "Single site RCT",
           "source": "RESULTS",
           "chunk_type": "table",
           "content_role": "table",
           "page_number": null,
           "content": "Source File: Single site RCT.pdf | Table Index: 3 | Section: RESULTS\nRapid Multiplex PCR Panel Result,Standard Culture and Phenotypic Susceptibility Testing,No.\r\nSingle/few organisms detected,Multiple organisms detected,6\r\n1. Klebsiella pneumoniae,\"1. K. pneumoniae, Staphylococcus epidermidis\",\r\n2. Enterococcus species,\"2. Enterococcus faecium, Staphylococcus hemolyticus, Micrococcus\nluteus\",\r\n\"3. Enterobacter cloacae, Enterococcus species\n(vanA/B positive)\",\"3. Enterococcus faecalis (vancomycin susceptible), E. faecium\n(vancomycin resistant), E. cloacae, Streptococcus mitis, S.\nepidermidis, Acinetobacter species\",\r\n4. (bottle a) Streptococcus agalactiae\n(bottle b) Escherichia colia,\"4. (bottle a) S. agalactiae, E. coli\n(bottle b) E. coli, Proteus species\",\r\n\"5. Streptococcus species, Haemophilus influenzae\",\"5. Haemophilus sputorum, Neisseria subflava, Streptococcus salivarius,\nStreptococcus viridans group, Streptococcus mitis\",\r\n6. Enterococcus species (vanA/B negative),\"6. E. faecium (vancomycin susceptible), S. anginosus\",\r\nDiscrepancy in susceptibility result,,4\r\n1. Enterococcus species (vanA/B negative),\"1. Enterococcus casseliflavus (vancomycin MIC, 8 \u00b5g/mL)\",\r\n2. Enterococcus species (vanA/B positive),\"2. E. faecium, vancomycin MIC 2 \u00b5g/mL, isolate vanA positive by PCR\",\r\n3. Staphylococcus species (mecA positive),\"3. Staphylococcus capitis, oxacillin MIC 0.25 \u00b5g/mL, isolate mecA\nnegative by PCR\",\r\n4. Staphylococcus species (mecA negative),\"4. Coagulase-negative Staphylococcus species, oxacillin 1 \u00b5g/mL, isolate\nmecA negative by PCR\",\r\nDiscrepancy in organism identification,,3\r\n1. Enterococcus species and Staphylococcus\nspecies (mecA positive)b,1. S. epidermidis,\r\n2. Negative,2. Enterobacter species,\r\n3. K. pneumoniae,3. Enterobacter aerogenes,"
-        },
-        {
-          "rank": 2,
-          "doc_id": "RAPID",
-          "source": "RESULTS",
-          "chunk_type": "table",
-          "content_role": "table",
-          "page_number": null,
-          "content": "Source File: RAPID.pdf | Table Index: 1 | Section: RESULTS\nCharacteristic,Standard\nof Care\n(N = 226),RAPID (Accelerate\nPheno System)\n(N = 222)\r\nDemographics,,\r\nStudy site,,\r\n\"1, no. (%)\",181 (80),181 (82)\r\n\"2, no. (%)\",45 (20),41 (18)\r\n\"Male, no. (%)\",130 (58),122 (55)\r\nRace or ethnic group,,\r\n\"White, no. (%)\",185 (82),177 (80)\r\n\"Black, no. (%)\",9 (4),7 (3)\r\n\"Asian, no (%)\",8 (4),7 (3)\r\n\"Hispanic, no. (%)\",13 (6),16 (7)\r\n\"Mean (SD) age, y\",65.8 (18.3),62.2 (20.3)\r\nCoexisting conditions,,\r\n\"Charlson score,\nmean (SD)\",2.4 (2.2),2.3 (2.2)\r\n\"Length of stay prior\nto randomization,\nmean (SD)\",3.3 (7.7),6.8 (25)\r\n\"Diabetes mellitus,\nwith or without end\norgan damage\",62 (27),61 (27)\r\nMyocardial infarction,7 (3),6 (3)\r\nCongestive heart failure,32 (14),35 (16)\r\nDementia,16 (7),8 (4)\r\nRenal disease,56 (25),57 (26)\r\nChronic obstructive\npulmonary disease,13 (6),14 (6)\r\nSolid tumor last 5 years,45 (20),35 (16)\r\nLeukemia or lymphoma,35 (15),34 (15)\r\nLiver disease,13 (5.7),19 (8.6)\r\nClinical characteristics at\nrandomization,,\r\n\"Pitt bacteremia\nscore, mean (SD)\",2.0 (1.9),1.9 (1.6)\r\n\"Admitted in intensive\ncare unit, no. (%)\",64 (28),80 (36)\r\n\"Mechanical ventilation,\nno. (%)\",43 (19),39 (18)\r\n\"Neutropenic, no. (%)\",43 (19),30 (14)\r\n\"Source of bacteremia,\nno. (%)\",,\r\nUrinary,88 (39),71 (32)\r\nCentral venous catheter,26 (12),24 (11)\r\nIntra\nabdominal,57 (25),66 (30)\r\nSkin/soft tissue,13 (6),12 (5)\r\nLung,11 (5),13 (6)\r\n\"Temperature \u226436\u00baC or \u2265\n39\u00baC, no. (%)\",38 (16.8),37 (16.7)\r\n\"Hypotension,a\nno. (%)\",71 (31),81 (36)\r\n\"Requiring vasopressor agents\nat time of randomization, no. (%)\",43 (19),46 (21)\r\n\"Altered mental status,b\nno. (%)\",20 (9),18 (8)\r\nCommunity-onset infectionc,172 (76),165 (74)"
         },
         {
           "rank": 3,
@@ -1770,12 +1829,12 @@
         },
         {
           "rank": 4,
-          "doc_id": "BAL SM",
-          "source": "Discussion",
+          "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+          "source": "DISCUSSION",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches. In conclusion, our study demonstrates overall reliable detection of respiratory pathogens by PCR/ESI-MS directly from BAL samples. PCR/ESI-MS thus provides an interestingly tool for the rapid detection of a wide range of pathogens from polymicrobial samples."
+          "content": "It is estimated that over 80% of UTIs are caused by Gram-negative bacteria and predominantly by E. coli \\(19\\). From our study, the FLAT data showed an overall sensitivity of 70% and a specificity of 99% with positive and negative predictive values of 95% and 92%, respectively, for both Gram-positive and Gram-negative bacteria. The low sensitivity is the result of inconsistent detection of Gram-positive bacteria, which might be due to relatively lower amounts of cardiolipin signature ions being released from Gram positives than lipid A from Gram negatives in these urine samples \\(20, 21\\). Additionally, the FLAT extraction process may be less effective in disrupting Gram-positive cell walls."
         },
         {
           "rank": 5,
@@ -1855,7 +1914,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "Although all three aforementioned phases of blood culture testing must be considered to ensure the highest quality of blood cultures, we will focus discussion on the preanalytical phase. This phase requires a greater need for improvement and collaboration between the clinical microbiology laboratory and front-line providers, including nurses, physicians, and midlevel practitioners, all of whom are involved in either the collection of blood for cultures, the decision of ordering blood cultures, or both. The following preanalytical parameters should be considered: (i) the number of blood cultures collected, volume per blood culture bottle, and need for both aerobic and anaerobic bottles; (ii) the time interval between blood cultures and timing of blood culture collection in relation to body temperature; and (iii) the blood culture sampling strategies. We recommend to readers a recent comprehensive review by Doern and colleagues on blood culture contamination, including diversion of the first portion of blood and blood draws from central vascular catheters and skin antisepsis \\(15)."
+          "content": "This was not the case for patients with infective endocarditis, in whom the first blood culture in any blood culture series was frequently positive (likely due to more continuous or higher bacterial burden in infective endocarditis cases). Neither study described antimicrobial use or stratified BSI cases by indication or illness severity. It is worth highlighting that although improved blood culture performance (less blood culture contamination and fewer single blood cultures) has been associated with draws by phlebotomy personnel, most hospitals are unable to fulfill all blood culture collection requests through phlebotomy \\(5, 41\\). Hence, education on blood culture best practices must be included in nursing and medical training."
         },
         {
           "rank": 2,
@@ -1864,7 +1923,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "Historically, clinicians were taught that serial blood cultures may be a better strategy than simultaneous blood cultures to detect intermittent bacteremia. National guidelines recommend simultaneous blood draws in patients with septic shock to avoid delays in antibiotic administration, with a suggestion to space blood culture draws over several hours in nonurgent situations \\(23\\). Furthermore, an arbitrary 30- to 60-minute interval was proposed in the 1980s for noncritically ill patients. However, a study of blood cultures in the 1990s using the Bactec system found no difference in blood culture positivity if blood cultures were obtained simultaneously or at spaced intervals within a 24-h period \\(47)."
+          "content": "Although all three aforementioned phases of blood culture testing must be considered to ensure the highest quality of blood cultures, we will focus discussion on the preanalytical phase. This phase requires a greater need for improvement and collaboration between the clinical microbiology laboratory and front-line providers, including nurses, physicians, and midlevel practitioners, all of whom are involved in either the collection of blood for cultures, the decision of ordering blood cultures, or both. The following preanalytical parameters should be considered: (i) the number of blood cultures collected, volume per blood culture bottle, and need for both aerobic and anaerobic bottles; (ii) the time interval between blood cultures and timing of blood culture collection in relation to body temperature; and (iii) the blood culture sampling strategies. We recommend to readers a recent comprehensive review by Doern and colleagues on blood culture contamination, including diversion of the first portion of blood and blood draws from central vascular catheters and skin antisepsis \\(15)."
         },
         {
           "rank": 3,
@@ -2068,28 +2127,32 @@
         "labels": [],
         "include_tables": null,
         "notes": "Cross-document implications query across rapid-diagnostic papers.",
-        "result_count": 2,
+        "result_count": 4,
         "result_docs": [
           "RAPID",
-          "Single site RCT"
+          "Single site RCT",
+          "BAL SM",
+          "RAPID"
         ],
         "result_headers": [
           "DISCUSSION",
-          "DISCUSSION"
+          "DISCUSSION",
+          "Introduction",
+          "Document Metadata/Abstract"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 1.0,
+        "header_precision": 0.5,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
-        "distinct_doc_count": 2,
-        "distinct_header_count": 1
+        "distinct_doc_count": 3,
+        "distinct_header_count": 3
       },
       "results": [
         {
@@ -2109,6 +2172,24 @@
           "content_role": "child",
           "page_number": null,
           "content": "Both rapid test reporting strategies reduced unnecessary antibiotic use, although rmPCR testing combined with antimicrobial stewardship resulted in the most rapid antibiotic de-escalation. In earlier observational studies, rapid pathogen identification methods have been associated with decreased mortality, LOS, and cost [5, 6, 9, 11\u2013[14\\]](#page-9-0). However, these studies were limited by their retrospective designs, use of historical controls [5, 6, 10, 22], lack of randomization, and failure to match subjects by severity of illness [\\[7\\]](#page-9-0). In contrast, in this trial we did not observe differences in clinical or cost outcomes between patients in intervention and control arms."
+        },
+        {
+          "rank": 3,
+          "doc_id": "BAL SM",
+          "source": "Introduction",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "It should be noted that the applied assay was intended for use in sterile fluids and not BAL. A re-designed, research-use-only version of the instrument was recently tested in LRT secretions. This study demonstrated the improved detection of bacterial pathogens in patients under antibiotic treatment with 49/104 (47%) hits in culture-negative samples [17]. However, the study considered only primary detections for evaluation and performance on polymicrobial samples was neglected."
+        },
+        {
+          "rank": 4,
+          "doc_id": "RAPID",
+          "source": "Document Metadata/Abstract",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Division of Pediatric Infectious Diseases, Vanderbilt University, Nashville, Tennessee, USA, 2 Biostatistics Center, George Washington University, Rockville, Maryland, USA, 3 Division of Clinical Microbiology, Mayo Clinic, Rochester, Minnesota, USA, 4 Department of Mathematics and Statistics, Boston University, Boston, Massachusetts, USA, 5 Divisions of Pathology and Infectious Diseases, University of California, Los Angeles, California, USA, and 6 Division of Infectious Diseases, University of California, San Francisco, California, USA Background. Rapid blood culture diagnostics are of unclear benefit for patients with gram-negative bacilli (GNB) bloodstream infections (BSIs). We conducted a multicenter, randomized, controlled trial comparing outcomes of patients with GNB BSIs who had blood culture testing with standard-of-care (SOC) culture and antimicrobial susceptibility testing (AST) vs rapid organism identification (ID) and phenotypic AST using the Accelerate Pheno System (RAPID). Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship (AS) review or RAPID with AS. The primary outcome was time to first antibiotic modification within 72 hours of randomization."
         }
       ]
     },
@@ -2207,10 +2288,10 @@
         "notes": "Table-oriented cross-document organism/detection-count query.",
         "result_count": 1,
         "result_docs": [
-          "Single site RCT"
+          "Culture-Free Lipidomics-Based Screening Test"
         ],
         "result_headers": [
-          "RESULTS"
+          "Results"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
@@ -2218,7 +2299,7 @@
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
         "header_precision": 1.0,
-        "table_hits": 1,
+        "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
@@ -2229,12 +2310,12 @@
       "results": [
         {
           "rank": 1,
-          "doc_id": "Single site RCT",
-          "source": "RESULTS",
-          "chunk_type": "table",
-          "content_role": "table",
+          "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+          "source": "Results",
+          "chunk_type": "text",
+          "content_role": "child",
           "page_number": null,
-          "content": "Source File: Single site RCT.pdf | Table Index: 3 | Section: RESULTS\nRapid Multiplex PCR Panel Result,Standard Culture and Phenotypic Susceptibility Testing,No.\r\nSingle/few organisms detected,Multiple organisms detected,6\r\n1. Klebsiella pneumoniae,\"1. K. pneumoniae, Staphylococcus epidermidis\",\r\n2. Enterococcus species,\"2. Enterococcus faecium, Staphylococcus hemolyticus, Micrococcus\nluteus\",\r\n\"3. Enterobacter cloacae, Enterococcus species\n(vanA/B positive)\",\"3. Enterococcus faecalis (vancomycin susceptible), E. faecium\n(vancomycin resistant), E. cloacae, Streptococcus mitis, S.\nepidermidis, Acinetobacter species\",\r\n4. (bottle a) Streptococcus agalactiae\n(bottle b) Escherichia colia,\"4. (bottle a) S. agalactiae, E. coli\n(bottle b) E. coli, Proteus species\",\r\n\"5. Streptococcus species, Haemophilus influenzae\",\"5. Haemophilus sputorum, Neisseria subflava, Streptococcus salivarius,\nStreptococcus viridans group, Streptococcus mitis\",\r\n6. Enterococcus species (vanA/B negative),\"6. E. faecium (vancomycin susceptible), S. anginosus\",\r\nDiscrepancy in susceptibility result,,4\r\n1. Enterococcus species (vanA/B negative),\"1. Enterococcus casseliflavus (vancomycin MIC, 8 \u00b5g/mL)\",\r\n2. Enterococcus species (vanA/B positive),\"2. E. faecium, vancomycin MIC 2 \u00b5g/mL, isolate vanA positive by PCR\",\r\n3. Staphylococcus species (mecA positive),\"3. Staphylococcus capitis, oxacillin MIC 0.25 \u00b5g/mL, isolate mecA\nnegative by PCR\",\r\n4. Staphylococcus species (mecA negative),\"4. Coagulase-negative Staphylococcus species, oxacillin 1 \u00b5g/mL, isolate\nmecA negative by PCR\",\r\nDiscrepancy in organism identification,,3\r\n1. Enterococcus species and Staphylococcus\nspecies (mecA positive)b,1. S. epidermidis,\r\n2. Negative,2. Enterobacter species,\r\n3. K. pneumoniae,3. Enterobacter aerogenes,"
+          "content": "Two samples were polymicrobial [gram-positive plus gram-negative (E. coli)], and both were correctly identified by FLAT. A total of 76 known gram-positive urines containing 13 unique pathogens confirmed by culture were included. FLAT was able to correctly identify all 13 unique pathogens in 72 samples demonstrating a 95% agreement (Table 3). Four undetected samples (FNs) included E. faecalis, Alloscardovia omnicolens, Staphylococcus haemolyticus, and S. lugdunensis."
         }
       ]
     },
@@ -2971,7 +3052,7 @@
           "Single site RCT"
         ],
         "result_headers": [
-          "DISCUSSION"
+          "RESULTS"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
@@ -2991,11 +3072,11 @@
         {
           "rank": 1,
           "doc_id": "Single site RCT",
-          "source": "DISCUSSION",
+          "source": "RESULTS",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "We found that use of the rmPCR test led to more judicious antibiotic use. Additionally, we delivered rapid test results along with templated comments guiding interpretation and antimicrobial prescribing, and separately evaluated this approach with and without real-time antimicrobial stewardship. Both rapid test reporting strategies reduced unnecessary antibiotic use, although rmPCR testing combined with antimicrobial stewardship resulted in the most rapid antibiotic de-escalation. In earlier observational studies, rapid pathogen identification methods have been associated with decreased mortality, LOS, and cost [5, 6, 9, 11\u2013[14\\]](#page-9-0)."
+          "content": "In 13 of 410 (3.2%) cases, there were discrepancies in organism identification or susceptibility result (Table 2). In the rmPCR/AS group, investigators made 159 recommendations for the following: antibiotic de-escalation (58%), antibiotic escalation (18%), optimization of antibiotic dose or duration (15%), and infectious diseases consultation (9%); 78% of recommendations were accepted within 24 hours. In contrast, the baseline stewardship program in place for all groups identified fewer audit and feedback opportunities (50 in control, 26 in rmPCR, and 34 in rmPCR/AS) and made fewer recommendations to modify therapy (7 in control, 0 in rmPCR, and 6 in rmPCR/AS)."
         }
       ]
     },
@@ -3255,7 +3336,7 @@
           "BAL SM"
         ],
         "result_headers": [
-          "Discussion"
+          "Results"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
@@ -3275,11 +3356,11 @@
         {
           "rank": 1,
           "doc_id": "BAL SM",
-          "source": "Discussion",
+          "source": "Results",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "In the present study, we were able to detect non-cultivable and fastidious pathogens with PCR/ESI-MS, i.e. L. pneumophila, M. pneumonia, Nocardia species and B. pertussis, which were overlooked by routine standard culture. Rapid detection of atypical pathogens from BAL samples by PCR/ESI-MS might be important in the clinical routine. In addition, detection of fungal DNA by PCR/ESI-MS proved to be a reliable indication for the presence of non-Candida fungal species. Although no identification can be provided by the IRIDICA BAC LRT Assay, detection of fungal DNA in a sample may suggest that fungal-specific investigation is indicated and that antifungal treatment could be considered."
+          "content": "Heavy growth of Klebsiella pneumoniae might have obscured the presence of H. influenzae in the fourth sample which yielded high PCR/ESI-MS levels \\(Table 3). Similarly, CFU levels were significantly higher in samples with positive result by PCR/ESI-MS, while sparse growth of H. influenzae was detected in three PCR/ESI-MS-negative samples (Table 3). b For one sample, both E. cloacae-complex and E. cancerogenus was reported by IRIDICA; this result was counted as one isolate belonging to the E. cloacae-complex. c For one sample, both E. coli and E. coli/Shigella was reported by IRIDICA; this result was counted as one E. coli isolate. d Presence of these bacteria was confirmed by conventional PCR assays (L. pneumophila, B. pertussis, M. pneumoniae), sequencing (Nocardia species), special culture (L. pneumophila) or detection of urinary antigen (L. pneumophila).  Table 2. Detection of commensal flora in bronchoalveolar lavage by PCR/ESI-MS (IRIDICA)."
         }
       ]
     },

@@ -122,6 +122,7 @@ def main() -> int:
         source_file=pdf_path.name,
         markdown_text=parsed.markdown_text,
         tables=normalized_tables,
+        local_file=str(pdf_path),
     )
 
     client = QdrantClient(url=args.qdrant_url)

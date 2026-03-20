@@ -13,6 +13,8 @@ class UnifiedChunker:
 
     DEFAULT_OPENING_HEADER = "Document Metadata/Abstract"
     DEFAULT_OPENING_HEADER_ROLE = "opening_metadata"
+    INGESTION_VERSION = "ingestion_v2"
+    CHUNKING_VERSION = "chunking_v2"
 
     def __init__(
         self,
@@ -33,6 +35,9 @@ class UnifiedChunker:
         markdown_text: str,
         tables: list[dict[str, Any]] | None = None,
         document_path: str | Path | None = None,
+        local_file: str | None = None,
+        ingestion_version: str | None = None,
+        chunking_version: str | None = None,
     ) -> list[Chunk]:
         if tables is not None:
             table_artifacts = tables
@@ -40,6 +45,10 @@ class UnifiedChunker:
             table_artifacts = self.load_table_artifacts(document_path)
         else:
             table_artifacts = []
+
+        effective_local_file = local_file or ""
+        effective_ingestion_version = ingestion_version or self.INGESTION_VERSION
+        effective_chunking_version = chunking_version or self.CHUNKING_VERSION
 
         loaded_table_artifacts_count = len(table_artifacts)
         blocks = self._split_blocks(markdown_text)
@@ -71,6 +80,10 @@ class UnifiedChunker:
                     parent_header=pending_header,
                     original_parent_header=pending_original_header,
                     header_role=pending_header_role,
+                    source_file=source_file,
+                    local_file=effective_local_file,
+                    ingestion_version=effective_ingestion_version,
+                    chunking_version=effective_chunking_version,
                     paragraphs=pending_paragraphs,
                     parent_id_start=parent_counter + 1,
                 )
@@ -101,6 +114,10 @@ class UnifiedChunker:
                     parent_header=pending_header,
                     original_parent_header=pending_original_header,
                     header_role=pending_header_role,
+                    source_file=source_file,
+                    local_file=effective_local_file,
+                    ingestion_version=effective_ingestion_version,
+                    chunking_version=effective_chunking_version,
                     paragraphs=pending_paragraphs,
                     parent_id_start=parent_counter + 1,
                 )
@@ -123,6 +140,9 @@ class UnifiedChunker:
                         header_role=active_header_role,
                         table_artifact=artifact,
                         section_role=active_section_role,
+                        local_file=effective_local_file,
+                        ingestion_version=effective_ingestion_version,
+                        chunking_version=effective_chunking_version,
                     )
                 )
                 continue
@@ -144,6 +164,9 @@ class UnifiedChunker:
                     header_role=active_header_role,
                     table_artifact=table_artifacts[table_index - 1],
                     section_role=active_section_role,
+                    local_file=effective_local_file,
+                    ingestion_version=effective_ingestion_version,
+                    chunking_version=effective_chunking_version,
                 )
             )
 
@@ -152,6 +175,10 @@ class UnifiedChunker:
             parent_header=pending_header,
             original_parent_header=pending_original_header,
             header_role=pending_header_role,
+            source_file=source_file,
+            local_file=effective_local_file,
+            ingestion_version=effective_ingestion_version,
+            chunking_version=effective_chunking_version,
             paragraphs=pending_paragraphs,
             parent_id_start=parent_counter + 1,
         )
@@ -316,6 +343,10 @@ class UnifiedChunker:
         parent_header: str,
         original_parent_header: str,
         header_role: str,
+        source_file: str,
+        local_file: str,
+        ingestion_version: str,
+        chunking_version: str,
         paragraphs: list[str],
         parent_id_start: int,
     ) -> tuple[list[Chunk], int]:
@@ -351,6 +382,10 @@ class UnifiedChunker:
                     parent_header=parent_header,
                     original_parent_header=original_parent_header,
                     header_role=header_role,
+                    source_file=source_file,
+                    local_file=local_file,
+                    ingestion_version=ingestion_version,
+                    chunking_version=chunking_version,
                     section_role=self._classify_section_role(parent_header),
                     content_role=self._classify_parent_content_role(parent_header, parent_content),
                 )
@@ -371,6 +406,10 @@ class UnifiedChunker:
         parent_header: str,
         original_parent_header: str,
         header_role: str,
+        source_file: str,
+        local_file: str,
+        ingestion_version: str,
+        chunking_version: str,
         section_role: str,
         content_role: str,
     ) -> list[Chunk]:
@@ -393,6 +432,12 @@ class UnifiedChunker:
                     extra={
                         "content_role": content_role,
                         "section_role": section_role,
+                        "source_file": source_file,
+                        "local_file": local_file,
+                        "ingestion_version": ingestion_version,
+                        "chunking_version": chunking_version,
+                        "header_original": original_parent_header,
+                        "header_canonical": parent_header,
                         "original_parent_header": original_parent_header,
                         "normalized_parent_header": parent_header,
                         "header_role": header_role,
@@ -400,6 +445,7 @@ class UnifiedChunker:
                         "parent_id": parent_id,
                         "parent_content": parent_content,
                         "referenced_table_indices": referenced_table_indices,
+                        "has_table_reference": bool(referenced_table_indices),
                         "parent_sentences": sentences,
                         "child_index": child_index + 1,
                         "child_sentence_start": child_window["start"],
@@ -421,8 +467,12 @@ class UnifiedChunker:
         header_role: str,
         table_artifact: dict[str, Any],
         section_role: str,
+        local_file: str,
+        ingestion_version: str,
+        chunking_version: str,
     ) -> Chunk:
         table_payload = self._table_payload(table_artifact)
+        table_semantics = self._classify_table_semantics(table_artifact=table_artifact, table_payload=table_payload)
         context_header = (
             f"Source File: {source_file} | "
             f"Table Index: {table_index} | "
@@ -446,11 +496,21 @@ class UnifiedChunker:
                 extra={
                     "content_role": table_role,
                     "section_role": section_role,
+                    "source_file": source_file,
+                    "local_file": local_file,
+                    "ingestion_version": ingestion_version,
+                    "chunking_version": chunking_version,
+                    "header_original": original_parent_header,
+                    "header_canonical": parent_header,
                     "original_parent_header": original_parent_header,
                     "normalized_parent_header": parent_header,
                     "header_role": header_role,
                     "is_low_value": header_role == "citation_like",
                     "table_index": table_index,
+                    "table_semantics": table_semantics["table_semantics"],
+                    "contains_metric_values": table_semantics["contains_metric_values"],
+                    "contains_comparison_structure": table_semantics["contains_comparison_structure"],
+                    "table_caption": table_semantics["table_caption"],
                 },
             ),
         )
@@ -658,6 +718,107 @@ class UnifiedChunker:
         if section_role == "front_matter":
             return "front_matter"
         return "table"
+
+    @classmethod
+    def _classify_table_semantics(cls, table_artifact: dict[str, Any], table_payload: str) -> dict[str, Any]:
+        normalized = cls._normalize_table_text(table_artifact=table_artifact, table_payload=table_payload)
+        semantics: list[str] = []
+
+        if cls._table_contains_metric_values(normalized):
+            semantics.append("metric")
+        if cls._table_contains_comparison_structure(normalized):
+            semantics.append("comparison")
+        if cls._table_contains_counts(normalized):
+            semantics.append("count")
+
+        return {
+            "table_semantics": semantics,
+            "contains_metric_values": "metric" in semantics,
+            "contains_comparison_structure": "comparison" in semantics,
+            "table_caption": cls._extract_table_caption(table_artifact=table_artifact, table_payload=table_payload),
+        }
+
+    @staticmethod
+    def _normalize_table_text(table_artifact: dict[str, Any], table_payload: str) -> str:
+        parts = [table_payload]
+        normalization_metadata = table_artifact.get("normalization_metadata")
+        if isinstance(normalization_metadata, dict):
+            rows = normalization_metadata.get("rows")
+            if isinstance(rows, list):
+                for row in rows:
+                    if isinstance(row, list):
+                        parts.append(" ".join(str(cell) for cell in row if str(cell).strip()))
+        return " ".join(part for part in parts if part).lower()
+
+    @staticmethod
+    def _table_contains_metric_values(normalized: str) -> bool:
+        metric_terms = (
+            r"\bsensitivity\b",
+            r"\bspecificity\b",
+            r"\baccuracy\b",
+            r"\bdiagnostic accuracy\b",
+            r"\bpositive predictive\b",
+            r"\bnegative predictive\b",
+            r"\bppv\b",
+            r"\bnpv\b",
+            r"\bauc\b",
+            r"\broc\b",
+            r"\blod\b",
+            r"\blimit of detection\b",
+        )
+        if not any(re.search(pattern, normalized) for pattern in metric_terms):
+            return False
+        quantitative_terms = (
+            r"\b\d+(?:\.\d+)?\s*%",
+            r"\b\d+\.\d+\b",
+            r"\btrue positive\b",
+            r"\bfalse positive\b",
+            r"\bfalse negative\b",
+            r"\btrue negative\b",
+        )
+        return any(re.search(pattern, normalized) for pattern in quantitative_terms)
+
+    @staticmethod
+    def _table_contains_comparison_structure(normalized: str) -> bool:
+        comparison_terms = (
+            r"\bcontrol\b",
+            r"\bversus\b",
+            r"\bcompared?\b",
+            r"\bcomparison\b",
+            r"\bwith and without\b",
+            r"\bgroup[s]?\b",
+            r"\barm[s]?\b",
+        )
+        return any(re.search(pattern, normalized) for pattern in comparison_terms)
+
+    @staticmethod
+    def _table_contains_counts(normalized: str) -> bool:
+        count_terms = (
+            r"\bno\.\b",
+            r"\bcount\b",
+            r"\bn\s*=",
+            r"\btotal\b",
+        )
+        return any(re.search(pattern, normalized) for pattern in count_terms)
+
+    @staticmethod
+    def _extract_table_caption(table_artifact: dict[str, Any], table_payload: str) -> str:
+        normalization_metadata = table_artifact.get("normalization_metadata")
+        if isinstance(normalization_metadata, dict):
+            rows = normalization_metadata.get("rows")
+            if isinstance(rows, list):
+                for row in rows:
+                    if not isinstance(row, list):
+                        continue
+                    caption = " ".join(str(cell).strip() for cell in row if str(cell).strip())
+                    if caption:
+                        return caption[:240]
+
+        for line in table_payload.splitlines():
+            caption = line.strip()
+            if caption:
+                return caption[:240]
+        return ""
 
     @staticmethod
     def _looks_like_reference_block(text: str) -> bool:
