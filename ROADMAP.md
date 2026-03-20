@@ -29,7 +29,6 @@ Current observed issues:
 
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs continued expectation refinement as broader coverage surfaces header-quality edge cases
-- The repo docs do not yet present the stable 26-query and expanded 43-query benchmarks as two separately maintained authoritative records; this should be corrected before more retrieval work is layered on top
 - Header precision and table-hit behavior should be revalidated explicitly after the latest ingestion/retrieval changes before more retrieval logic is added
 - Hybrid dense+sparse retrieval and ontology-backed query expansion remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
 - The current benchmark is still vulnerable to author-style bias; retrieval should also be checked against clinician-style and out-of-distribution phrasing before scaling to the full corpus
@@ -91,7 +90,18 @@ Current checkpoint:
 - The stable retrieval baseline remains the 26-query `data/eval/sample_queries.json` dataset
 - `data/eval/expanded_queries.json` now extends coverage to 43 queries across stewardship, review-style, title-query, and table-oriented retrieval
 - `data/eval/ood_adversarial_queries.json` now defines a separate clinician-style and adversarial phrasing track for evaluation only
-- Latest eval run on `medical_research_chunks_v1` showed:
+- Current recorded stable 26-query baseline on `medical_research_chunks_v1` shows:
+  - expected doc hit rate: `1.0`
+  - expected header hit rate: `1.0`
+  - top-1 expected doc hit rate: `1.0`
+  - top-1 expected header hit rate: `1.0`
+  - average doc precision: `0.9923`
+  - average header precision: `0.7724`
+  - cross-document average doc precision: `0.975`
+  - citation noise queries: `1`
+  - table-hit queries: `4`
+  - non-structural header queries: `0`
+- Current recorded expanded 43-query benchmark on `medical_research_chunks_v1` shows:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
@@ -103,7 +113,7 @@ Current checkpoint:
   - table-hit queries: `6`
   - non-structural header queries: `0`
 - Re-running the rebuilt collection on March 20, 2026 matched the same expanded-benchmark summary, so the current metadata-first ingestion baseline held after re-ingestion
-- OOD reruns on March 20, 2026 improved after narrowing the ambiguous `O07` urine-paper expectation, but the main unresolved OOD failure remains singular contrastive stewardship-review disambiguation against the randomized trial, meaning one-document OOD prompts like `O03` and `O10` that ask for "which indexed paper" while defining the target review by contrast with a trial or platform paper
+- OOD reruns on March 20, 2026 now resolve the previously unresolved singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after a narrow document-level disambiguation step
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
 - Query-aware section weighting plus single-document metadata suppression materially improved section quality without reintroducing citation, table, or header-structure noise
@@ -116,8 +126,8 @@ Current checkpoint:
 - Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
 - Table-context improvement should proceed through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic
 - A new diagnostic script, `scripts/inspect_retrieval_candidates.py`, now exists to inspect initial search hits, post-filter candidates, ranked candidates, and final returned chunks for one query before changing ranking logic
-- Current OOD inspection shows the stewardship-review miss is not a candidate-recall failure: the Fabre paper is already present in early candidates, but chunk-level ranking still favors `Single site RCT`, so the next likely fix should be a narrow document-level disambiguation step for that singular contrastive stewardship-review query class
-- The next retrieval step should not add extra embedding stages, hybrid retrieval, or query expansion; if `O03`/`O10` are addressed, it should be through a narrow metadata- or document-level disambiguation path only
+- Current OOD inspection established that the stewardship-review miss was not a candidate-recall failure: the Fabre paper was already present in early candidates, and a narrow document-level disambiguation step was sufficient to resolve `O03` and `O10`
+- The next retrieval step should not add extra embedding stages, hybrid retrieval, or query expansion; header-precision and table-hit drift should be diagnosed first, and any new behavior should stay similarly narrow and benchmark-backed
 
 Exit criteria:
 
@@ -253,16 +263,15 @@ Phase gate:
 
 Recommended next implementation order:
 
-1. Re-run the stable 26-query baseline and the expanded 43-query benchmark separately, then record both authoritative result sets explicitly in `README.md` and `ROADMAP.md`
-2. Diagnose any header-precision and table-hit drift before adding more retrieval logic
-3. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
-4. Use `scripts/inspect_retrieval_candidates.py` on remaining OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
-5. If the baseline is understood and stable, implement the narrow `O03`/`O10` singular contrastive stewardship-review disambiguation step through metadata or document-level routing only, without adding extra embedding stages
-6. Add setup hardening in parallel:
+1. Diagnose any header-precision and table-hit drift on the stable 26-query baseline and the expanded 43-query benchmark before adding more retrieval logic
+2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
+3. Use `scripts/inspect_retrieval_candidates.py` on any new OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
+4. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless measured recall gaps require them
+5. Add setup hardening in parallel:
    - `requirements.txt` or equivalent install source
    - `.env.example`
    - clearer cross-platform setup docs
-7. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
-8. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-9. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
-10. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding, with the current exception that singular OOD stewardship-review disambiguation may justify a narrow document-level step
+6. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
+7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+8. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
+9. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding

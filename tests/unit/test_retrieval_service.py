@@ -1404,6 +1404,134 @@ def test_retrieval_service_ignores_negative_clause_trial_tokens_for_contrastive_
     ]
 
 
+def test_retrieval_service_locks_contrastive_stewardship_queries_to_best_document() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:T00001",
+            content=(
+                "Source File: Single site RCT.pdf | Table Index: 4 | Section: RESULTS\n"
+                "Outcome,Control,Rapid Multiplex PCR,Rapid Multiplex PCR + Stewardship\n"
+                "Time to first appropriate de-escalation,34,38,21"
+            ),
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="table",
+                parent_header="RESULTS",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": (
+                        "Source File: Single site RCT.pdf | Table Index: 4 | Section: RESULTS\n"
+                        "Outcome,Control,Rapid Multiplex PCR,Rapid Multiplex PCR + Stewardship\n"
+                        "Time to first appropriate de-escalation,34,38,21"
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Improving blood culture ordering practices is a core diagnostic-stewardship need in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": (
+                        "Improving blood culture ordering practices is a core diagnostic-stewardship need "
+                        "in hospitals."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00002:C01",
+            content="The review emphasizes blood culture collection and utilization rather than interventional outcomes.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00002",
+                    "parent_content": (
+                        "The review emphasizes blood culture collection and utilization rather than "
+                        "interventional outcomes."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+        limit=2,
+    )
+
+    assert result
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+def test_retrieval_service_does_not_doc_lock_plural_stewardship_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of diagnostic stewardship and blood culture utilization in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of diagnostic stewardship and blood culture utilization in hospitals.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Discussion of rapid diagnostic reporting with antimicrobial stewardship involvement.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Discussion of rapid diagnostic reporting with antimicrobial stewardship involvement.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    assert (
+        service._query_uses_contrastive_stewardship_doc_lock(
+            "Which indexed papers discuss stewardship involvement alongside rapid diagnostic reporting or result communication?"
+        )
+        is False
+    )
+
+
 
 
 def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:

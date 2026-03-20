@@ -7,18 +7,18 @@
   "use_reranker": false,
   "summary": {
     "queries_total": 12,
-    "expected_doc_hit_rate": 0.8333,
-    "expected_header_hit_rate": 0.9167,
-    "top1_expected_doc_hit_rate": 0.8333,
-    "top1_expected_header_hit_rate": 0.9167,
-    "average_doc_precision": 0.7417,
-    "average_header_precision": 0.8417,
+    "expected_doc_hit_rate": 1.0,
+    "expected_header_hit_rate": 1.0,
+    "top1_expected_doc_hit_rate": 1.0,
+    "top1_expected_header_hit_rate": 1.0,
+    "average_doc_precision": 0.9083,
+    "average_header_precision": 0.925,
     "queries_with_citation_noise": 1,
     "queries_with_table_hits": 2,
     "queries_with_duplicate_hits": 0,
     "queries_with_non_structural_headers": 0,
     "cross_document_queries": 11,
-    "cross_document_average_doc_precision": 0.7182,
+    "cross_document_average_doc_precision": 0.9,
     "total_table_hits": 3,
     "total_citation_noise_hits": 1,
     "total_duplicate_hits": 0,
@@ -250,17 +250,17 @@
         "notes": "OOD disambiguation between the stewardship review and the randomized trial papers.",
         "result_count": 1,
         "result_docs": [
-          "Single site RCT"
+          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
         ],
         "result_headers": [
-          "RESULTS"
+          "Introduction"
         ],
-        "expected_doc_hit": false,
-        "expected_header_hit": false,
-        "top1_expected_doc_hit": false,
-        "top1_expected_header_hit": false,
-        "doc_precision": 0.0,
-        "header_precision": 0.0,
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
@@ -272,12 +272,12 @@
       "results": [
         {
           "rank": 1,
-          "doc_id": "Single site RCT",
-          "source": "RESULTS",
+          "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+          "source": "Introduction",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "<sup>e</sup> Statistically significant comparison between the 2 intervention groups. <sup>f</sup> From positive Gram stain to 96 hours after enrollment. Escalation included initiation of 1 or more antibiotics and/or switching from a narrow- to a broad-spectrum antibiotic. <sup>g</sup> From positive Gram stain to start of active antibiotic among patients not on active therapy at enrollment; excludes patients with contaminated blood cultures. <sup>h</sup> Contaminated blood cultures were defined as growth of organisms such as coagulase-negative staphylococci from a single blood culture set when \u22652 blood culture sets were collected, except among subjects suspected to have true bacteremia associated with central venous catheters or devices. Table 4. Comparison of Clinical, Microbiologic, and Cost Outcomes According to Study Group"
+          "content": "In 1988, Gross et al. reported a significant reduction on blood culture orders in an adult medical ICU after educating providers on the optimal number of blood cultures needed for endocarditis and sepsis and implementing a protocol that included not drawing blood cultures for persistent fever if initial blood cultures were negative in patients without additional clinical changes \\(31\\). Pawlowicz and colleagues showed a 33% reduction in blood cultures utilization in the emergency department with implementation of a clinical decision tool to standardize blood culture ordering practices (32). The criteria for drawing blood cultures in their clinical decision tool included immunocompromised status, hemodynamic instability, one major Shapiro criterion (suspected endocarditis, temperature of \\$39.4\u00b0C, or presence of indwelling vascular catheter) or two minor Shapiro criteria (temperature of 38.3 to 39.3\u00b0C, age of .64 years, chills/rigors, vomiting, systolic blood pressure of ,90 mm Hg, peripheral white cell count of .18,000/mm3 , bands of .5%, platelet count of ,150,000/mL, and/or creatinine of .2.0 mg/ dL) \\(33), and CAP patients with severe disease (based on 2007 CAP guidelines) \\(32\\)."
         }
       ]
     },
@@ -819,16 +819,16 @@
         "notes": "Forces separation between stewardship process content and rapid-diagnostic platform studies.",
         "result_count": 1,
         "result_docs": [
-          "Single site RCT"
+          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
         ],
         "result_headers": [
-          "DISCUSSION"
+          "Introduction"
         ],
-        "expected_doc_hit": false,
+        "expected_doc_hit": true,
         "expected_header_hit": true,
-        "top1_expected_doc_hit": false,
+        "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
-        "doc_precision": 0.0,
+        "doc_precision": 1.0,
         "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 0,
@@ -841,12 +841,12 @@
       "results": [
         {
           "rank": 1,
-          "doc_id": "Single site RCT",
-          "source": "DISCUSSION",
+          "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+          "source": "Introduction",
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "We were unable to account for contamination between study arms, although rarely were multiple patients in the intervention arms cared for by the same clinical service at the same time. Despite these limitations, this is the first prospective RCT to evaluate the value of a rapid diagnostic test for blood culture pathogen identification and to compare strategies to communicate rapid test results to clinicians. In conclusion, rapid pathogen and susceptibility detection directly from blood cultures implemented with templated comments or antimicrobial stewardship oversight can optimize antibiotic prescribing for bloodstream infections. To influence clinical decision making, rapid results should be delivered with real-time decision support (using automated systems or antimicrobial stewardship programs) that assists clinicians to interpret and act on results."
+          "content": "Although blood cultures are among the most common microbiologic tests processed by hospital laboratories, few studies have described the rationale for ordering blood cultures or interventions to reduce unnecessary blood cultures. In a survey, clinicians from a large U.S. academic center stated that blood cultures are ordered reflexively in response to fever and identified fear of missing an infection and lack of specific guidelines on when to order blood cultures as barriers to improving blood culture ordering practices for hospitalized adult patients \\(25\\). Another potential concern of not ordering blood cultures is missing the opportunity of having susceptibility data to guide antibiotic therapy. However, several studies have shown that lacking blood culture data does not impact management of common infectious processes, such as community-acquired pneumonia, cellulitis, and urinary tract infections (8), either because antibiotic recommendations are based on the clinical syndrome without need for susceptibility data, or susceptibility data are available from the primary source of infection (e.g., urine culture) \\(8\\)."
         }
       ]
     },

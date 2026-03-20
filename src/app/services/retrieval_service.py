@@ -57,6 +57,7 @@ class RetrievalService:
             filtered_initial_chunks = self._suppress_metadata_fallback(query=query, chunks=filtered_initial_chunks)
         candidate_limit = max(limit * 6, 30) if self._query_prefers_tables(query) else max(limit * 4, 20)
         chunks = self._select_candidate_chunks(query=query, initial_chunks=filtered_initial_chunks, candidate_limit=candidate_limit)
+        chunks = self._maybe_lock_contrastive_single_doc_query(query=query, doc_id=doc_id, chunks=chunks)
         ranked_chunks = self._rank_chunks(query=query, chunks=chunks)
 
         retrieved_chunks: list[RetrievedChunk] = []
@@ -210,6 +211,29 @@ class RetrievalService:
         except Exception as exc:  # noqa: BLE001
             logger.warning("Re-ranker failed; falling back to vector order: %s", exc)
             return initial_chunks[:candidate_limit]
+
+    def _maybe_lock_contrastive_single_doc_query(
+        self,
+        query: str,
+        doc_id: str | None,
+        chunks: list[Chunk],
+    ) -> list[Chunk]:
+        if doc_id is not None or not self._query_uses_contrastive_stewardship_doc_lock(query):
+            return chunks
+        if not chunks:
+            return chunks
+
+        locked_doc = self._best_document_for_contrastive_stewardship_query(query=query, chunks=chunks)
+        if locked_doc is None:
+            return chunks
+
+        locked_doc_key = locked_doc.lower()
+        locked_chunks = [
+            chunk
+            for chunk in chunks
+            if self._clean_markdown(chunk.metadata.doc_id).lower() == locked_doc_key
+        ]
+        return locked_chunks or chunks
 
     def _filter_chunks(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
         query_prefers_tables = self._query_prefers_tables(query)
@@ -524,6 +548,44 @@ class RetrievalService:
         body_bonus = 0 if "document metadata/abstract" in header else 1
         return (header_bonus, lexical_bonus + contrast_bonus, role_bonus + body_bonus)
 
+    def _best_document_for_contrastive_stewardship_query(
+        self,
+        query: str,
+        chunks: list[Chunk],
+    ) -> str | None:
+        docs_with_body_sections = {
+            self._clean_markdown(chunk.metadata.doc_id).lower()
+            for chunk in chunks
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        }
+        doc_scores: dict[str, tuple[int, int, int, tuple[int, int, int]]] = {}
+        doc_ids: dict[str, str] = {}
+
+        for chunk in chunks:
+            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+            doc_ids.setdefault(doc_key, self._clean_markdown(chunk.metadata.doc_id))
+            contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
+            title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
+            chunk_priority = self._chunk_priority(
+                query=query,
+                chunk=chunk,
+                docs_with_body_sections=docs_with_body_sections,
+            )
+            current = doc_scores.get(doc_key)
+            next_score = (
+                max(current[0], contrast_bonus) if current else contrast_bonus,
+                (current[1] if current else 0) + max(0, contrast_bonus),
+                max(current[2], title_overlap) if current else title_overlap,
+                max(current[3], chunk_priority) if current else chunk_priority,
+            )
+            doc_scores[doc_key] = next_score
+
+        if not doc_scores:
+            return None
+
+        best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
+        return doc_ids[best_doc_key]
+
     @staticmethod
     def _query_section_profile(query: str) -> dict[str, int]:
         normalized = query.lower()
@@ -602,6 +664,14 @@ class RetrievalService:
             "which indexed randomized trial",
         )
         return any(signal in normalized for signal in singular_signals)
+
+    @staticmethod
+    def _query_uses_contrastive_stewardship_doc_lock(query: str) -> bool:
+        return (
+            RetrievalService._query_prefers_single_document_target(query)
+            and RetrievalService._query_targets_stewardship_process(query)
+            and RetrievalService._query_contrasts_against_trial_or_platform(query)
+        )
 
     @staticmethod
     def _query_prefers_metadata(query: str) -> bool:

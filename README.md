@@ -6,18 +6,30 @@ Current benchmark status:
 - retrieval is now tracked on both a stable 26-query benchmark and a broader 43-query expanded benchmark
 - the 26-query `data/eval/sample_queries.json` file remains the stable retrieval baseline; `data/eval/expanded_queries.json` extends coverage for stewardship, review-style, title-query, and table-oriented evaluation
 - `data/eval/ood_adversarial_queries.json` is now the separate clinician-style and adversarial phrasing track; it is evaluation-only and should not replace the stable baseline or the expanded benchmark
-- expected doc hit rate: `1.0`
-- expected header hit rate: `1.0`
-- top-1 expected doc hit rate: `1.0`
-- top-1 expected header hit rate: `1.0`
-- average doc precision: `0.9953`
-- average header precision: `0.8578`
-- cross-document average doc precision: `0.99`
+- stable 26-query baseline (`data/eval/sample_queries.json`) from the current recorded March 20, 2026 artifact:
+  - expected doc hit rate: `1.0`
+  - expected header hit rate: `1.0`
+  - top-1 expected doc hit rate: `1.0`
+  - top-1 expected header hit rate: `1.0`
+  - average doc precision: `0.9923`
+  - average header precision: `0.7724`
+  - cross-document average doc precision: `0.975`
+  - citation noise queries: `1`
+  - table-hit queries: `4`
+  - non-structural header queries: `0`
+- expanded 43-query benchmark (`data/eval/expanded_queries.json`) on `medical_research_chunks_v1`:
+  - expected doc hit rate: `1.0`
+  - expected header hit rate: `1.0`
+  - top-1 expected doc hit rate: `1.0`
+  - top-1 expected header hit rate: `1.0`
+  - average doc precision: `0.9953`
+  - average header precision: `0.8578`
+  - cross-document average doc precision: `0.99`
+  - citation noise queries: `1`
+  - table-hit queries: `6`
+  - non-structural header queries: `0`
 - rerunning the rebuilt `medical_research_chunks_v1` collection on March 20, 2026 preserved the same expanded-benchmark summary as the previous known-good rebuild
-- citation noise queries: `1`
-- table-hit queries: `6`
-- non-structural header queries: `0`
-- the March 20, 2026 OOD reruns improved after narrowing the ambiguous `O07` urine-paper expectation, but the main remaining OOD failure is still disambiguating the stewardship review from the randomized blood-culture trial on singular contrastive stewardship-review queries, meaning one-document OOD prompts like `O03` and `O10` that ask for "which indexed paper" while contrasting the intended review against a trial or platform paper
+- the March 20, 2026 OOD reruns now resolve the previously stubborn singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after the narrow document-level disambiguation step
 - current retrieval baseline is metadata-first filtering in Qdrant plus a smaller query-dependent ranking/diversity layer
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
@@ -27,8 +39,8 @@ Current benchmark status:
 - hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
 - the OOD/adversarial track should be run with separate JSON/CSV output paths so its noisier phrasing cases do not overwrite the baseline result artifacts
-- current OOD debugging indicates the stubborn stewardship-review miss is not a candidate-recall problem: the Fabre paper already appears in initial candidates, but chunk-level ranking still lets `Single site RCT` discussion chunks win; the next retrieval fix should therefore be a narrow document-level disambiguation step for that singular contrastive stewardship-review query class rather than more generic ranking heuristics
-- before any further retrieval changes, the repo should re-run and document the 26-query stable set and the 43-query expanded set separately in both `README.md` and `ROADMAP.md`, then explain any header-precision or table-hit drift before stacking new behavior on top
+- current OOD debugging confirmed the stewardship-review miss was not a candidate-recall problem: the Fabre paper was already present in early candidates, and a narrow document-level disambiguation step was enough to resolve `O03` and `O10` without broader ranking changes
+- before any further retrieval changes, the repo should diagnose and explain any header-precision or table-hit drift on the stable 26-query and expanded 43-query benchmarks before stacking new behavior on top
 - parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by replacing the active ingestion path prematurely
 
 ## What It Does
@@ -396,7 +408,7 @@ Current parser planning note:
 - the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
 - the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
 - current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream
-- the current recommended order is: reconcile stable vs expanded benchmark records, diagnose any precision/table regressions, then make the narrow `O03`/`O10` disambiguation fix; do not add extra retrieval stages such as hybrid search, query expansion, or extra embedding-based routing before that work is complete
+- the current recommended order is: keep the stable and expanded benchmark records separate, diagnose any precision/table regressions, then only add further retrieval behavior if those measured regressions require it; do not add extra retrieval stages such as hybrid search, query expansion, or extra embedding-based routing before that work is complete
 - parser bakeoff tooling is not implemented yet; any parser migration should be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
 
 ## Roadmap
