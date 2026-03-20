@@ -28,6 +28,7 @@ Current benchmark status:
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
 - the OOD/adversarial track should be run with separate JSON/CSV output paths so its noisier phrasing cases do not overwrite the baseline result artifacts
 - current OOD debugging indicates the stubborn stewardship-review miss is not a candidate-recall problem: the Fabre paper already appears in initial candidates, but chunk-level ranking still lets `Single site RCT` discussion chunks win; the next retrieval fix should therefore be a narrow document-level disambiguation step for that singular contrastive stewardship-review query class rather than more generic ranking heuristics
+- before any further retrieval changes, the repo should re-run and document the 26-query stable set and the 43-query expanded set separately in both `README.md` and `ROADMAP.md`, then explain any header-precision or table-hit drift before stacking new behavior on top
 - parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by replacing the active ingestion path prematurely
 
 ## What It Does
@@ -262,6 +263,11 @@ Install core dependencies:
 .\.venv\Scripts\python.exe -m pip install marker-pdf
 ```
 
+Repo setup hardening is still incomplete:
+- a checked-in `requirements.txt` or equivalent lock/install file is still needed
+- a `.env.example` file is still needed for OpenAI/Azure/Qdrant configuration
+- install guidance is still written mainly for PowerShell and should be complemented with clearer cross-platform setup notes before wider rollout
+
 If you want local re-ranking:
 
 ```powershell
@@ -373,6 +379,7 @@ Recommended evaluation dimensions:
 Current parser planning note:
 - `Docling` is the more plausible structural parsing experiment than `pymupdf4llm`
 - if `Docling` wins clearly, prefer `Docling` alone over a permanent `Marker + Docling` blended pipeline unless a combined approach has a deterministic, benchmark-backed merge strategy
+- parser bakeoff should happen before large Phase 5 corpus rollout work; discovering a better parser after ingesting hundreds of PDFs would force an avoidable large-scale re-ingestion
 
 ## Current Limitations
 
@@ -389,6 +396,7 @@ Current parser planning note:
 - the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
 - the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
 - current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream
+- the current recommended order is: reconcile stable vs expanded benchmark records, diagnose any precision/table regressions, then make the narrow `O03`/`O10` disambiguation fix; do not add extra retrieval stages such as hybrid search, query expansion, or extra embedding-based routing before that work is complete
 - parser bakeoff tooling is not implemented yet; any parser migration should be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
 
 ## Roadmap

@@ -29,6 +29,8 @@ Current observed issues:
 
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs continued expectation refinement as broader coverage surfaces header-quality edge cases
+- The repo docs do not yet present the stable 26-query and expanded 43-query benchmarks as two separately maintained authoritative records; this should be corrected before more retrieval work is layered on top
+- Header precision and table-hit behavior should be revalidated explicitly after the latest ingestion/retrieval changes before more retrieval logic is added
 - Hybrid dense+sparse retrieval and ontology-backed query expansion remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
 - The current benchmark is still vulnerable to author-style bias; retrieval should also be checked against clinician-style and out-of-distribution phrasing before scaling to the full corpus
 - Parser changes remain unevaluated against downstream retrieval; parser experimentation should be isolated and benchmark-driven rather than folded directly into the active ingestion path
@@ -115,6 +117,7 @@ Current checkpoint:
 - Table-context improvement should proceed through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic
 - A new diagnostic script, `scripts/inspect_retrieval_candidates.py`, now exists to inspect initial search hits, post-filter candidates, ranked candidates, and final returned chunks for one query before changing ranking logic
 - Current OOD inspection shows the stewardship-review miss is not a candidate-recall failure: the Fabre paper is already present in early candidates, but chunk-level ranking still favors `Single site RCT`, so the next likely fix should be a narrow document-level disambiguation step for that singular contrastive stewardship-review query class
+- The next retrieval step should not add extra embedding stages, hybrid retrieval, or query expansion; if `O03`/`O10` are addressed, it should be through a narrow metadata- or document-level disambiguation path only
 
 Exit criteria:
 
@@ -192,6 +195,8 @@ Exit criteria:
 
 - Rebuilds are deterministic
 - Metadata filters are available for large-corpus retrieval
+- Ingestion versioning is in place and enforced
+- The local-manifest registry has been replaced or hardened enough that corpus rollout is not dependent on a drift-prone local-only record
 
 ## Phase 4B: Parser Bakeoff
 
@@ -218,6 +223,7 @@ Exit criteria:
 
 - Parser choice is justified by retrieval evidence
 - Experimental parser work does not interfere with active ingestion or the production collection
+- Parser comparison is completed before any large Phase 5 corpus rollout that would otherwise require expensive re-ingestion
 
 ## Phase 5: Corpus Rollout
 
@@ -239,16 +245,24 @@ Exit criteria:
 - Corpus ingestion is operationally manageable
 - Retrieval remains usable at target corpus size
 
+Phase gate:
+
+- Do not begin Phase 5 until Phase 4 exit criteria are met, specifically ingestion versioning plus registry hardening/replacement
+
 ## Near-Term Next Moves
 
 Recommended next implementation order:
 
-1. Treat the current 26-query set as the stable retrieval baseline and the 43-query set as the active expansion track
-2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
-3. Use `scripts/inspect_retrieval_candidates.py` on remaining OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
-4. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
-5. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
-6. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
-7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-8. Add isolated parser bakeoff tooling in-repo before considering any parser migration
-9. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding, with the current exception that singular OOD stewardship-review disambiguation may justify a narrow document-level step
+1. Re-run the stable 26-query baseline and the expanded 43-query benchmark separately, then record both authoritative result sets explicitly in `README.md` and `ROADMAP.md`
+2. Diagnose any header-precision and table-hit drift before adding more retrieval logic
+3. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
+4. Use `scripts/inspect_retrieval_candidates.py` on remaining OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
+5. If the baseline is understood and stable, implement the narrow `O03`/`O10` singular contrastive stewardship-review disambiguation step through metadata or document-level routing only, without adding extra embedding stages
+6. Add setup hardening in parallel:
+   - `requirements.txt` or equivalent install source
+   - `.env.example`
+   - clearer cross-platform setup docs
+7. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
+8. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+9. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
+10. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding, with the current exception that singular OOD stewardship-review disambiguation may justify a narrow document-level step
