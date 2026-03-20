@@ -1,0 +1,1015 @@
+{
+  "dataset": "data\\eval\\ood_adversarial_queries.json",
+  "collection": "medical_research_chunks_v1",
+  "qdrant_url": "http://localhost:6333",
+  "limit": 5,
+  "include_tables": false,
+  "use_reranker": false,
+  "summary": {
+    "queries_total": 12,
+    "expected_doc_hit_rate": 0.8333,
+    "expected_header_hit_rate": 0.9167,
+    "top1_expected_doc_hit_rate": 0.8333,
+    "top1_expected_header_hit_rate": 0.9167,
+    "average_doc_precision": 0.7417,
+    "average_header_precision": 0.8417,
+    "queries_with_citation_noise": 1,
+    "queries_with_table_hits": 2,
+    "queries_with_duplicate_hits": 0,
+    "queries_with_non_structural_headers": 0,
+    "cross_document_queries": 11,
+    "cross_document_average_doc_precision": 0.7182,
+    "total_table_hits": 3,
+    "total_citation_noise_hits": 1,
+    "total_duplicate_hits": 0,
+    "total_non_structural_header_hits": 0
+  },
+  "queries": [
+    {
+      "query_id": "O01",
+      "query": "ICU BAL case: which indexed paper is the one to pull if I want broad pathogen detection from bronchoalveolar lavage rather than standard culture alone?",
+      "doc_filter": null,
+      "expected_docs": [
+        "BAL SM"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion",
+        "Document Metadata/Abstract"
+      ],
+      "labels": [
+        "ood",
+        "clinician_style",
+        "cross_doc",
+        "bal",
+        "paraphrase"
+      ],
+      "include_tables": null,
+      "notes": "Clinician-style BAL phrasing that avoids the repo's usual broad-range detection wording.",
+      "evaluation": {
+        "query_id": "O01",
+        "query": "ICU BAL case: which indexed paper is the one to pull if I want broad pathogen detection from bronchoalveolar lavage rather than standard culture alone?",
+        "doc_filter": "",
+        "expected_docs": [
+          "BAL SM"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion",
+          "Document Metadata/Abstract"
+        ],
+        "labels": [
+          "ood",
+          "clinician_style",
+          "cross_doc",
+          "bal",
+          "paraphrase"
+        ],
+        "include_tables": null,
+        "notes": "Clinician-style BAL phrasing that avoids the repo's usual broad-range detection wording.",
+        "result_count": 1,
+        "result_docs": [
+          "BAL SM"
+        ],
+        "result_headers": [
+          "Discussion"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "BAL SM",
+          "source": "Discussion",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "In the present study, we were able to detect non-cultivable and fastidious pathogens with PCR/ESI-MS, i.e. L. pneumophila, M. pneumonia, Nocardia species and B. pertussis, which were overlooked by routine standard culture. Rapid detection of atypical pathogens from BAL samples by PCR/ESI-MS might be important in the clinical routine. In addition, detection of fungal DNA by PCR/ESI-MS proved to be a reliable indication for the presence of non-Candida fungal species. Although no identification can be provided by the IRIDICA BAC LRT Assay, detection of fungal DNA in a sample may suggest that fungal-specific investigation is indicated and that antifungal treatment could be considered."
+        }
+      ]
+    },
+    {
+      "query_id": "O02",
+      "query": "For IRIDICA/PCR-ESI-MS on BAL, where do the authors talk about false negatives, organism coverage gaps, or why I should still be cautious clinically?",
+      "doc_filter": "BAL SM",
+      "expected_docs": [
+        "BAL SM"
+      ],
+      "expected_headers": [
+        "Discussion",
+        "Conclusion"
+      ],
+      "labels": [
+        "ood",
+        "clinician_style",
+        "single_doc",
+        "bal",
+        "caveats"
+      ],
+      "include_tables": null,
+      "notes": "Abbreviation-heavy BAL caveat query using failure-mode language instead of benchmark wording.",
+      "evaluation": {
+        "query_id": "O02",
+        "query": "For IRIDICA/PCR-ESI-MS on BAL, where do the authors talk about false negatives, organism coverage gaps, or why I should still be cautious clinically?",
+        "doc_filter": "BAL SM",
+        "expected_docs": [
+          "BAL SM"
+        ],
+        "expected_headers": [
+          "Discussion",
+          "Conclusion"
+        ],
+        "labels": [
+          "ood",
+          "clinician_style",
+          "single_doc",
+          "bal",
+          "caveats"
+        ],
+        "include_tables": null,
+        "notes": "Abbreviation-heavy BAL caveat query using failure-mode language instead of benchmark wording.",
+        "result_count": 4,
+        "result_docs": [
+          "BAL SM",
+          "BAL SM",
+          "BAL SM",
+          "BAL SM"
+        ],
+        "result_headers": [
+          "Discussion",
+          "Discussion",
+          "Results",
+          "Introduction"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 0.5,
+        "table_hits": 0,
+        "citation_noise_hits": 1,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 3
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "BAL SM",
+          "source": "Discussion",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "present data also suggests that semi-quantitative levels and co-detection of commensal flora are relevant information for clinical interpretation of results from PCR/ESI-MS, in particular with respect to detection of S. aureus. PCR/ESI-MS results from BAL samples should thus be interpreted similarly to culture results. Microorganisms that are regarded as normal respiratory flora in BAL culture should reasonably be indicated as being part of the normal respiratory flora even when reporting results from PCR/ESI-MS on BAL. In the present study, we were able to detect non-cultivable and fastidious pathogens with PCR/ESI-MS, i.e. L. pneumophila, M. pneumonia, Nocardia species and B. pertussis, which were overlooked by routine standard culture."
+        },
+        {
+          "rank": 2,
+          "doc_id": "BAL SM",
+          "source": "Discussion",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "The present data indicates that PCR/ESI-MS has limited specificity and sensitivity in detection of S. pneumoniae. The low number of clinical isolates detected in BAL cultures does however not allow solid conclusions and further studies are needed. Based on the findings presented here, other tests complementary to PCR/ ESI-MS are recommended to determine the presence or absence of S. pneumoniae if clinically indicated. We experienced a similar problem in identification of Moraxella catarrhalis, which was reported as Moraxella catarrhalis/nonliquefaciens belonging to the normal flora."
+        },
+        {
+          "rank": 3,
+          "doc_id": "BAL SM",
+          "source": "Results",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Heavy growth of Klebsiella pneumoniae might have obscured the presence of H. influenzae in the fourth sample which yielded high PCR/ESI-MS levels \\(Table 3). Similarly, CFU levels were significantly higher in samples with positive result by PCR/ESI-MS, while sparse growth of H. influenzae was detected in three PCR/ESI-MS-negative samples (Table 3). b For one sample, both E. cloacae-complex and E. cancerogenus was reported by IRIDICA; this result was counted as one isolate belonging to the E. cloacae-complex. c For one sample, both E. coli and E. coli/Shigella was reported by IRIDICA; this result was counted as one E. coli isolate. d Presence of these bacteria was confirmed by conventional PCR assays (L. pneumophila, B. pertussis, M. pneumoniae), sequencing (Nocardia species), special culture (L. pneumophila) or detection of urinary antigen (L. pneumophila).  Table 2. Detection of commensal flora in bronchoalveolar lavage by PCR/ESI-MS (IRIDICA)."
+        },
+        {
+          "rank": 4,
+          "doc_id": "BAL SM",
+          "source": "Introduction",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "The concordance rate of this analysis with conventional methods was 77% for detection of bacterial pathogens and 45% when microorganisms from the normal flora were included [16]. It should be noted that the applied assay was intended for use in sterile fluids and not BAL. A re-designed, research-use-only version of the instrument was recently tested in LRT secretions. This study demonstrated the improved detection of bacterial pathogens in patients under antibiotic treatment with 49/104 (47%) hits in culture-negative samples [17]."
+        }
+      ]
+    },
+    {
+      "query_id": "O03",
+      "query": "Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+      "doc_filter": null,
+      "expected_docs": [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+      ],
+      "expected_headers": [
+        "Introduction",
+        "Discussion",
+        "Conclusion"
+      ],
+      "labels": [
+        "ood",
+        "journal_club",
+        "cross_doc",
+        "stewardship",
+        "disambiguation"
+      ],
+      "include_tables": null,
+      "notes": "OOD disambiguation between the stewardship review and the randomized trial papers.",
+      "evaluation": {
+        "query_id": "O03",
+        "query": "Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+        "doc_filter": "",
+        "expected_docs": [
+          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+        ],
+        "expected_headers": [
+          "Introduction",
+          "Discussion",
+          "Conclusion"
+        ],
+        "labels": [
+          "ood",
+          "journal_club",
+          "cross_doc",
+          "stewardship",
+          "disambiguation"
+        ],
+        "include_tables": null,
+        "notes": "OOD disambiguation between the stewardship review and the randomized trial papers.",
+        "result_count": 1,
+        "result_docs": [
+          "Single site RCT"
+        ],
+        "result_headers": [
+          "RESULTS"
+        ],
+        "expected_doc_hit": false,
+        "expected_header_hit": false,
+        "top1_expected_doc_hit": false,
+        "top1_expected_header_hit": false,
+        "doc_precision": 0.0,
+        "header_precision": 0.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "Single site RCT",
+          "source": "RESULTS",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "<sup>e</sup> Statistically significant comparison between the 2 intervention groups. <sup>f</sup> From positive Gram stain to 96 hours after enrollment. Escalation included initiation of 1 or more antibiotics and/or switching from a narrow- to a broad-spectrum antibiotic. <sup>g</sup> From positive Gram stain to start of active antibiotic among patients not on active therapy at enrollment; excludes patients with contaminated blood cultures. <sup>h</sup> Contaminated blood cultures were defined as growth of organisms such as coagulase-negative staphylococci from a single blood culture set when \u22652 blood culture sets were collected, except among subjects suspected to have true bacteremia associated with central venous catheters or devices. Table 4. Comparison of Clinical, Microbiologic, and Cost Outcomes According to Study Group"
+        }
+      ]
+    },
+    {
+      "query_id": "O04",
+      "query": "Which indexed paper would I cite if I wanted rapid gram-negative blood culture identification plus susceptibility with faster antibiotic changes, not just templated stewardship messaging?",
+      "doc_filter": null,
+      "expected_docs": [
+        "RAPID"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion"
+      ],
+      "labels": [
+        "ood",
+        "clinician_style",
+        "cross_doc",
+        "rapid_diagnostics",
+        "disambiguation"
+      ],
+      "include_tables": null,
+      "notes": "Paraphrases the RAPID timing-benefit content without reusing the expanded-track wording.",
+      "evaluation": {
+        "query_id": "O04",
+        "query": "Which indexed paper would I cite if I wanted rapid gram-negative blood culture identification plus susceptibility with faster antibiotic changes, not just templated stewardship messaging?",
+        "doc_filter": "",
+        "expected_docs": [
+          "RAPID"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion"
+        ],
+        "labels": [
+          "ood",
+          "clinician_style",
+          "cross_doc",
+          "rapid_diagnostics",
+          "disambiguation"
+        ],
+        "include_tables": null,
+        "notes": "Paraphrases the RAPID timing-benefit content without reusing the expanded-track wording.",
+        "result_count": 1,
+        "result_docs": [
+          "RAPID"
+        ],
+        "result_headers": [
+          "DISCUSSION"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "RAPID",
+          "source": "DISCUSSION",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Last, we did not perform a formal cost-effectiveness analysis, which is warranted since novel rapid blood culture diagnostics are more costly than conventional testing methods. Despite these limitations, RAPID demonstrates that rapid phenotypic AST methods implemented together with AS can facilitate faster antibiotic modifications during treatment of GNB BSIs and aid clinicians in providing timely, effective therapy, while supporting AS efforts. Development of rapid, innovative methods for detection of microorganisms and drug resistance in blood cultures is an important component in the fight against antimicrobial resistance."
+        }
+      ]
+    },
+    {
+      "query_id": "O05",
+      "query": "Which indexed randomized blood culture study compares plain rapid reporting versus rapid reporting with stewardship on top of it?",
+      "doc_filter": null,
+      "expected_docs": [
+        "Single site RCT"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion",
+        "Document Metadata/Abstract"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "trial",
+        "stewardship",
+        "paraphrase"
+      ],
+      "include_tables": null,
+      "notes": "Companion OOD trial query phrased closer to how a clinician might summarize the design aloud.",
+      "evaluation": {
+        "query_id": "O05",
+        "query": "Which indexed randomized blood culture study compares plain rapid reporting versus rapid reporting with stewardship on top of it?",
+        "doc_filter": "",
+        "expected_docs": [
+          "Single site RCT"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion",
+          "Document Metadata/Abstract"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "trial",
+          "stewardship",
+          "paraphrase"
+        ],
+        "include_tables": null,
+        "notes": "Companion OOD trial query phrased closer to how a clinician might summarize the design aloud.",
+        "result_count": 5,
+        "result_docs": [
+          "Single site RCT",
+          "RAPID",
+          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+          "Single site RCT",
+          "RAPID"
+        ],
+        "result_headers": [
+          "RESULTS",
+          "RESULTS",
+          "SUMMARY",
+          "METHODS",
+          "Document Metadata/Abstract"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 0.4,
+        "header_precision": 0.6,
+        "table_hits": 2,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 3,
+        "distinct_header_count": 4
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "Single site RCT",
+          "source": "RESULTS",
+          "chunk_type": "table",
+          "content_role": "table",
+          "page_number": null,
+          "content": "Source File: Single site RCT.pdf | Table Index: 4 | Section: RESULTS\nOutcome,Control,Rapid Multiplex\nPCR,Rapid Multiplex\nPCR + Stewardship,P Value\nComparing 3\nGroups\r\n\"Duration of therapya\n, h\",,,,\r\nVancomycin,,,,\r\nAll patients (n = 357),44 (22\u201372),42 (21\u201393),42 (19\u201390),.92\r\nOrganisms not requiring vancomycinb (n = 169),8.2 (0\u201326),0 (0\u201316),0 (0\u20133)c,.032\r\nVancomycin-susceptible enterococci (n = 32),20 (1\u201359),70 (48\u201388)c,82 (40\u201396)c,.037\r\nMethicillin-susceptible Staphylococcus aureus (n = 42),23 (20\u201353),11 (0\u201326),8 (0\u201344),.2\r\n\"Nafcillin, oxacillin, or cefazolin (n = 50)\",42 (24\u201357),71 (51\u201379)c,85 (42\u201392)c,.035\r\nPiperacillin-tazobactam (n = 214),56 (39\u201382),44 (27\u201374)c,45 (19\u201378)c,.012\r\nCefepime (n = 181),55 (28\u201396),71 (43\u201396),58 (32\u201396),.56\r\nAntibiotic modifications,,,,\r\nTime to first appropriate de-escalationd (n = 344),34 (21\u201355),38 (22\u201366),\"21 (7\u201337)c,e\",<.0001\r\nTime to first appropriate escalationf (n = 122),24 (3\u201367),6 (2\u201336),5 (2\u201322)c,.04\r\nTime to administration of active antibiotics (n = 123)g,11 (2\u201351),6 (2\u201331),4 (2\u201320),.55\r\n\"Contaminated blood cultures not treated or treated\nfor <24 h, No. (%)h\",47 (75),49 (89)c,57 (92)c,.015"
+        },
+        {
+          "rank": 2,
+          "doc_id": "RAPID",
+          "source": "RESULTS",
+          "chunk_type": "table",
+          "content_role": "table",
+          "page_number": null,
+          "content": "Source File: RAPID.pdf | Table Index: 2 | Section: RESULTS\nCharacteristic,Standard\nof Care\n(N = 226),RAPID (Accelerate\nPheno System)\n(N = 222)\r\n\"Blood culture organisms,d,e no.\n(% of total)\",,\r\nAcinetobacter baumannii,2 (1),1 (0)\r\nCitrobacter species,5 (2),3 (1)\r\nEscherichia coli,103 (44),98 (42)\r\nEnterobacter speciesf,17 (7),14 (6)\r\nKlebsiella species,47 (20),50 (21)\r\nProteus species,7 (3),4 (2)\r\nPseudomonas aeruginosa,24 (10),29 (12)\r\nSerratia marcescens,3 (1),8 (3)\r\nOff-panel organisms,23 (10),20 (9)\r\n\"Antimicrobial resistance in blood\nculture isolates, no./total no. (%)\",,\r\nThird-generation nonsusceptible\nEnterobacteralesg,32/182 (18),34/177 (19)\r\nCarbapenem-resistant\nEnterobacteralesg,6/182 (3),4/177 (2)\r\nCarbapenem-resistant\nPseudomonas aeruginosah,2/24 (8),6/29 (21)"
+        },
+        {
+          "rank": 3,
+          "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+          "source": "SUMMARY",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Diagnostic stewardship is critical to deliver safe patient care and to prevent devastating consequences related to test overuse, especially in an environment of value-based payment and quality metrics. Despite the role of blood cultures in the management of bloodstream infections, there has been a lack of national data on blood culture performance. Improvements are needed in both the process of blood culture collection and in blood culture indications."
+        },
+        {
+          "rank": 4,
+          "doc_id": "Single site RCT",
+          "source": "METHODS",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "The study was a prospective RCT conducted at the Mayo Clinic, Rochester, Minnesota. Eligible patients were adults and children who had positive blood cultures processed in the clinical microbiology laboratory using the Becton Dickinson BACTEC FX system between August 2013 and March 2014. Patients were randomly assigned to either standard BCB processing (control), rapid multiplex PCR with templated comments (rmPCR), or rmPCR with templated comments and real-time antimicrobial stewardship (rmPCR/AS). Patients were excluded if they had a positive blood culture in the prior week, had not provided the Minnesota state research authorization (Minnesota Statute 144.335), were previously enrolled in the study, died or were transitioned to comfort care within 24 hours of enrollment, or had a negative BCB Gram stain."
+        },
+        {
+          "rank": 5,
+          "doc_id": "RAPID",
+          "source": "Document Metadata/Abstract",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Division of Pediatric Infectious Diseases, Vanderbilt University, Nashville, Tennessee, USA, 2 Biostatistics Center, George Washington University, Rockville, Maryland, USA, 3 Division of Clinical Microbiology, Mayo Clinic, Rochester, Minnesota, USA, 4 Department of Mathematics and Statistics, Boston University, Boston, Massachusetts, USA, 5 Divisions of Pathology and Infectious Diseases, University of California, Los Angeles, California, USA, and 6 Division of Infectious Diseases, University of California, San Francisco, California, USA Background. Rapid blood culture diagnostics are of unclear benefit for patients with gram-negative bacilli (GNB) bloodstream infections (BSIs). We conducted a multicenter, randomized, controlled trial comparing outcomes of patients with GNB BSIs who had blood culture testing with standard-of-care (SOC) culture and antimicrobial susceptibility testing (AST) vs rapid organism identification (ID) and phenotypic AST using the Accelerate Pheno System (RAPID). Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship (AS) review or RAPID with AS. The primary outcome was time to first antibiotic modification within 72 hours of randomization."
+        }
+      ]
+    },
+    {
+      "query_id": "O06",
+      "query": "BCNE workup question: which indexed review goes through serology, PCR, valve testing, or mNGS when routine blood cultures stay negative?",
+      "doc_filter": null,
+      "expected_docs": [
+        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
+      ],
+      "expected_headers": [
+        "Introduction",
+        "Methods",
+        "Discussion",
+        "Conclusion"
+      ],
+      "labels": [
+        "ood",
+        "clinician_style",
+        "cross_doc",
+        "review_style",
+        "abbreviation_heavy"
+      ],
+      "include_tables": null,
+      "notes": "Uses BCNE shorthand plus practical workup terminology rather than the benchmark's title-like phrasing.",
+      "evaluation": {
+        "query_id": "O06",
+        "query": "BCNE workup question: which indexed review goes through serology, PCR, valve testing, or mNGS when routine blood cultures stay negative?",
+        "doc_filter": "",
+        "expected_docs": [
+          "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
+        ],
+        "expected_headers": [
+          "Introduction",
+          "Methods",
+          "Discussion",
+          "Conclusion"
+        ],
+        "labels": [
+          "ood",
+          "clinician_style",
+          "cross_doc",
+          "review_style",
+          "abbreviation_heavy"
+        ],
+        "include_tables": null,
+        "notes": "Uses BCNE shorthand plus practical workup terminology rather than the benchmark's title-like phrasing.",
+        "result_count": 1,
+        "result_docs": [
+          "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
+        ],
+        "result_headers": [
+          "Introduction"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+          "source": "Introduction",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Metagenomic next-generation sequencing (mNGS) is currently a powerful method to sequence and identify nucleic acids from a mixed population of microorganisms. Compared to the conventional approach, mNGS has high efficiency and accuracy. It is expected to become a crucial clinical diagnostic tool in the future. <sup>14,15</sup> Traditional methods including histology, serology, and culture have been used for decades to diagnose infective endocarditis. Molecular techniques have also been developed to improve the detection of difficult-to-culture agents."
+        }
+      ]
+    },
+    {
+      "query_id": "O07",
+      "query": "If I only remember the urine paper that uses lysozyme pretreatment so FLAT can recover cardiolipin for gram-positive organisms while still detecting lipid A from gram-negatives, which indexed study is that?",
+      "doc_filter": null,
+      "expected_docs": [
+        "Culture-Free Lipidomics-Based Screening Test"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion",
+        "Conclusion"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "lipidomics",
+        "paraphrase",
+        "title_like"
+      ],
+      "include_tables": null,
+      "notes": "OOD title-recovery case narrowed to the lysozyme-optimization paper so it does not overlap as much with the direct-from-urine triage study.",
+      "evaluation": {
+        "query_id": "O07",
+        "query": "If I only remember the urine paper that uses lysozyme pretreatment so FLAT can recover cardiolipin for gram-positive organisms while still detecting lipid A from gram-negatives, which indexed study is that?",
+        "doc_filter": "",
+        "expected_docs": [
+          "Culture-Free Lipidomics-Based Screening Test"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion",
+          "Conclusion"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "lipidomics",
+          "paraphrase",
+          "title_like"
+        ],
+        "include_tables": null,
+        "notes": "OOD title-recovery case narrowed to the lysozyme-optimization paper so it does not overlap as much with the direct-from-urine triage study.",
+        "result_count": 1,
+        "result_docs": [
+          "Culture-Free Lipidomics-Based Screening Test"
+        ],
+        "result_headers": [
+          "Conclusion"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+          "source": "Conclusion",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "This study highlights the effectiveness of lysozyme treatment in improving the direct detection of gram-positive uropathogens from urine samples by FLAT. The optimized FLAT method achieved an overall detection rate of 95% in a clinical cohort of 76 patients with confirmed gram-positive infections. Importantly, combining lysozyme with a 60-minute incubation at 37\u00b0C significantly enhanced the release and detection of cardiolipins from gram-positive bacteria, while maintaining reliable detection of lipid A from gram-negative species; thereby enabling a unified workflow for comprehensive screening of UTIs. Moreover, the optimized FLAT method successfully identified polymicrobial samples containing gram-positive and gram-negative bacteria."
+        }
+      ]
+    },
+    {
+      "query_id": "O08",
+      "query": "Which indexed papers have sensitivity/specificity-type numbers sitting in tables for diagnostic performance, even if the query is phrased loosely and not with the exact metric names?",
+      "doc_filter": null,
+      "expected_docs": [
+        "Culture-Free Lipidomics-Based Screening Test",
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "table_oriented",
+        "diagnostic_metrics",
+        "adversarial_loose_metrics"
+      ],
+      "include_tables": true,
+      "notes": "Adversarially loose metric phrasing to check whether payload-first table gating still isolates the right papers.",
+      "evaluation": {
+        "query_id": "O08",
+        "query": "Which indexed papers have sensitivity/specificity-type numbers sitting in tables for diagnostic performance, even if the query is phrased loosely and not with the exact metric names?",
+        "doc_filter": "",
+        "expected_docs": [
+          "Culture-Free Lipidomics-Based Screening Test",
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "table_oriented",
+          "diagnostic_metrics",
+          "adversarial_loose_metrics"
+        ],
+        "include_tables": true,
+        "notes": "Adversarially loose metric phrasing to check whether payload-first table gating still isolates the right papers.",
+        "result_count": 1,
+        "result_docs": [
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+        ],
+        "result_headers": [
+          "RESULTS"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 1,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+          "source": "RESULTS",
+          "chunk_type": "table",
+          "content_role": "table",
+          "page_number": null,
+          "content": "Source File: nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf | Table Index: 3 | Section: RESULTS\n,,UTI results,,\r\n,,Culture +,,\r\nPositive predictive,Positive predictive,True positive,Positive predictive,Positive predictive\r\nvalue = 95%,value = 95%,(62),value = 95%,value = 95%\r\nNegative predictive,Negative predictive,False negative,Negative predictive,Negative predictive\r\nvalue = 92%,value = 92%,(26),value = 92%,value = 92%\r\n,,Sensitivity = 70%,,"
+        }
+      ]
+    },
+    {
+      "query_id": "O09",
+      "query": "Which indexed paper has the discrepant respiratory-pathogen data in BAL where PCR/ESI-MS and routine culture disagree on some patients?",
+      "doc_filter": null,
+      "expected_docs": [
+        "BAL SM"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "bal",
+        "table_oriented",
+        "paraphrase"
+      ],
+      "include_tables": true,
+      "notes": "BAL discrepant-results query that avoids saying Table 3 directly.",
+      "evaluation": {
+        "query_id": "O09",
+        "query": "Which indexed paper has the discrepant respiratory-pathogen data in BAL where PCR/ESI-MS and routine culture disagree on some patients?",
+        "doc_filter": "",
+        "expected_docs": [
+          "BAL SM"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "bal",
+          "table_oriented",
+          "paraphrase"
+        ],
+        "include_tables": true,
+        "notes": "BAL discrepant-results query that avoids saying Table 3 directly.",
+        "result_count": 1,
+        "result_docs": [
+          "BAL SM"
+        ],
+        "result_headers": [
+          "Results"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "BAL SM",
+          "source": "Results",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Table 3. Data for patients with discrepant results with respect to respiratory pathogens obtained by PCR/ESI-MS and routine culture-based analysis."
+        }
+      ]
+    },
+    {
+      "query_id": "O10",
+      "query": "Adversarial wording check: which indexed paper is about improving when and how blood cultures get ordered or collected, not about a pathogen-detection platform at all?",
+      "doc_filter": null,
+      "expected_docs": [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+      ],
+      "expected_headers": [
+        "Introduction",
+        "Discussion",
+        "Conclusion",
+        "Summary"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "stewardship",
+        "adversarial",
+        "disambiguation"
+      ],
+      "include_tables": null,
+      "notes": "Forces separation between stewardship process content and rapid-diagnostic platform studies.",
+      "evaluation": {
+        "query_id": "O10",
+        "query": "Adversarial wording check: which indexed paper is about improving when and how blood cultures get ordered or collected, not about a pathogen-detection platform at all?",
+        "doc_filter": "",
+        "expected_docs": [
+          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+        ],
+        "expected_headers": [
+          "Introduction",
+          "Discussion",
+          "Conclusion",
+          "Summary"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "stewardship",
+          "adversarial",
+          "disambiguation"
+        ],
+        "include_tables": null,
+        "notes": "Forces separation between stewardship process content and rapid-diagnostic platform studies.",
+        "result_count": 1,
+        "result_docs": [
+          "Single site RCT"
+        ],
+        "result_headers": [
+          "DISCUSSION"
+        ],
+        "expected_doc_hit": false,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": false,
+        "top1_expected_header_hit": true,
+        "doc_precision": 0.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "Single site RCT",
+          "source": "DISCUSSION",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "We were unable to account for contamination between study arms, although rarely were multiple patients in the intervention arms cared for by the same clinical service at the same time. Despite these limitations, this is the first prospective RCT to evaluate the value of a rapid diagnostic test for blood culture pathogen identification and to compare strategies to communicate rapid test results to clinicians. In conclusion, rapid pathogen and susceptibility detection directly from blood cultures implemented with templated comments or antimicrobial stewardship oversight can optimize antibiotic prescribing for bloodstream infections. To influence clinical decision making, rapid results should be delivered with real-time decision support (using automated systems or antimicrobial stewardship programs) that assists clinicians to interpret and act on results."
+        }
+      ]
+    },
+    {
+      "query_id": "O11",
+      "query": "Where in the indexed corpus do they report a roughly 24-hour antibiotic-modification advantage from a rapid bacteremia workflow?",
+      "doc_filter": null,
+      "expected_docs": [
+        "RAPID"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "rapid_diagnostics",
+        "timing_benefit",
+        "paraphrase"
+      ],
+      "include_tables": null,
+      "notes": "Timing-benefit query without the exact 'standard of care' phrasing used in the expanded set.",
+      "evaluation": {
+        "query_id": "O11",
+        "query": "Where in the indexed corpus do they report a roughly 24-hour antibiotic-modification advantage from a rapid bacteremia workflow?",
+        "doc_filter": "",
+        "expected_docs": [
+          "RAPID"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "rapid_diagnostics",
+          "timing_benefit",
+          "paraphrase"
+        ],
+        "include_tables": null,
+        "notes": "Timing-benefit query without the exact 'standard of care' phrasing used in the expanded set.",
+        "result_count": 2,
+        "result_docs": [
+          "RAPID",
+          "Single site RCT"
+        ],
+        "result_headers": [
+          "DISCUSSION",
+          "RESULTS"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 0.5,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 2,
+        "distinct_header_count": 2
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "RAPID",
+          "source": "DISCUSSION",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC, which is a clinically significant time frame for patients with sepsis and is a more dramatic difference than reported in a recent pre\u2013post intervention study that evaluated the impact of the RAPID platform [\\[21\\]](#page-7-13). Notably, RAPID enabled timely antibiotic escalations to occur almost 2 days faster for patients with antimicrobial-resistant infections, which can be life-saving especially if empirical antibiotics are ineffective \\[6, [22\\]](#page-7-15). Additionally, more AS recommendations were made in the RAPID arm than in the SOC arm, and many antibiotic changes involved antibiotic deescalation, especially among patients without resistant organisms, suggesting that rapid blood culture diagnostics can support efforts to promote judicious antibiotic use."
+        },
+        {
+          "rank": 2,
+          "doc_id": "Single site RCT",
+          "source": "RESULTS",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "<sup>e</sup> Statistically significant comparison between the 2 intervention groups. <sup>f</sup> From positive Gram stain to 96 hours after enrollment. Escalation included initiation of 1 or more antibiotics and/or switching from a narrow- to a broad-spectrum antibiotic. <sup>g</sup> From positive Gram stain to start of active antibiotic among patients not on active therapy at enrollment; excludes patients with contaminated blood cultures. <sup>h</sup> Contaminated blood cultures were defined as growth of organisms such as coagulase-negative staphylococci from a single blood culture set when \u22652 blood culture sets were collected, except among subjects suspected to have true bacteremia associated with central venous catheters or devices. Table 4. Comparison of Clinical, Microbiologic, and Cost Outcomes According to Study Group"
+        }
+      ]
+    },
+    {
+      "query_id": "O12",
+      "query": "For direct-from-urine triage, which indexed study is the one claiming you can quickly rule out culture-negative cases with a lipidomics screen?",
+      "doc_filter": null,
+      "expected_docs": [
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+      ],
+      "expected_headers": [
+        "Results",
+        "Discussion",
+        "Conclusion",
+        "Document Metadata/Abstract"
+      ],
+      "labels": [
+        "ood",
+        "cross_doc",
+        "lipidomics",
+        "clinician_style",
+        "title_like"
+      ],
+      "include_tables": null,
+      "notes": "OOD urine-screening query aimed at the nartey paper using triage language instead of the formal title.",
+      "evaluation": {
+        "query_id": "O12",
+        "query": "For direct-from-urine triage, which indexed study is the one claiming you can quickly rule out culture-negative cases with a lipidomics screen?",
+        "doc_filter": "",
+        "expected_docs": [
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+        ],
+        "expected_headers": [
+          "Results",
+          "Discussion",
+          "Conclusion",
+          "Document Metadata/Abstract"
+        ],
+        "labels": [
+          "ood",
+          "cross_doc",
+          "lipidomics",
+          "clinician_style",
+          "title_like"
+        ],
+        "include_tables": null,
+        "notes": "OOD urine-screening query aimed at the nartey paper using triage language instead of the formal title.",
+        "result_count": 1,
+        "result_docs": [
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+        ],
+        "result_headers": [
+          "DISCUSSION"
+        ],
+        "expected_doc_hit": true,
+        "expected_header_hit": true,
+        "top1_expected_doc_hit": true,
+        "top1_expected_header_hit": true,
+        "doc_precision": 1.0,
+        "header_precision": 1.0,
+        "table_hits": 0,
+        "citation_noise_hits": 0,
+        "duplicate_hits": 0,
+        "non_structural_header_hits": 0,
+        "non_structural_headers": [],
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
+      },
+      "results": [
+        {
+          "rank": 1,
+          "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+          "source": "DISCUSSION",
+          "chunk_type": "text",
+          "content_role": "child",
+          "page_number": null,
+          "content": "The culture of urine samples remains the gold standard for diagnosing UTIs, but this process takes 24\u201372 hours to complete, and inappropriate sampling or storage conditions can lead to false positive results \\(18\\). A rapid and inexpensive test with high negative predictive value would reduce unnecessary urine culture and inappropriate empiric antimicrobial treatment. In this study, we present FLAT, a lipid-based method that allows direct lipid extraction on a MALDI plate for pathogen detection in under an hour from receipt of a sample. We investigated the diagnostic performance of FLAT in a clinical cohort to highlight the potential benefits of this assay in comparison with conventional urine culture."
+        }
+      ]
+    }
+  ]
+}

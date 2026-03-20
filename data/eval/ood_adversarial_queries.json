@@ -1,0 +1,106 @@
+[
+  {
+    "id": "O01",
+    "query": "ICU BAL case: which indexed paper is the one to pull if I want broad pathogen detection from bronchoalveolar lavage rather than standard culture alone?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion", "Document Metadata/Abstract"],
+    "labels": ["ood", "clinician_style", "cross_doc", "bal", "paraphrase"],
+    "notes": "Clinician-style BAL phrasing that avoids the repo's usual broad-range detection wording."
+  },
+  {
+    "id": "O02",
+    "query": "For IRIDICA/PCR-ESI-MS on BAL, where do the authors talk about false negatives, organism coverage gaps, or why I should still be cautious clinically?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "labels": ["ood", "clinician_style", "single_doc", "bal", "caveats"],
+    "notes": "Abbreviation-heavy BAL caveat query using failure-mode language instead of benchmark wording."
+  },
+  {
+    "id": "O03",
+    "query": "Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "labels": ["ood", "journal_club", "cross_doc", "stewardship", "disambiguation"],
+    "notes": "OOD disambiguation between the stewardship review and the randomized trial papers."
+  },
+  {
+    "id": "O04",
+    "query": "Which indexed paper would I cite if I wanted rapid gram-negative blood culture identification plus susceptibility with faster antibiotic changes, not just templated stewardship messaging?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["ood", "clinician_style", "cross_doc", "rapid_diagnostics", "disambiguation"],
+    "notes": "Paraphrases the RAPID timing-benefit content without reusing the expanded-track wording."
+  },
+  {
+    "id": "O05",
+    "query": "Which indexed randomized blood culture study compares plain rapid reporting versus rapid reporting with stewardship on top of it?",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion", "Document Metadata/Abstract"],
+    "labels": ["ood", "cross_doc", "trial", "stewardship", "paraphrase"],
+    "notes": "Companion OOD trial query phrased closer to how a clinician might summarize the design aloud."
+  },
+  {
+    "id": "O06",
+    "query": "BCNE workup question: which indexed review goes through serology, PCR, valve testing, or mNGS when routine blood cultures stay negative?",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Discussion", "Conclusion"],
+    "labels": ["ood", "clinician_style", "cross_doc", "review_style", "abbreviation_heavy"],
+    "notes": "Uses BCNE shorthand plus practical workup terminology rather than the benchmark's title-like phrasing."
+  },
+  {
+    "id": "O07",
+    "query": "If I only remember the urine paper that uses lysozyme pretreatment so FLAT can recover cardiolipin for gram-positive organisms while still detecting lipid A from gram-negatives, which indexed study is that?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["ood", "cross_doc", "lipidomics", "paraphrase", "title_like"],
+    "notes": "OOD title-recovery case narrowed to the lysozyme-optimization paper so it does not overlap as much with the direct-from-urine triage study."
+  },
+  {
+    "id": "O08",
+    "query": "Which indexed papers have sensitivity/specificity-type numbers sitting in tables for diagnostic performance, even if the query is phrased loosely and not with the exact metric names?",
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["ood", "cross_doc", "table_oriented", "diagnostic_metrics", "adversarial_loose_metrics"],
+    "notes": "Adversarially loose metric phrasing to check whether payload-first table gating still isolates the right papers."
+  },
+  {
+    "id": "O09",
+    "query": "Which indexed paper has the discrepant respiratory-pathogen data in BAL where PCR/ESI-MS and routine culture disagree on some patients?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["ood", "cross_doc", "bal", "table_oriented", "paraphrase"],
+    "notes": "BAL discrepant-results query that avoids saying Table 3 directly."
+  },
+  {
+    "id": "O10",
+    "query": "Adversarial wording check: which indexed paper is about improving when and how blood cultures get ordered or collected, not about a pathogen-detection platform at all?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
+    "labels": ["ood", "cross_doc", "stewardship", "adversarial", "disambiguation"],
+    "notes": "Forces separation between stewardship process content and rapid-diagnostic platform studies."
+  },
+  {
+    "id": "O11",
+    "query": "Where in the indexed corpus do they report a roughly 24-hour antibiotic-modification advantage from a rapid bacteremia workflow?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["ood", "cross_doc", "rapid_diagnostics", "timing_benefit", "paraphrase"],
+    "notes": "Timing-benefit query without the exact 'standard of care' phrasing used in the expanded set."
+  },
+  {
+    "id": "O12",
+    "query": "For direct-from-urine triage, which indexed study is the one claiming you can quickly rule out culture-negative cases with a lipidomics screen?",
+    "expected_docs": [
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Results", "Discussion", "Conclusion", "Document Metadata/Abstract"],
+    "labels": ["ood", "cross_doc", "lipidomics", "clinician_style", "title_like"],
+    "notes": "OOD urine-screening query aimed at the nartey paper using triage language instead of the formal title."
+  }
+]

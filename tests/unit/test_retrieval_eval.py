@@ -144,6 +144,19 @@ def test_build_summary_aggregates_query_metrics() -> None:
     assert summary["cross_document_average_doc_precision"] == 0.25
 
 
+def test_repo_evaluation_datasets_load_cleanly() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    dataset_paths = (
+        repo_root / "data" / "eval" / "sample_queries.json",
+        repo_root / "data" / "eval" / "expanded_queries.json",
+        repo_root / "data" / "eval" / "ood_adversarial_queries.json",
+    )
+
+    for dataset_path in dataset_paths:
+        queries = load_evaluation_queries(dataset_path)
+        assert queries, f"{dataset_path} should contain at least one query"
+
+
 def _write_dataset(tmp_path: Path, payload: list[dict[str, object]]) -> Path:
     dataset_path = tmp_path / "queries.json"
     dataset_path.write_text(json.dumps(payload), encoding="utf-8")

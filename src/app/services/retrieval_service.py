@@ -520,8 +520,9 @@ class RetrievalService:
         if self._query_prefers_tables(query) and content_role != "table":
             role_bonus -= 1
         lexical_bonus = self._lexical_bonus(query=query, query_tokens=query_tokens, chunk=chunk)
+        contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
         body_bonus = 0 if "document metadata/abstract" in header else 1
-        return (header_bonus, lexical_bonus, role_bonus + body_bonus)
+        return (header_bonus, lexical_bonus + contrast_bonus, role_bonus + body_bonus)
 
     @staticmethod
     def _query_section_profile(query: str) -> dict[str, int]:
@@ -531,6 +532,13 @@ class RetrievalService:
         def add_bonus(sections: tuple[str, ...], value: int) -> None:
             for section in sections:
                 bonuses[section] = bonuses.get(section, 0) + value
+
+        if (
+            RetrievalService._query_targets_stewardship_process(query)
+            and RetrievalService._query_contrasts_against_trial_or_platform(query)
+        ):
+            add_bonus(("introduction", "discussion", "summary", "conclusion"), 4)
+            add_bonus(("result", "results", "methods", "document metadata/abstract", "abstract"), -4)
 
         if any(token in normalized for token in ("performance", "sensitivity", "specificity", "findings", "result", "outcome", "outcomes", "data", "diagnostic performance")):
             add_bonus(("result", "results"), 3)
@@ -618,14 +626,18 @@ class RetrievalService:
         if not query_tokens:
             return 0
 
+        effective_query_tokens = self._effective_query_tokens_for_chunk_scoring(query=query, query_tokens=query_tokens)
+        if not effective_query_tokens:
+            return 0
+
         header_text = self._header_for_ranking(chunk).lower()
         doc_text = self._doc_text_for_ranking(chunk)
         content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
-        title_tokens = self._title_weighted_tokens(query_tokens)
+        title_tokens = self._title_weighted_tokens(effective_query_tokens)
 
-        doc_overlap = sum(1 for token in query_tokens if token in doc_text)
-        header_overlap = sum(1 for token in query_tokens if token in header_text)
-        content_overlap = sum(1 for token in query_tokens if token in content_text)
+        doc_overlap = sum(1 for token in effective_query_tokens if token in doc_text)
+        header_overlap = sum(1 for token in effective_query_tokens if token in header_text)
+        content_overlap = sum(1 for token in effective_query_tokens if token in content_text)
         title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
 
         lexical_bonus = min(4, content_overlap) + min(3, header_overlap * 2)
@@ -635,8 +647,57 @@ class RetrievalService:
             lexical_bonus += min(2, doc_overlap)
         return lexical_bonus
 
+    def _contrastive_query_bonus(self, query: str, chunk: Chunk) -> int:
+        normalized = query.lower()
+        if not self._query_targets_stewardship_process(query):
+            return 0
+
+        doc_text = self._doc_text_for_ranking(chunk)
+        content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        combined_text = f"{doc_text} {content_text}"
+        title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
+
+        process_markers = (
+            "stewardship",
+            "utilization",
+            "optimiz",
+            "ordering",
+            "ordered",
+            "collection",
+            "collected",
+            "draw blood",
+            "blood culture use",
+            "hospital setting",
+            "preanalytical",
+        )
+        trial_markers = (
+            "trial",
+            "randomized",
+            "patient outcome",
+            "patient outcomes",
+            "platform",
+            "rapid multiplex",
+            "stewardship support",
+            "templated comments",
+        )
+
+        bonus = 0
+        if any(marker in combined_text for marker in process_markers):
+            bonus += 4
+        if self._query_contrasts_against_trial_or_platform(query) and any(marker in combined_text for marker in trial_markers):
+            bonus -= 10
+        if self._query_contrasts_against_trial_or_platform(query):
+            if title_overlap > 0:
+                bonus += min(8, title_overlap * 4)
+            elif self._query_prefers_single_document_target(query):
+                bonus -= 4
+        return bonus
+
     def _doc_title_overlap(self, query: str, chunk: Chunk) -> int:
-        query_tokens = self._query_tokens(query)
+        query_tokens = self._effective_query_tokens_for_chunk_scoring(
+            query=query,
+            query_tokens=self._query_tokens(query),
+        )
         if not query_tokens:
             return 0
 
@@ -646,6 +707,64 @@ class RetrievalService:
 
         doc_text = self._doc_text_for_ranking(chunk)
         return sum(1 for token in title_tokens if token in doc_text)
+
+    @staticmethod
+    def _effective_query_tokens_for_chunk_scoring(query: str, query_tokens: set[str]) -> set[str]:
+        if not (
+            RetrievalService._query_targets_stewardship_process(query)
+            and RetrievalService._query_contrasts_against_trial_or_platform(query)
+        ):
+            return query_tokens
+
+        contrast_tokens = {
+            "trial",
+            "trials",
+            "patient",
+            "patients",
+            "outcome",
+            "outcomes",
+            "platform",
+            "platforms",
+            "interventional",
+            "intervention",
+        }
+        return {token for token in query_tokens if token not in contrast_tokens}
+
+    @staticmethod
+    def _query_targets_stewardship_process(query: str) -> bool:
+        normalized = query.lower()
+        process_signals = (
+            "stewardship",
+            "utilization",
+            "hospital setting",
+            "blood culture use",
+            "ordering",
+            "ordered",
+            "collection",
+            "collected",
+            "draw blood",
+            "improving when and how blood cultures",
+        )
+        return any(signal in normalized for signal in process_signals)
+
+    @staticmethod
+    def _query_contrasts_against_trial_or_platform(query: str) -> bool:
+        normalized = query.lower()
+        contrast_signals = (
+            "instead of",
+            "rather than",
+            "not about",
+            "not just",
+        )
+        target_signals = (
+            "trial",
+            "patient-outcomes",
+            "patient outcomes",
+            "platform",
+        )
+        return any(signal in normalized for signal in contrast_signals) and any(
+            signal in normalized for signal in target_signals
+        )
 
     @staticmethod
     def _title_weighted_tokens(query_tokens: set[str]) -> set[str]:

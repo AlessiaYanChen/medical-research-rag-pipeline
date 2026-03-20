@@ -19,7 +19,7 @@
     "queries_with_non_structural_headers": 0,
     "cross_document_queries": 20,
     "cross_document_average_doc_precision": 0.99,
-    "total_table_hits": 9,
+    "total_table_hits": 8,
     "total_citation_noise_hits": 1,
     "total_duplicate_hits": 0,
     "total_non_structural_header_hits": 0
@@ -707,7 +707,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "This study has limitations, including that it was performed at a single center and may not be generalizable to other institutions with different patient populations, prescribing and stewardship practices, and antimicrobial resistance rates. The study was not powered for subgroup analyses or to detect differences in secondary outcomes including LOS and mortality. Investigators were not blinded to study arm, and infectious diseases \"curbside\" consultations were not captured. We did not include a control group without rmPCR testing but with stewardship of all positive blood cultures."
+          "content": "In contrast, in this trial we did not observe differences in clinical or cost outcomes between patients in intervention and control arms. This may be due to the use of different study designs, the fact that this trial was not powered to detect differences in LOS, mortality, or cost, and/or the fact that 70% of our study subjects were receiving at least 1 active agent at time of enrollment and were generally being overtreated, rather than undertreated. In addition, our institution's baseline antimicrobial stewardship program, low resistance rates, high rate of infectious diseases consultation (48%), and baseline use of advanced technologies including MALDI-TOF MS and <sup>a</sup> Toxicities include seizures, Clostridium difficile infection, hepatitis, myelosuppression, renal insufficiency, prolonged QTc interval, and rash that occurred within 2 weeks following enrollment and were documented in the medical record. <sup>b</sup> Multidrug-resistant organisms including vancomycin-resistant enterococci, methicillin-resistant Staphylococcus aureus, extended-spectrum cephalosporinresistant Enterobacteriaceae, and Pseudomonas aeruginosa and Acinetobacter species resistant to \u22653 antibiotic classes. <sup>c</sup> Statistically significant compared to control group."
         },
         {
           "rank": 5,
@@ -888,7 +888,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "Abbreviations: MDRO, multidrug-resistant organism. The RAPID test had few discrepancies compared with conventional methods of organism ID and AST. On-panel organisms may not have been identified by the RAPID test because of poor mixing (the company changed the mixing protocol after the study), the presence of a low number of cells in the sample, the presence of slow-growing organisms, or other factors. The most common AST discrepancies observed between RAPID and conventional testing were minor errors (ie, intermediate by one method and susceptible or resistant by the other method); such \"wobble\" around the breakpoint can occur even when the same susceptibility assay is repeated using identical isolates."
+          "content": "The RAPID test had few discrepancies compared with conventional methods of organism ID and AST. On-panel organisms may not have been identified by the RAPID test because of poor mixing (the company changed the mixing protocol after the study), the presence of a low number of cells in the sample, the presence of slow-growing organisms, or other factors. The most common AST discrepancies observed between RAPID and conventional testing were minor errors (ie, intermediate by one method and susceptible or resistant by the other method); such \"wobble\" around the breakpoint can occur even when the same susceptibility assay is repeated using identical isolates."
         },
         {
           "rank": 3,
@@ -1444,7 +1444,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "PCR.<sup>26</sup> Broad range PCR method was thought to have higher false-positive results due to contamination of specimen during the extraction process and inhibitor\u2013DNA interaction.<sup>27,28</sup> Commercial PCR methods are available for identification of common pathogen in sepsis patient. SepsiFast, based on multiplex real-time PCR, is an automated system for identifying 25 pathogens.<sup>29</sup> The advantage of the SepsiFast is the short time needed for results (about 5 to 8 hours).<sup>26</sup> Another more widely used PCR method is SepsiTest/molzym, which employs semiautomated system based on broad range PCR plus sequence analysis of amplicons to detect and identify a broad range of pathogens. SepsiTest has a crucial degradation step that degrades contaminating human DNA.<sup>30</sup> SepsiTest is also used for analysis of blood and excised valve from patients due to wide variety of etiological agents of infective endocarditis patients.<sup>31</sup> In addition, SepsiTest allows for identification of 345 pathogens including bacteria and fungus.<sup>26</sup> However, a systematic review to determine the clinical effectiveness and cost-effectiveness of SepsiTest and SepsiFast showed no randomized clinical trial evidence indicating any of the tests significantly improved patient outcomes, such as mortality or duration in an intensive care unit or hospital.<sup>32</sup> Moreover, the ideal diagnosis tool should be cost-effective for prevalent use, but the cost of SepsiFast system is approximately 75,000 USD, and the SepsiTest costs between 75,000 and 200,000 USD excluding the cost of reagents.<sup>33</sup>"
+          "content": "Commercial PCR methods are available for identification of common pathogen in sepsis patient. SepsiFast, based on multiplex real-time PCR, is an automated system for identifying 25 pathogens.<sup>29</sup> The advantage of the SepsiFast is the short time needed for results (about 5 to 8 hours).<sup>26</sup> Another more widely used PCR method is SepsiTest/molzym, which employs semiautomated system based on broad range PCR plus sequence analysis of amplicons to detect and identify a broad range of pathogens. SepsiTest has a crucial degradation step that degrades contaminating human DNA.<sup>30</sup> SepsiTest is also used for analysis of blood and excised valve from patients due to wide variety of etiological agents of infective endocarditis patients.<sup>31</sup> In addition, SepsiTest allows for identification of 345 pathogens including bacteria and fungus.<sup>26</sup> However, a systematic review to determine the clinical effectiveness and cost-effectiveness of SepsiTest and SepsiFast showed no randomized clinical trial evidence indicating any of the tests significantly improved patient outcomes, such as mortality or duration in an intensive care unit or hospital.<sup>32</sup> Moreover, the ideal diagnosis tool should be cost-effective for prevalent use, but the cost of SepsiFast system is approximately 75,000 USD, and the SepsiTest costs between 75,000 and 200,000 USD excluding the cost of reagents.<sup>33</sup>"
         },
         {
           "rank": 5,
@@ -1487,14 +1487,12 @@
         "labels": [],
         "include_tables": true,
         "notes": "Cross-document table-oriented metric query narrowed to explicit sensitivity/specificity-style evidence. The rebuilt corpus now also surfaces the nartey UTI metric table as valid evidence.",
-        "result_count": 2,
+        "result_count": 1,
         "result_docs": [
-          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
-          "Culture-Free Lipidomics-Based Screening Test"
+          "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
         ],
         "result_headers": [
-          "RESULTS",
-          "Discussion"
+          "RESULTS"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
@@ -1502,13 +1500,13 @@
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
         "header_precision": 1.0,
-        "table_hits": 2,
+        "table_hits": 1,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
-        "distinct_doc_count": 2,
-        "distinct_header_count": 2
+        "distinct_doc_count": 1,
+        "distinct_header_count": 1
       },
       "results": [
         {
@@ -1519,15 +1517,6 @@
           "content_role": "table",
           "page_number": null,
           "content": "Source File: nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf | Table Index: 3 | Section: RESULTS\n,,UTI results,,\r\n,,Culture +,,\r\nPositive predictive,Positive predictive,True positive,Positive predictive,Positive predictive\r\nvalue = 95%,value = 95%,(62),value = 95%,value = 95%\r\nNegative predictive,Negative predictive,False negative,Negative predictive,Negative predictive\r\nvalue = 92%,value = 92%,(26),value = 92%,value = 92%\r\n,,Sensitivity = 70%,,"
-        },
-        {
-          "rank": 2,
-          "doc_id": "Culture-Free Lipidomics-Based Screening Test",
-          "source": "Discussion",
-          "chunk_type": "table",
-          "content_role": "table",
-          "page_number": null,
-          "content": "Source File: Culture-Free Lipidomics-Based Screening Test.pdf | Table Index: 1 | Section: Discussion\n,,,Table 2. LOD determination using contrived samples (CFU/\u03bcL).a,,,,,,,\r\n,,,,,,,,,,\r\n,,,,,,,,,,\r\nGram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,S. epidermidis,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli\r\n102,102,102,105,102,102,102,102,102,102,102\r\n,,,,,,,,,,\r\n,,,,,,,,,,\r\nGram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,S. epidermidis,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli,Gram-negative\nE. coli\r\n60,60,60,30,60,60,60,60,60,60,60\r\n,,,,,,,,,,\r\n102,102,102,104,102,102,102,102,102,102,102\r\n102,102,102,104,102,102,102,102,102,102,102\r\n102,102,102,103,102,102,102,102,102,102,102\r\n102,102,102,103,102,102,102,102,102,102,102\r\n102,102,102,103,102,102,102,102,102,102,102\r\n,,,,,,,,,,"
         }
       ]
     },
@@ -1603,7 +1592,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "In clinical practice however, samples from only a selected group of patients will be chosen for analysis by PCR/ ESI-MS. The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches."
+          "content": "In clinical practice however, samples from only a selected group of patients will be chosen for analysis by PCR/ ESI-MS. The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches. In conclusion, our study demonstrates overall reliable detection of respiratory pathogens by PCR/ESI-MS directly from BAL samples."
         },
         {
           "rank": 3,

@@ -1212,6 +1212,200 @@ def test_retrieval_service_limits_singular_cross_document_queries_to_top_documen
     ]
 
 
+def test_retrieval_service_prefers_stewardship_review_over_trial_for_contrastive_review_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of patient outcomes in a randomized clinical trial with stewardship support.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of patient outcomes in a randomized clinical trial with stewardship support.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of diagnostic stewardship review content focused on blood culture utilization in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of diagnostic stewardship review content focused on blood culture utilization in the hospital setting.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+def test_retrieval_service_prefers_blood_culture_process_paper_over_platform_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of a pathogen-detection platform in a randomized trial with clinical outcome changes.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of a pathogen-detection platform in a randomized trial with clinical outcome changes.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of improving blood culture ordering and collection practices in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of improving blood culture ordering and collection practices in the hospital setting.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Adversarial wording check: which indexed paper is about improving when and how blood cultures get ordered or collected, not about a pathogen-detection platform at all?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+def test_retrieval_service_penalizes_trial_results_for_contrastive_stewardship_review_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Results of a randomized trial focused on patient outcomes after rapid blood culture testing.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Results of a randomized trial focused on patient outcomes after rapid blood culture testing.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Introduction to a stewardship review focused on blood culture utilization and ordering practices in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Introduction to a stewardship review focused on blood culture utilization and ordering practices in hospitals.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+def test_retrieval_service_ignores_negative_clause_trial_tokens_for_contrastive_stewardship_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of interventional trial patient outcomes after rapid blood culture testing.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of interventional trial patient outcomes after rapid blood culture testing.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Discussion of blood culture utilization and diagnostic stewardship in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Discussion of blood culture utilization and diagnostic stewardship in the hospital setting.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Journal club framing: which indexed paper is basically a blood-culture stewardship review instead of an interventional patient-outcomes trial?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+
+
 def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:
     chunks = [
         Chunk(

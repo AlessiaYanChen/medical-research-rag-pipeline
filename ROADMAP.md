@@ -88,6 +88,7 @@ Current checkpoint:
 - `data/eval/sample_queries.json` is in use as a starter evaluation set
 - The stable retrieval baseline remains the 26-query `data/eval/sample_queries.json` dataset
 - `data/eval/expanded_queries.json` now extends coverage to 43 queries across stewardship, review-style, title-query, and table-oriented retrieval
+- `data/eval/ood_adversarial_queries.json` now defines a separate clinician-style and adversarial phrasing track for evaluation only
 - Latest eval run on `medical_research_chunks_v1` showed:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
@@ -99,6 +100,8 @@ Current checkpoint:
   - citation noise queries: `1`
   - table-hit queries: `6`
   - non-structural header queries: `0`
+- Re-running the rebuilt collection on March 20, 2026 matched the same expanded-benchmark summary, so the current metadata-first ingestion baseline held after re-ingestion
+- OOD reruns on March 20, 2026 improved after narrowing the ambiguous `O07` urine-paper expectation, but the main unresolved OOD failure remains singular contrastive stewardship-review disambiguation against the randomized trial, meaning one-document OOD prompts like `O03` and `O10` that ask for "which indexed paper" while defining the target review by contrast with a trial or platform paper
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
 - Query-aware section weighting plus single-document metadata suppression materially improved section quality without reintroducing citation, table, or header-structure noise
@@ -110,6 +113,8 @@ Current checkpoint:
 - `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection
 - Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
 - Table-context improvement should proceed through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic
+- A new diagnostic script, `scripts/inspect_retrieval_candidates.py`, now exists to inspect initial search hits, post-filter candidates, ranked candidates, and final returned chunks for one query before changing ranking logic
+- Current OOD inspection shows the stewardship-review miss is not a candidate-recall failure: the Fabre paper is already present in early candidates, but chunk-level ranking still favors `Single site RCT`, so the next likely fix should be a narrow document-level disambiguation step for that singular contrastive stewardship-review query class
 
 Exit criteria:
 
@@ -239,10 +244,11 @@ Exit criteria:
 Recommended next implementation order:
 
 1. Treat the current 26-query set as the stable retrieval baseline and the 43-query set as the active expansion track
-2. Add a third OOD/adversarial phrasing track for evaluation only, with manual expectation review before it is used to justify retrieval changes
-3. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
-4. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
-5. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
-6. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-7. Add isolated parser bakeoff tooling in-repo before considering any parser migration
-8. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding
+2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
+3. Use `scripts/inspect_retrieval_candidates.py` on remaining OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
+4. Refine expectations where expanded benchmark cases still expose header-quality ambiguity before adding new ranking heuristics
+5. Rebuild collections after metadata changes so payload-first retrieval paths are exercised on current chunks
+6. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
+7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+8. Add isolated parser bakeoff tooling in-repo before considering any parser migration
+9. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding, with the current exception that singular OOD stewardship-review disambiguation may justify a narrow document-level step

@@ -5,6 +5,7 @@ A modular Retrieval-Augmented Generation (RAG) system for medical research PDFs.
 Current benchmark status:
 - retrieval is now tracked on both a stable 26-query benchmark and a broader 43-query expanded benchmark
 - the 26-query `data/eval/sample_queries.json` file remains the stable retrieval baseline; `data/eval/expanded_queries.json` extends coverage for stewardship, review-style, title-query, and table-oriented evaluation
+- `data/eval/ood_adversarial_queries.json` is now the separate clinician-style and adversarial phrasing track; it is evaluation-only and should not replace the stable baseline or the expanded benchmark
 - expected doc hit rate: `1.0`
 - expected header hit rate: `1.0`
 - top-1 expected doc hit rate: `1.0`
@@ -12,9 +13,11 @@ Current benchmark status:
 - average doc precision: `0.9953`
 - average header precision: `0.8578`
 - cross-document average doc precision: `0.99`
+- rerunning the rebuilt `medical_research_chunks_v1` collection on March 20, 2026 preserved the same expanded-benchmark summary as the previous known-good rebuild
 - citation noise queries: `1`
 - table-hit queries: `6`
 - non-structural header queries: `0`
+- the March 20, 2026 OOD reruns improved after narrowing the ambiguous `O07` urine-paper expectation, but the main remaining OOD failure is still disambiguating the stewardship review from the randomized blood-culture trial on singular contrastive stewardship-review queries, meaning one-document OOD prompts like `O03` and `O10` that ask for "which indexed paper" while contrasting the intended review against a trial or platform paper
 - current retrieval baseline is metadata-first filtering in Qdrant plus a smaller query-dependent ranking/diversity layer
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
@@ -23,6 +26,8 @@ Current benchmark status:
 - next benchmark work is header-quality expectation refinement and metadata hardening before more ranking changes
 - hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
+- the OOD/adversarial track should be run with separate JSON/CSV output paths so its noisier phrasing cases do not overwrite the baseline result artifacts
+- current OOD debugging indicates the stubborn stewardship-review miss is not a candidate-recall problem: the Fabre paper already appears in initial candidates, but chunk-level ranking still lets `Single site RCT` discussion chunks win; the next retrieval fix should therefore be a narrow document-level disambiguation step for that singular contrastive stewardship-review query class rather than more generic ranking heuristics
 - parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by replacing the active ingestion path prematurely
 
 ## What It Does
@@ -320,6 +325,18 @@ Run the expanded benchmark without changing the stable baseline dataset:
 .\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
+Run the separate OOD/adversarial phrasing track with its own result files:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
+```
+
+Inspect one OOD query across retrieval stages before changing ranking logic:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
 Deterministically rebuild a collection from the uploaded benchmark PDFs:
 
 ```powershell
@@ -370,6 +387,8 @@ Current parser planning note:
 - ontology-backed query expansion is not implemented yet; this is also deferred until failing queries show real abbreviation/synonym mismatch that justifies the added query-policy complexity
 - table retrieval does not yet attach caption/prose context automatically to every returned table chunk; the preferred next path is metadata-linked table context, not a generic "previous paragraph" heuristic
 - the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
+- the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
+- current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream
 - parser bakeoff tooling is not implemented yet; any parser migration should be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
 
 ## Roadmap
