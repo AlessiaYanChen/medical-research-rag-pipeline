@@ -36,7 +36,7 @@ Current observed issues:
 
 ## Phase 1: Retrieval Quality Stabilization
 
-Status: In progress
+Status: Complete
 
 Objectives:
 
@@ -59,7 +59,7 @@ Exit criteria:
 
 ## Phase 2: Evaluation and Corpus Validation
 
-Status: In progress
+Status: Complete
 
 Objectives:
 
@@ -177,7 +177,7 @@ Exit criteria:
 
 ## Phase 4: Metadata and Ingestion Hardening
 
-Status: In progress
+Status: Complete
 
 Objectives:
 

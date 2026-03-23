@@ -104,13 +104,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--json-out",
-        default="data/eval/results/retrieval_eval.json",
-        help="Path to write detailed JSON results.",
+        default="",
+        help="Path to write detailed JSON results. Defaults to a dataset-specific file under data/eval/results/.",
     )
     parser.add_argument(
         "--csv-out",
-        default="data/eval/results/retrieval_eval.csv",
-        help="Path to write flattened CSV results.",
+        default="",
+        help="Path to write flattened CSV results. Defaults to a dataset-specific file under data/eval/results/.",
     )
     return parser.parse_args()
 
@@ -193,6 +193,36 @@ def write_csv(rows: list[dict[str, Any]], output_path: Path) -> None:
             )
 
 
+def resolve_output_paths(
+    *,
+    dataset_path: Path,
+    json_out: str,
+    csv_out: str,
+) -> tuple[Path, Path]:
+    resolved_json = Path(json_out) if str(json_out).strip() else default_json_output_path(dataset_path)
+    resolved_csv = Path(csv_out) if str(csv_out).strip() else default_csv_output_path(dataset_path)
+    return resolved_json, resolved_csv
+
+
+def default_json_output_path(dataset_path: Path) -> Path:
+    return Path("data/eval/results") / f"{_dataset_output_stem(dataset_path)}.json"
+
+
+def default_csv_output_path(dataset_path: Path) -> Path:
+    return Path("data/eval/results") / f"{_dataset_output_stem(dataset_path)}.csv"
+
+
+def _dataset_output_stem(dataset_path: Path) -> str:
+    dataset_name = dataset_path.name.lower()
+    if dataset_name == "sample_queries.json":
+        return "retrieval_eval_sample"
+    if dataset_name == "expanded_queries.json":
+        return "retrieval_eval_expanded"
+    if dataset_name == "ood_adversarial_queries.json":
+        return "ood_retrieval_eval"
+    return f"retrieval_eval_{dataset_path.stem}"
+
+
 def main() -> int:
     args = parse_args()
     if not args.embedding_api_key:
@@ -208,6 +238,11 @@ def main() -> int:
     if not queries:
         print("ERROR: evaluation dataset is empty.")
         return 1
+    json_output_path, csv_output_path = resolve_output_paths(
+        dataset_path=dataset_path,
+        json_out=args.json_out,
+        csv_out=args.csv_out,
+    )
 
     client = QdrantClient(url=args.qdrant_url)
     if not client.collection_exists(args.collection):
@@ -275,8 +310,8 @@ def main() -> int:
         "queries": detailed_results,
     }
 
-    write_json(output_payload, Path(args.json_out))
-    write_csv(query_evaluations, Path(args.csv_out))
+    write_json(output_payload, json_output_path)
+    write_csv(query_evaluations, csv_output_path)
 
     print(f"Dataset: {dataset_path}")
     print(f"Collection: {args.collection}")
@@ -291,8 +326,8 @@ def main() -> int:
     print(f"Queries with table hits: {summary['queries_with_table_hits']}")
     print(f"Queries with non-structural headers: {summary['queries_with_non_structural_headers']}")
     print(f"Cross-document average doc precision: {summary['cross_document_average_doc_precision']}")
-    print(f"JSON output: {Path(args.json_out)}")
-    print(f"CSV output: {Path(args.csv_out)}")
+    print(f"JSON output: {json_output_path}")
+    print(f"CSV output: {csv_output_path}")
     return 0
 
 
