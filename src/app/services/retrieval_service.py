@@ -65,6 +65,7 @@ class RetrievalService:
         selected_contents: list[str] = []
         header_counts: dict[str, int] = {}
         doc_counts: dict[str, int] = {}
+        docs_with_selected_body_sections: set[str] = set()
         max_selected_title_overlap = 0
         for chunk in ranked_chunks:
             parent_id = str(chunk.metadata.extra.get("parent_id", chunk.id))
@@ -77,6 +78,13 @@ class RetrievalService:
                 doc_filter=doc_id,
                 doc_counts=doc_counts,
                 max_selected_title_overlap=max_selected_title_overlap,
+            ):
+                continue
+            if self._should_skip_metadata_for_selected_doc(
+                query=query,
+                chunk=chunk,
+                doc_filter=doc_id,
+                docs_with_selected_body_sections=docs_with_selected_body_sections,
             ):
                 continue
 
@@ -103,6 +111,8 @@ class RetrievalService:
             header_counts[header_key] = header_counts.get(header_key, 0) + 1
             doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
             doc_counts[doc_key] = doc_counts.get(doc_key, 0) + 1
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower()):
+                docs_with_selected_body_sections.add(doc_key)
             max_selected_title_overlap = max(
                 max_selected_title_overlap,
                 self._doc_title_overlap(query=query, chunk=chunk),
@@ -196,6 +206,21 @@ class RetrievalService:
             return False
 
         return self._doc_title_overlap(query=query, chunk=chunk) <= 0
+
+    def _should_skip_metadata_for_selected_doc(
+        self,
+        query: str,
+        chunk: Chunk,
+        doc_filter: str | None,
+        docs_with_selected_body_sections: set[str],
+    ) -> bool:
+        if doc_filter is not None or self._query_prefers_metadata(query):
+            return False
+        if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower()):
+            return False
+
+        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        return doc_key in docs_with_selected_body_sections
 
     def _select_candidate_chunks(
         self,

@@ -1,0 +1,14 @@
+{
+  "collection": "medical_research_chunks_v1",
+  "qdrant_url": "http://localhost:6333",
+  "registry_path": "data/kb_registry.json",
+  "manifest_path": "data\\ingestion_manifests\\medical_research_chunks_v1_rebuild_manifest.json",
+  "qdrant_doc_count": 7,
+  "manifest_doc_count": 7,
+  "registry_doc_count": 7,
+  "manifest_version_issues": [],
+  "docs_total": 7,
+  "issue_count": 0,
+  "issue_types": {},
+  "issues": []
+}

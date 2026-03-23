@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
 import sys
@@ -19,7 +18,9 @@ from qdrant_client import QdrantClient  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
+from src.app.ingestion.manifest_utils import build_manifest_doc_entry, write_rebuild_manifest  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from scripts.test_e2e_flow import ensure_collection, normalize_tables  # noqa: E402
 
@@ -135,7 +136,7 @@ def main() -> int:
         print(f"[{index + 1}/{len(pdf_paths)}] Parsing {pdf_path}")
         parsed = parser.parse(pdf_path)
         normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
-        doc_id = pdf_path.stem
+        doc_id = doc_id_from_path(pdf_path)
         chunks = chunker.chunk_document(
             doc_id=doc_id,
             source_file=pdf_path.name,
@@ -162,37 +163,27 @@ def main() -> int:
             )
 
         repository.upsert_chunks(chunks)
-        text_chunks = sum(chunk.metadata.chunk_type == "text" for chunk in chunks)
-        table_chunks = sum(chunk.metadata.chunk_type == "table" for chunk in chunks)
         total_chunks += len(chunks)
         manifest_docs.append(
-            {
-                "doc_id": doc_id,
-                "source_file": pdf_path.name,
-                "local_file": str(pdf_path),
-                "chunk_count": len(chunks),
-                "text_chunk_count": text_chunks,
-                "table_chunk_count": table_chunks,
-            }
+            build_manifest_doc_entry(
+                doc_id=doc_id,
+                source_file=pdf_path.name,
+                local_file=str(pdf_path),
+                chunks=chunks,
+                ingestion_version=UnifiedChunker.INGESTION_VERSION,
+                chunking_version=UnifiedChunker.CHUNKING_VERSION,
+            )
         )
 
     manifest_path = Path(args.manifest_out)
-    manifest_path.parent.mkdir(parents=True, exist_ok=True)
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "collection": args.collection,
-                "pdf_dir": str(pdf_dir),
-                "glob": args.glob,
-                "doc_count": len(manifest_docs),
-                "chunk_count": total_chunks,
-                "ingestion_version": UnifiedChunker.INGESTION_VERSION,
-                "chunking_version": UnifiedChunker.CHUNKING_VERSION,
-                "docs": manifest_docs,
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
+    write_rebuild_manifest(
+        manifest_path=manifest_path,
+        collection=args.collection,
+        pdf_dir=str(pdf_dir),
+        glob_pattern=args.glob,
+        docs=manifest_docs,
+        ingestion_version=UnifiedChunker.INGESTION_VERSION,
+        chunking_version=UnifiedChunker.CHUNKING_VERSION,
     )
 
     print(f"Collection rebuilt: {args.collection}")

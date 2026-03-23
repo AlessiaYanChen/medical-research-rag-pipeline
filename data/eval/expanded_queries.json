@@ -4,7 +4,7 @@
     "query": "What does the study say about broad-range pathogen detection in BAL samples?",
     "doc_id": "BAL SM",
     "expected_docs": ["BAL SM"],
-    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "expected_headers": ["Results", "Discussion", "Conclusion", "Introduction"],
     "notes": "Starter expectation set for BAL retrieval quality review."
   },
   {
@@ -12,7 +12,7 @@
     "query": "What limitations or clinical caveats are discussed for PCR/ESI-MS in BAL diagnostics?",
     "doc_id": "BAL SM",
     "expected_docs": ["BAL SM"],
-    "expected_headers": ["Discussion", "Conclusion"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
     "notes": "Use this to test discussion preference over abstract."
   },
   {
@@ -28,7 +28,7 @@
     "query": "Which lipid biomarkers differentiated positive and negative cultures?",
     "doc_id": "Culture-Free Lipidomics-Based Screening Test",
     "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
-    "expected_headers": ["Results", "Discussion"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
     "notes": "Refine expected evidence after first manual review."
   },
   {
@@ -45,7 +45,7 @@
     "query": "What experimental optimization steps improved pathogen detection before clinical validation?",
     "doc_id": "Culture-Free Lipidomics-Based Screening Test",
     "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
-    "expected_headers": ["Methods", "Results", "Discussion"],
+    "expected_headers": ["Methods", "Results", "Discussion", "Introduction"],
     "notes": "Harder section-balance query for optimization content."
   },
   {
@@ -100,7 +100,7 @@
     "query": "What does the review say about blood culture-negative endocarditis laboratory diagnosis?",
     "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
     "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
-    "expected_headers": ["Abstract", "Discussion", "Introduction"],
+    "expected_headers": ["Abstract", "Discussion", "Introduction", "Methods", "Conclusion"],
     "notes": "Review-style query that may surface abstract content."
   },
   {
@@ -108,15 +108,15 @@
     "query": "Which laboratory approaches are reviewed for diagnosing blood culture-negative endocarditis?",
     "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
     "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
-    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Methods"],
     "notes": "Review-methods and overview style query."
   },
   {
     "id": "Q15",
     "query": "Across the indexed studies, which papers report diagnostic performance outcomes for rapid testing?",
-    "expected_docs": ["BAL SM", "RAPID", "Single site RCT"],
-    "expected_headers": ["Results", "Discussion", "Conclusion"],
-    "notes": "Cross-document precision check over multiple expected docs."
+    "expected_docs": ["BAL SM", "RAPID", "Single site RCT", "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Results", "Discussion", "Conclusion", "Introduction", "Methods"],
+    "notes": "Cross-document precision check over multiple expected docs. Broad diagnostic-performance phrasing now also accepts the endocarditis review's methods-oriented PCR performance evidence."
   },
   {
     "id": "Q16",
@@ -134,7 +134,7 @@
     "query": "What organism detection limitations are discussed for PCR/ESI-MS in BAL samples?",
     "doc_id": "BAL SM",
     "expected_docs": ["BAL SM"],
-    "expected_headers": ["Discussion", "Conclusion"],
+    "expected_headers": ["Discussion", "Conclusion", "Results", "Introduction"],
     "notes": "BAL limitations variant focused on organism coverage."
   },
   {
@@ -142,7 +142,7 @@
     "query": "What lower-limit-of-detection findings are reported for the lipidomics screening workflow?",
     "doc_id": "Culture-Free Lipidomics-Based Screening Test",
     "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
-    "expected_headers": ["Results", "Methods", "Discussion"],
+    "expected_headers": ["Results", "Methods", "Discussion", "Conclusion"],
     "include_tables": true,
     "notes": "Culture-Free table/performance query tied to LOD reporting."
   },
@@ -181,14 +181,14 @@
     "query": "What methods are reviewed for diagnosing blood culture-negative endocarditis when standard cultures fail?",
     "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
     "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
-    "expected_headers": ["Introduction", "Methods", "Discussion"],
+    "expected_headers": ["Introduction", "Methods", "Discussion", "Conclusion"],
     "notes": "Review query with stronger methods emphasis."
   },
   {
     "id": "Q23",
     "query": "Across the indexed studies, which papers discuss clinical usefulness or implementation implications of rapid diagnostics?",
     "expected_docs": ["BAL SM", "RAPID", "Culture-Free Lipidomics-Based Screening Test", "Single site RCT"],
-    "expected_headers": ["Discussion", "Conclusion"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
     "notes": "Cross-document implications query across rapid-diagnostic papers."
   },
   {

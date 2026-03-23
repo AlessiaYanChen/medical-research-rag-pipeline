@@ -1074,6 +1074,69 @@ def test_retrieval_service_suppresses_metadata_for_single_doc_queries_when_body_
     assert [chunk.source for chunk in result] == ["Discussion"]
 
 
+def test_retrieval_service_skips_cross_doc_metadata_when_same_doc_body_already_selected() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Rapid testing discussion with enough context to remain visible in cross-document retrieval.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Rapid testing discussion with enough context to remain visible in cross-document retrieval.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00002:C01",
+            content="Opening summary for RAPID that should not be returned after the body section is already selected.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="Document Metadata/Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00002",
+                    "parent_content": "Opening summary for RAPID that should not be returned after the body section is already selected.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="Discussion of implementation implications in bronchoalveolar lavage diagnostics.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "Discussion of implementation implications in bronchoalveolar lavage diagnostics.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Across the indexed studies, which papers discuss clinical usefulness or implementation implications of rapid diagnostics?",
+        limit=3,
+    )
+
+    assert [chunk.source for chunk in result] == ["Discussion", "Discussion"]
+    assert set(chunk.doc_id for chunk in result) == {"RAPID", "BAL SM"}
+
+
 def test_retrieval_service_prefers_doc_title_overlap_for_cross_document_queries() -> None:
     chunks = [
         Chunk(

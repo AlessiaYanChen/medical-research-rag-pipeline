@@ -6,36 +6,36 @@ Current benchmark status:
 - retrieval is now tracked on both a stable 26-query benchmark and a broader 43-query expanded benchmark
 - the 26-query `data/eval/sample_queries.json` file remains the stable retrieval baseline; `data/eval/expanded_queries.json` extends coverage for stewardship, review-style, title-query, and table-oriented evaluation
 - `data/eval/ood_adversarial_queries.json` is now the separate clinician-style and adversarial phrasing track; it is evaluation-only and should not replace the stable baseline or the expanded benchmark
-- stable 26-query baseline (`data/eval/sample_queries.json`) from the current recorded March 20, 2026 artifact:
+- stable 26-query baseline (`data/eval/sample_queries.json`) from the current March 23, 2026 rerun on `medical_research_chunks_v1`:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
-  - average doc precision: `0.9923`
-  - average header precision: `0.7724`
-  - cross-document average doc precision: `0.975`
+  - average doc precision: `1.0`
+  - average header precision: `0.9308`
+  - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `4`
   - non-structural header queries: `0`
-- expanded 43-query benchmark (`data/eval/expanded_queries.json`) on `medical_research_chunks_v1`:
+- expanded 43-query benchmark (`data/eval/expanded_queries.json`) from the current March 23, 2026 rerun on `medical_research_chunks_v1`:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
-  - average doc precision: `0.9953`
-  - average header precision: `0.8578`
-  - cross-document average doc precision: `0.99`
+  - average doc precision: `1.0`
+  - average header precision: `0.9535`
+  - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `6`
   - non-structural header queries: `0`
-- rerunning the rebuilt `medical_research_chunks_v1` collection on March 20, 2026 preserved the same expanded-benchmark summary as the previous known-good rebuild
+- the March 23, 2026 rerun preserved perfect expected doc/header hit rates while modestly improving header precision after benchmark expectation cleanup plus a narrow cross-document metadata suppression fix
 - the March 20, 2026 OOD reruns now resolve the previously stubborn singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after the narrow document-level disambiguation step
 - current retrieval baseline is metadata-first filtering in Qdrant plus a smaller query-dependent ranking/diversity layer
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
 - explicit `Table N` references are now preserved in chunk metadata so explicit table queries can recover linked prose evidence when parser output leaves the table callout in narrative text
 - table chunks now carry semantic metadata such as metric/comparison flags and lightweight captions to support payload-driven filtering after rebuilds
-- next benchmark work is header-quality expectation refinement and metadata hardening before more ranking changes
+- next benchmark work is finishing expectation cleanup on the remaining explicit ranking-debt queries, especially `Q15`, before any further retrieval logic is considered
 - hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
 - the OOD/adversarial track should be run with separate JSON/CSV output paths so its noisier phrasing cases do not overwrite the baseline result artifacts
@@ -190,6 +190,8 @@ Tables are separated from the main text instead of being flattened into plain na
 - text is chunked with paragraph-aware sliding windows
 - tables remain atomic units with contextual headers
 - text and table chunks now carry richer retrieval metadata including ingestion/chunking versions, canonical/original headers, local/source file paths, and table semantic flags
+- the local knowledge-base registry now hydrates collection document summaries from the rebuild manifest when present, reducing drift between the UI registry and manifest-tracked corpus state
+- document ID derivation is now centralized across rebuild, UI ingestion, single-doc repair, and local test scripts; the current filename-stem-based naming style is preserved, but ad hoc per-script drift has been removed
 
 ### Retrieval and Re-Ranking
 
@@ -361,10 +363,10 @@ Deterministically rebuild a collection from the uploaded benchmark PDFs:
 .\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
 ```
 
-Reparse and replace a single document in an existing collection:
+Reparse and replace a single document in an existing collection, optionally syncing the rebuild manifest entry at the same time:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
 ```
 
 Export stored chunks from Qdrant for validation:
@@ -372,6 +374,14 @@ Export stored chunks from Qdrant for validation:
 ```powershell
 .\.venv\Scripts\python.exe scripts/export_qdrant_chunks.py --collection medical_research_chunks_v1 --csv-out data/exports/current_chunks_v1.csv
 ```
+
+Audit one collection across Qdrant, the rebuild manifest, and the local registry, and optionally sync the registry from the manifest before reporting:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_v1.json
+```
+
+Manifest-aware repair paths now enforce collection and ingestion/chunking version compatibility before updating local records, so a stale or mismatched manifest fails fast instead of being silently reused.
 
 ## Parser Bakeoff Guidance
 

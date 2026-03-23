@@ -22,6 +22,7 @@ from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.doc_id_utils import doc_id_from_path, normalize_doc_id  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.services.retrieval_service import RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
@@ -195,7 +196,11 @@ def main() -> int:
         print(f"ERROR: PDF not found: {pdf_path}")
         return 1
 
-    doc_id = args.doc_id or pdf_path.stem
+    try:
+        doc_id = normalize_doc_id(args.doc_id) if args.doc_id else doc_id_from_path(pdf_path)
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
     source_file = pdf_path.name
     if not args.embedding_api_key:
         print("ERROR: embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.")

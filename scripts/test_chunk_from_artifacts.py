@@ -17,6 +17,7 @@ def _ensure_project_root_on_path() -> None:
 _ensure_project_root_on_path()
 
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
+from src.app.ingestion.doc_id_utils import normalize_doc_id  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -116,7 +117,7 @@ def main() -> int:
     markdown_text = md_path.read_text(encoding="utf-8")
     tables = _load_table_artifacts(parsed_dir, doc_stem)
 
-    doc_id = args.doc_id or doc_stem
+    doc_id = normalize_doc_id(args.doc_id) if args.doc_id else normalize_doc_id(doc_stem)
     source_file = args.source_file or f"{doc_stem}.pdf"
     chunker = UnifiedChunker(max_chars=args.max_chars, overlap_paragraphs=args.overlap_paragraphs)
     chunks = chunker.chunk_document(

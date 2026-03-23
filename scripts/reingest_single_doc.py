@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -19,8 +20,11 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue  # noqa: E40
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.doc_id_utils import normalize_doc_id  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
+from src.app.ingestion.manifest_utils import build_manifest_doc_entry, upsert_manifest_doc_entry  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
+from src.app.ingestion.versioning_utils import validate_manifest_compatibility  # noqa: E402
 from scripts.test_e2e_flow import normalize_tables  # noqa: E402
 
 
@@ -51,6 +55,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="Paragraph overlap for text chunking.",
+    )
+    parser.add_argument(
+        "--manifest",
+        default="",
+        help="Optional rebuild manifest JSON to update after successful reingestion.",
     )
     parser.add_argument(
         "--embedding-provider",
@@ -90,12 +99,35 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     pdf_path = Path(args.pdf)
+    try:
+        normalized_doc_id = normalize_doc_id(args.doc_id)
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
     if not pdf_path.exists():
         print(f"ERROR: PDF not found: {pdf_path}")
         return 1
     if not args.embedding_api_key:
         print("ERROR: embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.")
         return 1
+    if args.manifest.strip():
+        manifest_path = Path(args.manifest)
+        if manifest_path.exists():
+            loaded_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            if not isinstance(loaded_manifest, dict):
+                print(f"ERROR: manifest is not a JSON object: {manifest_path}")
+                return 1
+            compatibility_issues = validate_manifest_compatibility(
+                loaded_manifest,
+                expected_collection=args.collection,
+                expected_ingestion_version=UnifiedChunker.INGESTION_VERSION,
+                expected_chunking_version=UnifiedChunker.CHUNKING_VERSION,
+            )
+            if compatibility_issues:
+                print("ERROR: manifest compatibility check failed:")
+                for issue in compatibility_issues:
+                    print(f"- {issue}")
+                return 1
 
     embedding_fn = OpenAIEmbeddingAdapter(
         api_key=args.embedding_api_key,
@@ -118,7 +150,7 @@ def main() -> int:
     parsed = parser.parse(pdf_path)
     normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
     chunks = chunker.chunk_document(
-        doc_id=args.doc_id,
+        doc_id=normalized_doc_id,
         source_file=pdf_path.name,
         markdown_text=parsed.markdown_text,
         tables=normalized_tables,
@@ -135,7 +167,7 @@ def main() -> int:
     client.delete(
         collection_name=args.collection,
         points_selector=Filter(
-            must=[FieldCondition(key="doc_id", match=MatchValue(value=args.doc_id))]
+            must=[FieldCondition(key="doc_id", match=MatchValue(value=normalized_doc_id))]
         ),
         wait=True,
     )
@@ -143,11 +175,30 @@ def main() -> int:
 
     text_chunks = sum(chunk.metadata.chunk_type == "text" for chunk in chunks)
     table_chunks = sum(chunk.metadata.chunk_type == "table" for chunk in chunks)
-    print(f"Reingested doc_id: {args.doc_id}")
+    if args.manifest.strip():
+        manifest_entry = build_manifest_doc_entry(
+            doc_id=normalized_doc_id,
+            source_file=pdf_path.name,
+            local_file=str(pdf_path),
+            chunks=chunks,
+            ingestion_version=UnifiedChunker.INGESTION_VERSION,
+            chunking_version=UnifiedChunker.CHUNKING_VERSION,
+        )
+        upsert_manifest_doc_entry(
+            manifest_path=args.manifest,
+            collection=args.collection,
+            doc_entry=manifest_entry,
+            ingestion_version=UnifiedChunker.INGESTION_VERSION,
+            chunking_version=UnifiedChunker.CHUNKING_VERSION,
+        )
+
+    print(f"Reingested doc_id: {normalized_doc_id}")
     print(f"Collection: {args.collection}")
     print(f"Chunks: {len(chunks)}")
     print(f"Text chunks: {text_chunks}")
     print(f"Table chunks: {table_chunks}")
+    if args.manifest.strip():
+        print(f"Manifest updated: {args.manifest}")
     return 0
 
 

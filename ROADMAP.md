@@ -90,29 +90,29 @@ Current checkpoint:
 - The stable retrieval baseline remains the 26-query `data/eval/sample_queries.json` dataset
 - `data/eval/expanded_queries.json` now extends coverage to 43 queries across stewardship, review-style, title-query, and table-oriented retrieval
 - `data/eval/ood_adversarial_queries.json` now defines a separate clinician-style and adversarial phrasing track for evaluation only
-- Current recorded stable 26-query baseline on `medical_research_chunks_v1` shows:
+- Current March 23, 2026 stable 26-query rerun on `medical_research_chunks_v1` shows:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
-  - average doc precision: `0.9923`
-  - average header precision: `0.7724`
-  - cross-document average doc precision: `0.975`
+  - average doc precision: `1.0`
+  - average header precision: `0.9308`
+  - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `4`
   - non-structural header queries: `0`
-- Current recorded expanded 43-query benchmark on `medical_research_chunks_v1` shows:
+- Current March 23, 2026 expanded 43-query rerun on `medical_research_chunks_v1` shows:
   - expected doc hit rate: `1.0`
   - expected header hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
-  - average doc precision: `0.9953`
-  - average header precision: `0.8578`
-  - cross-document average doc precision: `0.99`
+  - average doc precision: `1.0`
+  - average header precision: `0.9535`
+  - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `6`
   - non-structural header queries: `0`
-- Re-running the rebuilt collection on March 20, 2026 matched the same expanded-benchmark summary, so the current metadata-first ingestion baseline held after re-ingestion
+- Re-running the rebuilt collection on March 23, 2026 preserved perfect expected doc/header hit rates; a narrow cross-document metadata suppression fix improved header precision slightly, while remaining debt is still concentrated in expectation cleanup plus a small number of explicit ranking-noise cases
 - OOD reruns on March 20, 2026 now resolve the previously unresolved singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after a narrow document-level disambiguation step
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
@@ -122,7 +122,7 @@ Current checkpoint:
 - An experimental document-candidate retrieval stage was evaluated and removed because it underperformed the baseline on cross-document precision
 - Cross-document precision on the current benchmark is now stabilized through singular-target document locking for title/trial/study queries plus explicit table-only and metric-table filtering for table-oriented retrieval
 - Explicit `Table N` references are now preserved in chunk metadata so explicit table queries can still recover linked evidence when parser output leaves the table callout in narrative text
-- `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection
+- `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection, and it can now update the rebuild manifest entry during the same operation so the local corpus record does not drift immediately after a repair
 - Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
 - Table-context improvement should proceed through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic
 - A new diagnostic script, `scripts/inspect_retrieval_candidates.py`, now exists to inspect initial search hits, post-filter candidates, ranked candidates, and final returned chunks for one query before changing ranking logic
@@ -200,6 +200,12 @@ Tasks:
    - table semantics and captions
 3. Add ingestion versioning for chunking and embedding changes
 4. Add dedup detection for re-ingested files
+5. Keep the UI/local registry synchronized with rebuild manifests so document-level repairs do not silently desynchronize the local corpus record from Qdrant-backed collection state
+Current checkpoint:
+
+- document ID derivation is now centralized in code across rebuild, UI ingestion, single-document reingest, and local test flows; the repo still preserves the current stem-based naming scheme, but future naming changes can now be made in one place instead of script by script
+- a collection audit script now compares Qdrant, the rebuild manifest, and the local registry, and it can sync the registry from the manifest before reporting so drift becomes observable and repairable instead of implicit
+- manifest-aware repair and audit paths now validate collection name plus ingestion/chunking versions against the active code baseline, so mismatched manifests are surfaced explicitly instead of being reused silently
 
 Exit criteria:
 
@@ -263,7 +269,7 @@ Phase gate:
 
 Recommended next implementation order:
 
-1. Diagnose any header-precision and table-hit drift on the stable 26-query baseline and the expanded 43-query benchmark before adding more retrieval logic
+1. Finish expectation cleanup on the remaining stable/expanded header-precision debt, keeping `Q15` visible as the main unresolved cross-document ranking case before adding more retrieval logic
 2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
 3. Use `scripts/inspect_retrieval_candidates.py` on any new OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
 4. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless measured recall gaps require them

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import csv
-import json
 import os
 from io import StringIO
 from pathlib import Path
@@ -31,6 +30,14 @@ from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
+from src.app.ingestion.registry_utils import (  # noqa: E402
+    get_collection_docs as registry_collection_docs,
+    load_registry as load_registry_file,
+    save_registry as save_registry_file,
+    sync_collection_from_manifest,
+    upsert_collection_doc,
+)
 from src.app.adapters.llm.openai_llm_adapter import OpenAILLMAdapter  # noqa: E402
 from src.app.adapters.rerankers.transformers_reranker import TransformersReRanker  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
@@ -268,30 +275,28 @@ def _format_runtime_error(exc: Exception) -> str:
 
 
 def load_registry() -> dict[str, dict[str, object]]:
-    if not REGISTRY_PATH.exists():
-        return {}
-    return json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
+    return load_registry_file(REGISTRY_PATH)
 
 
 def save_registry(registry: dict[str, dict[str, object]]) -> None:
-    REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    REGISTRY_PATH.write_text(json.dumps(registry, indent=2), encoding="utf-8")
+    save_registry_file(REGISTRY_PATH, registry)
 
 
 def get_collection_docs(collection_name: str) -> dict[str, dict[str, object]]:
     registry = load_registry()
-    collections = registry.get("collections", {})
-    collection_docs = collections.get(collection_name, {})
-    if not isinstance(collection_docs, dict):
-        return {}
-    return collection_docs
+    sync_collection_from_manifest(registry, collection_name=collection_name)
+    save_registry(registry)
+    return registry_collection_docs(registry, collection_name)
 
 
 def update_collection_docs(collection_name: str, doc_id: str, summary: dict[str, object]) -> None:
     registry = load_registry()
-    collections = registry.setdefault("collections", {})
-    collection_docs = collections.setdefault(collection_name, {})
-    collection_docs[doc_id] = summary
+    upsert_collection_doc(
+        registry,
+        collection_name=collection_name,
+        doc_id=doc_id,
+        summary=summary,
+    )
     save_registry(registry)
 
 
@@ -645,7 +650,7 @@ def main() -> None:
                 for index, uploaded_file in enumerate(uploaded_files, start=1):
                     try:
                         pdf_path = save_uploaded_file(uploaded_file)
-                        doc_id = pdf_path.stem
+                        doc_id = doc_id_from_path(pdf_path)
                         with st.spinner(f"Ingesting {uploaded_file.name}"):
                             summary = ingest_pdf(
                                 pdf_path=pdf_path,
