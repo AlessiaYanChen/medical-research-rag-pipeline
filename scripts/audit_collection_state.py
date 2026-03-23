@@ -76,7 +76,21 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Update the local registry from the rebuild manifest before reporting.",
     )
+    parser.add_argument(
+        "--fail-on-issues",
+        action="store_true",
+        help="Return exit code 1 when the audit finds any version issue, reconciliation issue, or cleanup-plan step.",
+    )
     return parser.parse_args()
+
+
+def should_fail_audit(
+    *,
+    manifest_version_issues: list[str],
+    issue_count: int,
+    cleanup_plan_count: int,
+) -> bool:
+    return bool(manifest_version_issues) or issue_count > 0 or cleanup_plan_count > 0
 
 
 def main() -> int:
@@ -209,6 +223,13 @@ def main() -> int:
         print(f"JSON output: {Path(args.json_out)}")
     if args.cleanup_plan_out.strip():
         print(f"Cleanup plan output: {Path(args.cleanup_plan_out)}")
+    if args.fail_on_issues and should_fail_audit(
+        manifest_version_issues=manifest_version_issues,
+        issue_count=int(payload["issue_count"]),
+        cleanup_plan_count=len(cleanup_plan),
+    ):
+        print("ERROR: audit gate failed.")
+        return 1
     return 0
 
 

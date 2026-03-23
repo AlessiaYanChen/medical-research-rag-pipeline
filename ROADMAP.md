@@ -207,7 +207,7 @@ Current checkpoint:
 - a collection audit script now compares Qdrant, the rebuild manifest, and the local registry, and it can sync the registry from the manifest before reporting so drift becomes observable and repairable instead of implicit
 - manifest-aware repair and audit paths now validate collection name plus ingestion/chunking versions against the active code baseline, so mismatched manifests are surfaced explicitly instead of being reused silently
 - rebuild, UI ingestion, and single-document repair now reject duplicate `doc_id`, `source_file`, or `local_file` identities before they write new corpus state, so re-ingested files cannot silently create parallel document entries for the same source PDF identity
-- the collection audit now reports duplicate identity conflicts across Qdrant, the rebuild manifest, and the local registry, and it can write a non-destructive cleanup plan that recommends safe keep/drop actions only when metadata establishes a clear canonical `doc_id`
+- the collection audit now reports duplicate identity conflicts across Qdrant, the rebuild manifest, and the local registry, it can write a non-destructive cleanup plan that recommends safe keep/drop actions only when metadata establishes a clear canonical `doc_id`, and `--fail-on-issues` now lets the same audit act as an explicit rollout gate
 - the March 23, 2026 audit on `medical_research_chunks_v1` returned zero missing-doc, count-mismatch, or duplicate-identity issues, and the generated cleanup plan was empty
 
 Exit criteria:
@@ -282,6 +282,6 @@ Recommended next implementation order:
    - clearer cross-platform setup docs
 6. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
 7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-8. Keep using `scripts/audit_collection_state.py` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
+8. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
 9. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
 10. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding
