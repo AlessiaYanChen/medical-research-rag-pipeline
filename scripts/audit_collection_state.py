@@ -17,8 +17,12 @@ _ensure_project_root_on_path()
 from qdrant_client import QdrantClient  # noqa: E402
 
 from src.app.ingestion.reconciliation_utils import (  # noqa: E402
+    build_duplicate_cleanup_plan,
+    build_manifest_doc_identities,
     build_manifest_doc_summary,
+    build_qdrant_doc_identities,
     build_qdrant_doc_summary,
+    build_registry_doc_identities,
     build_registry_doc_summary,
     reconcile_collection_state,
 )
@@ -63,6 +67,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional path to write the audit payload as JSON.",
     )
     parser.add_argument(
+        "--cleanup-plan-out",
+        default="",
+        help="Optional path to write a non-destructive duplicate cleanup plan as JSON.",
+    )
+    parser.add_argument(
         "--sync-registry",
         action="store_true",
         help="Update the local registry from the rebuild manifest before reporting.",
@@ -86,6 +95,7 @@ def main() -> int:
         include_vectors=False,
     )
     qdrant_docs = build_qdrant_doc_summary(qdrant_records)
+    qdrant_identities = build_qdrant_doc_identities(qdrant_records)
 
     manifest_path = Path(args.manifest) if args.manifest.strip() else default_manifest_path_for_collection(args.collection)
     manifest_payload: dict[str, object] = {}
@@ -94,6 +104,7 @@ def main() -> int:
         if isinstance(loaded_manifest, dict):
             manifest_payload = loaded_manifest
     manifest_docs = build_manifest_doc_summary(manifest_payload)
+    manifest_identities = build_manifest_doc_identities(manifest_payload)
     manifest_version_issues = (
         validate_manifest_compatibility(
             manifest_payload,
@@ -117,11 +128,20 @@ def main() -> int:
     if not isinstance(collection_entry, dict):
         collection_entry = {}
     registry_docs = build_registry_doc_summary(collection_entry)
+    registry_identities = build_registry_doc_identities(collection_entry)
 
     audit = reconcile_collection_state(
         qdrant_docs=qdrant_docs,
         manifest_docs=manifest_docs,
         registry_docs=registry_docs,
+        qdrant_identities=qdrant_identities,
+        manifest_identities=manifest_identities,
+        registry_identities=registry_identities,
+    )
+    cleanup_plan = build_duplicate_cleanup_plan(
+        qdrant_identities=qdrant_identities,
+        manifest_identities=manifest_identities,
+        registry_identities=registry_identities,
     )
     payload = {
         "collection": args.collection,
@@ -132,6 +152,8 @@ def main() -> int:
         "manifest_doc_count": len(manifest_docs),
         "registry_doc_count": len(registry_docs),
         "manifest_version_issues": manifest_version_issues,
+        "cleanup_plan_count": len(cleanup_plan),
+        "cleanup_plan": cleanup_plan,
         **audit,
     }
 
@@ -139,12 +161,17 @@ def main() -> int:
         output_path = Path(args.json_out)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    if args.cleanup_plan_out.strip():
+        cleanup_output_path = Path(args.cleanup_plan_out)
+        cleanup_output_path.parent.mkdir(parents=True, exist_ok=True)
+        cleanup_output_path.write_text(json.dumps(cleanup_plan, indent=2), encoding="utf-8")
 
     print(f"Collection: {args.collection}")
     print(f"Qdrant docs: {len(qdrant_docs)}")
     print(f"Manifest docs: {len(manifest_docs)}")
     print(f"Registry docs: {len(registry_docs)}")
     print(f"Issues: {payload['issue_count']}")
+    print(f"Cleanup plan entries: {len(cleanup_plan)}")
     if args.sync_registry:
         print("Registry sync: applied from manifest before audit")
     if manifest_version_issues:
@@ -156,14 +183,32 @@ def main() -> int:
     for issue in payload["issues"]:
         if issue["issue_type"] == "missing_doc":
             print(f"- missing_doc: {issue['doc_id']} present_in={issue['present_in']}")
+        elif issue["issue_type"] == "duplicate_identity":
+            print(
+                f"- duplicate_identity: source={issue['source']} "
+                f"field={issue['field']} value={issue['value']} doc_ids={issue['doc_ids']}"
+            )
         else:
             print(
                 f"- count_mismatch: {issue['doc_id']} "
                 f"fields={issue['fields']} "
                 f"qdrant={issue['qdrant']} manifest={issue['manifest']} registry={issue['registry']}"
             )
+    for step in cleanup_plan:
+        if step["action"] == "drop_duplicate_doc_ids":
+            print(
+                f"- cleanup_plan: keep={step['keep_doc_id']} drop={step['drop_doc_ids']} "
+                f"field={step['field']} value={step['value']}"
+            )
+        else:
+            print(
+                f"- cleanup_plan: manual_review field={step['field']} "
+                f"value={step['value']} doc_ids={step['doc_ids']}"
+            )
     if args.json_out.strip():
         print(f"JSON output: {Path(args.json_out)}")
+    if args.cleanup_plan_out.strip():
+        print(f"Cleanup plan output: {Path(args.cleanup_plan_out)}")
     return 0
 
 

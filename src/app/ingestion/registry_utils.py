@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, validate_unique_doc_identities
+
 
 def default_manifest_path_for_collection(collection_name: str) -> Path:
     return Path("data/ingestion_manifests") / f"{collection_name}_rebuild_manifest.json"
@@ -52,6 +54,7 @@ def sync_collection_from_manifest(
     docs_payload = manifest_payload.get("docs")
     docs: dict[str, dict[str, Any]] = {}
     if isinstance(docs_payload, list):
+        validate_unique_doc_identities(docs_payload, context="Rebuild manifest")
         for item in docs_payload:
             if not isinstance(item, dict):
                 continue
@@ -96,6 +99,15 @@ def upsert_collection_doc(
     if not isinstance(docs, dict):
         docs = {}
         collection_entry["docs"] = docs
+
+    ensure_doc_identity_is_available(
+        doc_id=doc_id,
+        source_file=str(summary.get("source_file", "")).strip(),
+        local_file=str(summary.get("pdf_path", "")).strip(),
+        existing_entries=list(docs.values()),
+        context=f"Registry collection '{collection_name}'",
+        allowed_doc_ids={doc_id} if doc_id in docs else set(),
+    )
 
     docs[doc_id] = {
         "doc_id": doc_id,

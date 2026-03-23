@@ -30,6 +30,7 @@ from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
 from src.app.ingestion.registry_utils import (  # noqa: E402
     get_collection_docs as registry_collection_docs,
@@ -146,6 +147,30 @@ def ingest_pdf(
     overlap_paragraphs: int,
     embedding_fn: OpenAIEmbeddingAdapter,
 ) -> dict[str, object]:
+    existing_registry_docs = list(get_collection_docs(collection_name).values())
+    try:
+        ensure_doc_identity_is_available(
+            doc_id=doc_id,
+            source_file=pdf_path.name,
+            local_file=str(pdf_path),
+            existing_entries=existing_registry_docs,
+            context=f"Registry collection '{collection_name}'",
+        )
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    client = QdrantClient(url=qdrant_url)
+    try:
+        ensure_doc_identity_is_available(
+            doc_id=doc_id,
+            source_file=pdf_path.name,
+            local_file=str(pdf_path),
+            existing_entries=fetch_collection_doc_identities(client, collection_name=collection_name),
+            context=f"Qdrant collection '{collection_name}'",
+        )
+    except ValueError as exc:
+        raise RuntimeError(str(exc)) from exc
+
     parser = MarkerParser()
     parsed_document = parser.parse(pdf_path)
     normalized_tables = normalize_tables(parsed_document.tables, file_name=pdf_path.name)
@@ -162,7 +187,6 @@ def ingest_pdf(
     if not chunks:
         raise RuntimeError("No chunks were generated from the document.")
 
-    client = QdrantClient(url=qdrant_url)
     vector_size = len(embedding_fn([chunks[0].content])[0])
     ensure_collection(client, collection_name, vector_size)
 

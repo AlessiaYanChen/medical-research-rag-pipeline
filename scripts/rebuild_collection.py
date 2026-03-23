@@ -18,6 +18,7 @@ from qdrant_client import QdrantClient  # noqa: E402
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.dedup_utils import build_doc_identity, validate_unique_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, write_rebuild_manifest  # noqa: E402
@@ -114,6 +115,21 @@ def main() -> int:
     pdf_paths = sorted(path for path in pdf_dir.rglob(args.glob) if path.is_file())
     if not pdf_paths:
         print(f"ERROR: no PDFs matched {args.glob!r} under {pdf_dir}")
+        return 1
+    try:
+        validate_unique_doc_identities(
+            [
+                build_doc_identity(
+                    doc_id=doc_id_from_path(path),
+                    source_file=path.name,
+                    local_file=str(path),
+                )
+                for path in pdf_paths
+            ],
+            context="Rebuild input set",
+        )
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
         return 1
 
     embedding_fn = OpenAIEmbeddingAdapter(

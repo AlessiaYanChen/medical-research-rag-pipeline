@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from src.app.ingestion.manifest_utils import (
     build_manifest_doc_entry,
     upsert_manifest_doc_entry,
@@ -156,3 +158,35 @@ def test_upsert_manifest_doc_entry_appends_new_doc_and_sorts(tmp_path: Path) -> 
     assert payload["doc_count"] == 2
     assert payload["chunk_count"] == 5
     assert [item["doc_id"] for item in payload["docs"]] == ["DOC-A", "DOC-B"]
+
+
+def test_write_rebuild_manifest_rejects_duplicate_source_file_entries(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+
+    with pytest.raises(ValueError, match="source_file 'shared.pdf' is already registered"):
+        write_rebuild_manifest(
+            manifest_path=manifest_path,
+            collection="medical_research_chunks_v1",
+            pdf_dir="data/raw_pdfs/uploaded",
+            glob_pattern="*.pdf",
+            docs=[
+                build_manifest_doc_entry(
+                    doc_id="DOC-1",
+                    source_file="shared.pdf",
+                    local_file="C:/docs/one.pdf",
+                    chunks=_build_chunks(),
+                    ingestion_version="ingestion_v2",
+                    chunking_version="chunking_v2",
+                ),
+                build_manifest_doc_entry(
+                    doc_id="DOC-2",
+                    source_file="shared.pdf",
+                    local_file="C:/docs/two.pdf",
+                    chunks=_build_chunks(),
+                    ingestion_version="ingestion_v2",
+                    chunking_version="chunking_v2",
+                ),
+            ],
+            ingestion_version="ingestion_v2",
+            chunking_version="chunking_v2",
+        )

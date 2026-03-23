@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from src.app.ingestion.dedup_utils import validate_unique_doc_identities
 from src.domain.models.chunk import Chunk
 
 
@@ -40,6 +41,7 @@ def write_rebuild_manifest(
     ingestion_version: str,
     chunking_version: str,
 ) -> None:
+    validate_unique_doc_identities(docs, context="Rebuild manifest")
     path = Path(manifest_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -92,6 +94,7 @@ def upsert_manifest_doc_entry(
         docs.append(doc_entry)
 
     docs.sort(key=lambda item: str(item.get("doc_id", "")).lower())
+    validate_unique_doc_identities(docs, context="Rebuild manifest")
     payload["docs"] = docs
     payload["doc_count"] = len(docs)
     payload["chunk_count"] = sum(int(item.get("chunk_count", 0)) for item in docs if isinstance(item, dict))

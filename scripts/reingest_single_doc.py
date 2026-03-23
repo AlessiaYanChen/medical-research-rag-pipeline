@@ -20,6 +20,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue  # noqa: E40
 
 from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
+from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import normalize_doc_id  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, upsert_manifest_doc_entry  # noqa: E402
@@ -128,6 +129,20 @@ def main() -> int:
                 for issue in compatibility_issues:
                     print(f"- {issue}")
                 return 1
+            try:
+                ensure_doc_identity_is_available(
+                    doc_id=normalized_doc_id,
+                    source_file=pdf_path.name,
+                    local_file=str(pdf_path),
+                    existing_entries=list(loaded_manifest.get("docs", []))
+                    if isinstance(loaded_manifest.get("docs", []), list)
+                    else [],
+                    context=f"Manifest '{manifest_path}'",
+                    allowed_doc_ids={normalized_doc_id},
+                )
+            except ValueError as exc:
+                print(f"ERROR: {exc}")
+                return 1
 
     embedding_fn = OpenAIEmbeddingAdapter(
         api_key=args.embedding_api_key,
@@ -163,6 +178,18 @@ def main() -> int:
         collection_name=args.collection,
         embedding_fn=embedding_fn,
     )
+    try:
+        ensure_doc_identity_is_available(
+            doc_id=normalized_doc_id,
+            source_file=pdf_path.name,
+            local_file=str(pdf_path),
+            existing_entries=fetch_collection_doc_identities(client, collection_name=args.collection),
+            context=f"Qdrant collection '{args.collection}'",
+            allowed_doc_ids={normalized_doc_id},
+        )
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
 
     client.delete(
         collection_name=args.collection,
