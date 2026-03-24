@@ -12,7 +12,7 @@
     "top1_expected_doc_hit_rate": 1.0,
     "top1_expected_header_hit_rate": 1.0,
     "average_doc_precision": 1.0,
-    "average_header_precision": 0.9462,
+    "average_header_precision": 1.0,
     "queries_with_citation_noise": 1,
     "queries_with_table_hits": 4,
     "queries_with_duplicate_hits": 0,
@@ -236,32 +236,28 @@
         "labels": [],
         "include_tables": null,
         "notes": "Conclusion-heavy BAL query.",
-        "result_count": 4,
+        "result_count": 2,
         "result_docs": [
-          "BAL SM",
-          "BAL SM",
           "BAL SM",
           "BAL SM"
         ],
         "result_headers": [
           "Discussion",
-          "Discussion",
-          "Results",
-          "Introduction"
+          "Discussion"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.5,
+        "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 3
+        "distinct_header_count": 1
       },
       "results": [
         {
@@ -281,24 +277,6 @@
           "content_role": "child",
           "page_number": null,
           "content": "The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches. In conclusion, our study demonstrates overall reliable detection of respiratory pathogens by PCR/ESI-MS directly from BAL samples. PCR/ESI-MS thus provides an interestingly tool for the rapid detection of a wide range of pathogens from polymicrobial samples."
-        },
-        {
-          "rank": 3,
-          "doc_id": "BAL SM",
-          "source": "Results",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%) BAL samples (Table 1). Semi-quantitative PCR/ESI-MS levels for 3/4 culture-negative samples were low or moderate (S2 Fig\\). Interestingly, two of these patients had been culture-positive for H. influenzae two weeks before the study sample was taken."
-        },
-        {
-          "rank": 4,
-          "doc_id": "BAL SM",
-          "source": "Introduction",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "The lack of a gold standard method hampers evaluation of discrepant findings originated from conventional culture-dependent methods and PCR/ESI-MS. In the hitherto published studies, detections from PCR/ESI-MS were not systematically confirmed by complementing methods when culture results were missing. This situation makes it extremely difficult to interpret the quality of the PCR/ESI-MS results reported previously.  In November 2014, a PCR/ESI-MS platform was CE-marked and became commercially available with the product name IRIDICA."
         }
       ]
     },
@@ -653,9 +631,8 @@
         "labels": [],
         "include_tables": null,
         "notes": "Good for checking prose-first retrieval against outcome questions.",
-        "result_count": 5,
+        "result_count": 4,
         "result_docs": [
-          "Single site RCT",
           "Single site RCT",
           "Single site RCT",
           "Single site RCT",
@@ -665,22 +642,21 @@
           "RESULTS",
           "RESULTS",
           "DISCUSSION",
-          "DISCUSSION",
-          "METHODS"
+          "DISCUSSION"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.8,
+        "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 3
+        "distinct_header_count": 2
       },
       "results": [
         {
@@ -718,15 +694,6 @@
           "content_role": "child",
           "page_number": null,
           "content": "In contrast, in this trial we did not observe differences in clinical or cost outcomes between patients in intervention and control arms. This may be due to the use of different study designs, the fact that this trial was not powered to detect differences in LOS, mortality, or cost, and/or the fact that 70% of our study subjects were receiving at least 1 active agent at time of enrollment and were generally being overtreated, rather than undertreated. In addition, our institution's baseline antimicrobial stewardship program, low resistance rates, high rate of infectious diseases consultation (48%), and baseline use of advanced technologies including MALDI-TOF MS and <sup>a</sup> Toxicities include seizures, Clostridium difficile infection, hepatitis, myelosuppression, renal insufficiency, prolonged QTc interval, and rash that occurred within 2 weeks following enrollment and were documented in the medical record. <sup>b</sup> Multidrug-resistant organisms including vancomycin-resistant enterococci, methicillin-resistant Staphylococcus aureus, extended-spectrum cephalosporinresistant Enterobacteriaceae, and Pseudomonas aeruginosa and Acinetobacter species resistant to \u22653 antibiotic classes. <sup>c</sup> Statistically significant compared to control group."
-        },
-        {
-          "rank": 5,
-          "doc_id": "Single site RCT",
-          "source": "METHODS",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "The study was a prospective RCT conducted at the Mayo Clinic, Rochester, Minnesota. Eligible patients were adults and children who had positive blood cultures processed in the clinical microbiology laboratory using the Becton Dickinson BACTEC FX system between August 2013 and March 2014. Patients were randomly assigned to either standard BCB processing (control), rapid multiplex PCR with templated comments (rmPCR), or rmPCR with templated comments and real-time antimicrobial stewardship (rmPCR/AS)."
         }
       ]
     },
@@ -854,9 +821,8 @@
         "labels": [],
         "include_tables": null,
         "notes": "Good check for conclusion-heavy ranking.",
-        "result_count": 4,
+        "result_count": 3,
         "result_docs": [
-          "RAPID",
           "RAPID",
           "RAPID",
           "RAPID"
@@ -864,22 +830,21 @@
         "result_headers": [
           "RESULTS",
           "DISCUSSION",
-          "DISCUSSION",
-          "METHODS"
+          "DISCUSSION"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.75,
+        "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 3
+        "distinct_header_count": 2
       },
       "results": [
         {
@@ -908,15 +873,6 @@
           "content_role": "child",
           "page_number": null,
           "content": "The study sites that were included did not have high rates of multidrug-resistant GNB; thus, empirical antibiotic therapy was likely effective in the majority of patients, potentially limiting our ability to detect differences in mortality or other clinical outcomes. Findings may not be applicable to settings with higher resistance rates or those that do not use MALDI-TOF as standard of care, where rapid testing may actually have greater impact. Results may also not be generalizable to settings without stewardship programs, where RAPID may have reduced impact. Although the arms were balanced with regard to many baseline characteristics, more patients were in the ICU at randomization in the RAPID arm compared with the SOC arm, and it is possible that having sicker patients in the RAPID arm may have reduced the observed impact of the intervention."
-        },
-        {
-          "rank": 4,
-          "doc_id": "RAPID",
-          "source": "METHODS",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "We analyzed 2 study populations. The total population was used to evaluate rapid test performance and included patients who met eligibility criteria at the time of randomization, even if they were later found to meet exclusion criteria. A modified intention-to-treat (mITT) population included patients who met all eligibility criteria and no exclusion criteria."
         }
       ]
     },
@@ -948,9 +904,8 @@
         "labels": [],
         "include_tables": null,
         "notes": "Results-focused RAPID query.",
-        "result_count": 5,
+        "result_count": 4,
         "result_docs": [
-          "RAPID",
           "RAPID",
           "RAPID",
           "RAPID",
@@ -960,22 +915,21 @@
           "RESULTS",
           "RESULTS",
           "DISCUSSION",
-          "DISCUSSION",
-          "METHODS"
+          "DISCUSSION"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.8,
+        "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 3
+        "distinct_header_count": 2
       },
       "results": [
         {
@@ -1013,15 +967,6 @@
           "content_role": "child",
           "page_number": null,
           "content": "The study sites that were included did not have high rates of multidrug-resistant GNB; thus, empirical antibiotic therapy was likely effective in the majority of patients, potentially limiting our ability to detect differences in mortality or other clinical outcomes. Findings may not be applicable to settings with higher resistance rates or those that do not use MALDI-TOF as standard of care, where rapid testing may actually have greater impact. Results may also not be generalizable to settings without stewardship programs, where RAPID may have reduced impact. Although the arms were balanced with regard to many baseline characteristics, more patients were in the ICU at randomization in the RAPID arm compared with the SOC arm, and it is possible that having sicker patients in the RAPID arm may have reduced the observed impact of the intervention."
-        },
-        {
-          "rank": 5,
-          "doc_id": "RAPID",
-          "source": "METHODS",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "We analyzed 2 study populations. The total population was used to evaluate rapid test performance and included patients who met eligibility criteria at the time of randomization, even if they were later found to meet exclusion criteria. A modified intention-to-treat (mITT) population included patients who met all eligibility criteria and no exclusion criteria."
         }
       ]
     },
@@ -1887,9 +1832,8 @@
         "labels": [],
         "include_tables": null,
         "notes": "Stewardship paper variant emphasizing practical recommendations.",
-        "result_count": 4,
+        "result_count": 3,
         "result_docs": [
-          "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
@@ -1897,7 +1841,6 @@
         "result_headers": [
           "Discussion",
           "Discussion",
-          "Introduction",
           "Conclusion"
         ],
         "expected_doc_hit": true,
@@ -1912,7 +1855,7 @@
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 3
+        "distinct_header_count": 2
       },
       "results": [
         {
@@ -1935,15 +1878,6 @@
         },
         {
           "rank": 3,
-          "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
-          "source": "Introduction",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "Approximately 40% of repeat blood cultures (those ordered after initial blood cultures regardless of the initial blood culture result) in this study were inappropriate based on previous negative blood cultures in patients without additional signs of infection (e.g., ordered for persistent fever) \\(21\\). These data highlight the critical need to standardize recommendations regarding blood culture indications. Some published guidelines for certain syndromes (e.g., CAP, skin and soft tissue infections, and fever in critically ill patients) (7, 22\u201324) recommend obtaining blood cultures; however, these recommendations were not necessarily developed with a diagnostic stewardship perspective, and specific guidance on when blood cultures may be unnecessary is lacking."
-        },
-        {
-          "rank": 4,
           "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
           "source": "Conclusion",
           "chunk_type": "text",
@@ -2348,9 +2282,8 @@
         "labels": [],
         "include_tables": null,
         "notes": "RAPID query intended to test results-vs-discussion balance.",
-        "result_count": 4,
+        "result_count": 3,
         "result_docs": [
-          "RAPID",
           "RAPID",
           "RAPID",
           "RAPID"
@@ -2358,22 +2291,21 @@
         "result_headers": [
           "RESULTS",
           "DISCUSSION",
-          "DISCUSSION",
-          "METHODS"
+          "DISCUSSION"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.75,
+        "header_precision": 1.0,
         "table_hits": 0,
         "citation_noise_hits": 1,
         "duplicate_hits": 0,
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 3
+        "distinct_header_count": 2
       },
       "results": [
         {
@@ -2402,15 +2334,6 @@
           "content_role": "child",
           "page_number": null,
           "content": "Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC, which is a clinically significant time frame for patients with sepsis and is a more dramatic difference than reported in a recent pre\u2013post intervention study that evaluated the impact of the RAPID platform [\\[21\\]](#page-7-13). Notably, RAPID enabled timely antibiotic escalations to occur almost 2 days faster for patients with antimicrobial-resistant infections, which can be life-saving especially if empirical antibiotics are ineffective \\[6, [22\\]](#page-7-15). Additionally, more AS recommendations were made in the RAPID arm than in the SOC arm, and many antibiotic changes involved antibiotic deescalation, especially among patients without resistant organisms, suggesting that rapid blood culture diagnostics can support efforts to promote judicious antibiotic use. Timely antibiotic deescalation may be clinically significant, as antibiotic exposures as short as 1 day have been shown to increase risks of bacteremia [\\[23\\]](#page-7-16) and C. difficile infection \\[24, 25] and to reduce microbiome richness \\[26]."
-        },
-        {
-          "rank": 4,
-          "doc_id": "RAPID",
-          "source": "METHODS",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "We analyzed 2 study populations. The total population was used to evaluate rapid test performance and included patients who met eligibility criteria at the time of randomization, even if they were later found to meet exclusion criteria. A modified intention-to-treat (mITT) population included patients who met all eligibility criteria and no exclusion criteria."
         }
       ]
     }
