@@ -396,6 +396,8 @@ class RetrievalService:
 
     def _select_return_content(self, chunk: Chunk) -> str:
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
+        if content_role == "table":
+            return self._table_return_content(chunk)
         if content_role != "child":
             return str(chunk.metadata.extra.get("parent_content", chunk.content))
 
@@ -412,6 +414,27 @@ class RetrievalService:
         window_start = max(0, start - 1)
         window_end = min(len(parent_sentences), end + 1)
         return " ".join(parent_sentences[window_start:window_end]).strip()
+
+    def _table_return_content(self, chunk: Chunk) -> str:
+        base_content = str(chunk.metadata.extra.get("parent_content", chunk.content)).strip()
+        sections: list[str] = []
+
+        table_caption = self._clean_markdown(str(chunk.metadata.extra.get("table_caption", "")).strip())
+        if table_caption and table_caption.lower() not in self._clean_markdown(base_content).lower():
+            sections.append(f"Table Caption: {table_caption}")
+
+        linked_contexts_raw = chunk.metadata.extra.get("linked_table_contexts")
+        if isinstance(linked_contexts_raw, list):
+            linked_contexts = [
+                self._clean_markdown(str(item).strip())
+                for item in linked_contexts_raw
+                if self._clean_markdown(str(item).strip())
+            ]
+            if linked_contexts:
+                sections.append("Linked Context: " + " ".join(linked_contexts[:2]))
+
+        sections.append(base_content)
+        return "\n\n".join(section for section in sections if section.strip())
 
     @staticmethod
     def _query_prefers_tables(query: str) -> bool:

@@ -338,6 +338,41 @@ def test_retrieval_service_keeps_document_metadata_abstract_available() -> None:
     assert result[0].source == "Document Metadata/Abstract"
 
 
+def test_retrieval_service_adds_table_caption_and_linked_context_to_returned_table_chunks() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-TABLE:T00001",
+            content="Source File: study.pdf | Table Index: 3 | Section: Results\nMarker,Value\nSensitivity,0.88",
+            metadata=ChunkMetadata(
+                doc_id="DOC-TABLE",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "table_caption": "Table 3. Diagnostic accuracy summary",
+                    "linked_table_contexts": [
+                        "Table 3 summarizes discrepant diagnostic findings and explains the sensitivity gap."
+                    ],
+                },
+            ),
+        )
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(query="Which table reports diagnostic accuracy?", doc_id="DOC-TABLE", limit=1)
+
+    assert "Table Caption: Table 3. Diagnostic accuracy summary" in result[0].content
+    assert "Linked Context: Table 3 summarizes discrepant diagnostic findings and explains the sensitivity gap." in result[0].content
+    assert "Marker,Value" in result[0].content
+
+
 def test_retrieval_service_uses_normalized_header_for_display_and_ranking() -> None:
     chunks = [
         Chunk(

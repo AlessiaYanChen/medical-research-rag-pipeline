@@ -359,3 +359,27 @@ def test_unified_chunker_classifies_table_semantics_from_payload_and_metadata() 
     assert table_chunk.metadata.extra["contains_metric_values"] is True
     assert "metric" in table_chunk.metadata.extra["table_semantics"]
     assert table_chunk.metadata.extra["table_caption"] == "Table 3. Diagnostic accuracy summary"
+
+
+def test_unified_chunker_links_explicit_table_reference_context_back_to_table_chunks() -> None:
+    markdown = """# Results
+
+Table 1 summarizes discrepant respiratory-pathogen findings and explains why routine culture missed some detections.
+
+| Organism | Count |
+| --- | --- |
+| H. influenzae | 4 |
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-012",
+        source_file="bal.pdf",
+        markdown_text=markdown,
+        tables=[{"csv": "Organism,Count\nH. influenzae,4"}],
+    )
+
+    table_chunk = next(chunk for chunk in chunks if chunk.metadata.chunk_type == "table")
+    assert table_chunk.metadata.extra["linked_table_contexts"] == [
+        "Table 1 summarizes discrepant respiratory-pathogen findings and explains why routine culture missed some detections."
+    ]

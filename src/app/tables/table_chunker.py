@@ -189,6 +189,7 @@ class UnifiedChunker:
                 "If table artifacts are loaded, table chunks must be present in final output."
             )
 
+        self._attach_linked_table_context(chunks)
         return chunks
 
     @staticmethod
@@ -849,3 +850,40 @@ class UnifiedChunker:
         )
         score = sum(1 for pattern in patterns if re.search(pattern, normalized))
         return score >= 2
+
+    def _attach_linked_table_context(self, chunks: list[Chunk]) -> None:
+        linked_context_by_table: dict[tuple[str, int], list[str]] = {}
+
+        for chunk in chunks:
+            if chunk.metadata.chunk_type != "text":
+                continue
+            referenced_indices = chunk.metadata.extra.get("referenced_table_indices")
+            if not isinstance(referenced_indices, list) or not referenced_indices:
+                continue
+
+            parent_content = str(chunk.metadata.extra.get("parent_content", chunk.content)).strip()
+            if not parent_content:
+                continue
+
+            cleaned_parent_content = " ".join(parent_content.split())
+            for raw_index in referenced_indices:
+                if not isinstance(raw_index, int):
+                    continue
+                table_key = (chunk.metadata.doc_id, raw_index)
+                current_contexts = linked_context_by_table.setdefault(table_key, [])
+                if cleaned_parent_content not in current_contexts:
+                    current_contexts.append(cleaned_parent_content)
+
+        for chunk in chunks:
+            if chunk.metadata.chunk_type != "table":
+                continue
+
+            raw_table_index = chunk.metadata.extra.get("table_index")
+            if not isinstance(raw_table_index, int):
+                continue
+
+            linked_contexts = linked_context_by_table.get((chunk.metadata.doc_id, raw_table_index), [])
+            if not linked_contexts:
+                continue
+
+            chunk.metadata.extra["linked_table_contexts"] = linked_contexts[:2]
