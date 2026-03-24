@@ -902,6 +902,211 @@ def test_retrieval_service_prefers_results_for_performance_queries() -> None:
     assert [chunk.source for chunk in result] == ["Results", "Conclusion"]
 
 
+def test_retrieval_service_suppresses_methods_and_introduction_tails_after_stronger_evidence() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-13B:P00001:C01",
+            content="Results evidence describing diagnostic performance in detail.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13B",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13B:P00001",
+                    "parent_content": "Results evidence describing diagnostic performance in detail.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13B:P00002:C01",
+            content="Discussion interpretation of the diagnostic performance findings.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13B",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13B:P00002",
+                    "parent_content": "Discussion interpretation of the diagnostic performance findings.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13B:P00003:C01",
+            content="Methods detail that should be suppressed once stronger evidence is already selected.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13B",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13B:P00003",
+                    "parent_content": "Methods detail that should be suppressed once stronger evidence is already selected.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13B:P00004:C01",
+            content="Introduction detail that should also be suppressed after stronger evidence is selected.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13B",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13B:P00004",
+                    "parent_content": "Introduction detail that should also be suppressed after stronger evidence is selected.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What evidence is presented for diagnostic performance and outcome interpretation?",
+        doc_id="DOC-13B",
+        limit=4,
+    )
+
+    assert [chunk.source for chunk in result] == ["Results", "Discussion"]
+
+
+def test_retrieval_service_suppresses_results_tails_for_conclusion_usefulness_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-13C:P00001:C01",
+            content="Discussion evidence describing the study's clinical usefulness in practice.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13C",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13C:P00001",
+                    "parent_content": "Discussion evidence describing the study's clinical usefulness in practice.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13C:P00002:C01",
+            content="Second discussion chunk summarizing the conclusion-oriented interpretation.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13C",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13C:P00002",
+                    "parent_content": "Second discussion chunk summarizing the conclusion-oriented interpretation.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13C:P00003:C01",
+            content="Results detail that should be dropped once stronger discussion evidence is already selected.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13C",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13C:P00003",
+                    "parent_content": "Results detail that should be dropped once stronger discussion evidence is already selected.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What conclusions are drawn about the clinical usefulness of this assay?",
+        doc_id="DOC-13C",
+        limit=3,
+    )
+
+    assert [chunk.source for chunk in result] == ["Discussion", "Discussion"]
+
+
+def test_retrieval_service_suppresses_results_tails_for_caveat_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-13D:P00001:C01",
+            content="Discussion evidence about false negatives and why clinicians should stay cautious.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13D",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13D:P00001",
+                    "parent_content": "Discussion evidence about false negatives and why clinicians should stay cautious.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13D:P00002:C01",
+            content="Second discussion chunk about organism coverage gaps and interpretive caveats.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13D",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13D:P00002",
+                    "parent_content": "Second discussion chunk about organism coverage gaps and interpretive caveats.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-13D:P00003:C01",
+            content="Results detail that should be dropped for a caveat-oriented query.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-13D",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-13D:P00003",
+                    "parent_content": "Results detail that should be dropped for a caveat-oriented query.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Where do the authors talk about false negatives, coverage gaps, or why I should still be cautious clinically?",
+        doc_id="DOC-13D",
+        limit=3,
+    )
+
+    assert [chunk.source for chunk in result] == ["Discussion", "Discussion"]
+
+
 def test_retrieval_service_prefers_methods_for_optimization_queries() -> None:
     chunks = [
         Chunk(
@@ -943,6 +1148,100 @@ def test_retrieval_service_prefers_methods_for_optimization_queries() -> None:
     result = service.retrieve(query="What experimental optimization steps improved pathogen detection?", doc_id="DOC-14", limit=2)
 
     assert [chunk.source for chunk in result] == ["Methods", "Conclusion"]
+
+
+def test_retrieval_service_keeps_methods_for_methods_oriented_queries_even_after_results() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-14B:P00001:C01",
+            content="Results evidence confirming the assay worked after optimization.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-14B",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14B:P00001",
+                    "parent_content": "Results evidence confirming the assay worked after optimization.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-14B:P00002:C01",
+            content="Methods evidence describing optimization steps before clinical validation.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-14B",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14B:P00002",
+                    "parent_content": "Methods evidence describing optimization steps before clinical validation.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What methods and optimization steps improved pathogen detection before validation?",
+        doc_id="DOC-14B",
+        limit=2,
+    )
+
+    assert [chunk.source for chunk in result] == ["Methods", "Results"]
+
+
+def test_retrieval_service_keeps_results_for_conclusion_queries_that_explicitly_request_performance() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-14C:P00001:C01",
+            content="Discussion interpretation about overall performance.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-14C",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14C:P00001",
+                    "parent_content": "Discussion interpretation about overall performance.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-14C:P00002:C01",
+            content="Results evidence with the underlying diagnostic performance details.",
+            metadata=ChunkMetadata(
+                doc_id="DOC-14C",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14C:P00002",
+                    "parent_content": "Results evidence with the underlying diagnostic performance details.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What conclusions were drawn about diagnostic performance?",
+        doc_id="DOC-14C",
+        limit=2,
+    )
+
+    assert [chunk.source for chunk in result] == ["Results", "Discussion"]
 
 
 def test_retrieval_service_prefers_discussion_for_stewardship_queries() -> None:
@@ -1911,6 +2210,70 @@ def test_retrieval_service_limits_which_indexed_study_queries_to_top_document() 
     assert [chunk.doc_id for chunk in result] == ["RAPID"]
 
 
+def test_retrieval_service_limits_randomized_blood_culture_study_queries_to_top_document() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:T00001",
+            content="Outcome,Control,Rapid Multiplex PCR,Rapid Multiplex PCR + Stewardship\nTime to first de-escalation,...",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="table",
+                parent_header="RESULTS",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Outcome,Control,Rapid Multiplex PCR,Rapid Multiplex PCR + Stewardship\nTime to first de-escalation,...",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:T00001",
+            content="Characteristic,Standard of Care,RAPID\nBlood culture organisms,...",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="table",
+                parent_header="RESULTS",
+                page_number=5,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": "Characteristic,Standard of Care,RAPID\nBlood culture organisms,...",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Summary of diagnostic stewardship and blood culture use in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="SUMMARY",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Summary of diagnostic stewardship and blood culture use in hospitals.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Which indexed randomized blood culture study compares plain rapid reporting versus rapid reporting with stewardship on top of it?",
+        limit=4,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["Single site RCT"]
+
+
 def test_retrieval_service_prefers_results_for_comparison_queries() -> None:
     chunks = [
         Chunk(
@@ -1958,6 +2321,52 @@ def test_retrieval_service_prefers_results_for_comparison_queries() -> None:
     )
 
     assert [chunk.doc_id for chunk in result] == ["Single site RCT"]
+
+
+def test_retrieval_service_limits_where_in_indexed_corpus_queries_to_top_document() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Time to first appropriate escalation was faster in the stewardship arm than control.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Time to first appropriate escalation was faster in the stewardship arm than control.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Where in the indexed corpus do they report a roughly 24-hour antibiotic-modification advantage from a rapid bacteremia workflow?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["RAPID"]
 
 
 def test_retrieval_service_allows_linked_table_references_for_explicit_table_queries() -> None:

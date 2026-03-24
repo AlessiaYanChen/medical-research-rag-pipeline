@@ -66,6 +66,7 @@ class RetrievalService:
         header_counts: dict[str, int] = {}
         doc_counts: dict[str, int] = {}
         docs_with_selected_body_sections: set[str] = set()
+        selected_body_headers_by_doc: dict[str, set[str]] = {}
         max_selected_title_overlap = 0
         for chunk in ranked_chunks:
             parent_id = str(chunk.metadata.extra.get("parent_id", chunk.id))
@@ -85,6 +86,20 @@ class RetrievalService:
                 chunk=chunk,
                 doc_filter=doc_id,
                 docs_with_selected_body_sections=docs_with_selected_body_sections,
+            ):
+                continue
+            if self._should_skip_low_value_body_tail_for_selected_doc(
+                query=query,
+                chunk=chunk,
+                doc_filter=doc_id,
+                selected_body_headers_by_doc=selected_body_headers_by_doc,
+            ):
+                continue
+            if self._should_skip_results_tail_for_conclusion_query(
+                query=query,
+                chunk=chunk,
+                doc_filter=doc_id,
+                selected_body_headers_by_doc=selected_body_headers_by_doc,
             ):
                 continue
 
@@ -111,8 +126,10 @@ class RetrievalService:
             header_counts[header_key] = header_counts.get(header_key, 0) + 1
             doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
             doc_counts[doc_key] = doc_counts.get(doc_key, 0) + 1
-            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower()):
+            ranking_header = self._header_for_ranking(chunk).lower()
+            if not self._is_metadata_like_header(ranking_header):
                 docs_with_selected_body_sections.add(doc_key)
+                selected_body_headers_by_doc.setdefault(doc_key, set()).add(ranking_header)
             max_selected_title_overlap = max(
                 max_selected_title_overlap,
                 self._doc_title_overlap(query=query, chunk=chunk),
@@ -221,6 +238,42 @@ class RetrievalService:
 
         doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
         return doc_key in docs_with_selected_body_sections
+
+    def _should_skip_low_value_body_tail_for_selected_doc(
+        self,
+        query: str,
+        chunk: Chunk,
+        doc_filter: str | None,
+        selected_body_headers_by_doc: dict[str, set[str]],
+    ) -> bool:
+        if doc_filter is None or not self._query_suppresses_intro_methods_tails(query):
+            return False
+
+        header = self._header_for_ranking(chunk).lower()
+        if not self._is_low_value_tail_body_header(header):
+            return False
+
+        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        selected_headers = selected_body_headers_by_doc.get(doc_key, set())
+        return any(self._is_stronger_evidence_body_header(item) for item in selected_headers)
+
+    def _should_skip_results_tail_for_conclusion_query(
+        self,
+        query: str,
+        chunk: Chunk,
+        doc_filter: str | None,
+        selected_body_headers_by_doc: dict[str, set[str]],
+    ) -> bool:
+        if doc_filter is None or not self._query_suppresses_results_tails_after_conclusion_evidence(query):
+            return False
+
+        header = self._header_for_ranking(chunk).lower()
+        if not self._is_results_like_header(header):
+            return False
+
+        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        selected_headers = selected_body_headers_by_doc.get(doc_key, set())
+        return any(self._is_discussion_or_conclusion_header(item) for item in selected_headers)
 
     def _select_candidate_chunks(
         self,
@@ -654,6 +707,48 @@ class RetrievalService:
         return bonuses
 
     @staticmethod
+    def _query_suppresses_intro_methods_tails(query: str) -> bool:
+        normalized = query.lower()
+        if RetrievalService._query_prefers_tables(query):
+            return False
+        if any(token in normalized for token in ("optimization", "optimiz", "method", "methods", "experimental", "assay", "protocol")):
+            return False
+
+        tail_suppression_signals = (
+            "conclusion",
+            "conclusions",
+            "clinical usefulness",
+            "usefulness",
+            "false negatives",
+            "coverage gaps",
+            "cautious clinically",
+            "caveat",
+            "caveats",
+            "performance",
+            "outcome",
+            "outcomes",
+            "interpretation",
+            "result-stage",
+            "results",
+            "evidence is presented",
+            "findings",
+            "templated communication",
+            "stewardship",
+        )
+        return any(signal in normalized for signal in tail_suppression_signals)
+
+    @staticmethod
+    def _query_suppresses_results_tails_after_conclusion_evidence(query: str) -> bool:
+        normalized = query.lower()
+        if RetrievalService._query_prefers_tables(query):
+            return False
+        if "clinical usefulness" in normalized:
+            return True
+        if any(token in normalized for token in ("cautious clinically", "false negatives", "coverage gaps", "caveat", "caveats")):
+            return True
+        return "conclusion" in normalized and "performance" not in normalized and "result" not in normalized
+
+    @staticmethod
     def _initial_search_limit(query: str, doc_filter: str | None, limit: int) -> int:
         if doc_filter is not None:
             return max(limit * 8, 40)
@@ -675,6 +770,17 @@ class RetrievalService:
         plural_signals = ("which papers", "which documents", "which studies")
         if any(signal in normalized for signal in plural_signals):
             return False
+
+        singular_pattern_signals = (
+            r"\bwhich indexed [a-z0-9\s-]{0,60} study\b",
+            r"\bwhich indexed [a-z0-9\s-]{0,60} paper\b",
+            r"\bwhich indexed [a-z0-9\s-]{0,60} document\b",
+            r"\bwhich indexed [a-z0-9\s-]{0,60} trial\b",
+        )
+        if any(re.search(pattern, normalized) for pattern in singular_pattern_signals):
+            return True
+        if normalized.startswith("where in the indexed corpus do they report"):
+            return True
 
         singular_signals = (
             "which paper",
@@ -887,6 +993,22 @@ class RetrievalService:
     @staticmethod
     def _is_metadata_like_header(header: str) -> bool:
         return any(token in header for token in ("document metadata/abstract", "abstract", "summary"))
+
+    @staticmethod
+    def _is_low_value_tail_body_header(header: str) -> bool:
+        return any(token in header for token in ("introduction", "method", "materials and methods"))
+
+    @staticmethod
+    def _is_stronger_evidence_body_header(header: str) -> bool:
+        return any(token in header for token in ("result", "discussion", "conclusion"))
+
+    @staticmethod
+    def _is_results_like_header(header: str) -> bool:
+        return "result" in header
+
+    @staticmethod
+    def _is_discussion_or_conclusion_header(header: str) -> bool:
+        return "discussion" in header or "conclusion" in header
 
     @staticmethod
     def _doc_text_for_ranking(chunk: Chunk) -> str:
