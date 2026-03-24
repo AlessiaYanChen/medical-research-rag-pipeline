@@ -383,3 +383,65 @@ Table 1 summarizes discrepant respiratory-pathogen findings and explains why rou
     assert table_chunk.metadata.extra["linked_table_contexts"] == [
         "Table 1 summarizes discrepant respiratory-pathogen findings and explains why routine culture missed some detections."
     ]
+
+
+def test_unified_chunker_links_semantic_table_context_without_explicit_table_number() -> None:
+    markdown = """# Results
+
+Diagnostic accuracy findings showed sensitivity and specificity advantages for the multiplex assay across cohorts.
+
+| Metric | Value |
+| --- | --- |
+| Sensitivity | 0.88 |
+| Specificity | 0.94 |
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-013",
+        source_file="diagnostic.pdf",
+        markdown_text=markdown,
+        tables=[
+            {
+                "csv": "Metric,Value\nSensitivity,0.88\nSpecificity,0.94",
+                "normalization_metadata": {
+                    "rows": [["Diagnostic accuracy summary for multiplex assay"]],
+                },
+            }
+        ],
+    )
+
+    table_chunk = next(chunk for chunk in chunks if chunk.metadata.chunk_type == "table")
+    assert table_chunk.metadata.extra["linked_table_contexts"] == [
+        "Diagnostic accuracy findings showed sensitivity and specificity advantages for the multiplex assay across cohorts."
+    ]
+
+
+def test_unified_chunker_does_not_link_generic_section_prose_to_table_without_overlap() -> None:
+    markdown = """# Results
+
+The authors discuss implementation details and workflow constraints for the study.
+
+| Metric | Value |
+| --- | --- |
+| Sensitivity | 0.88 |
+| Specificity | 0.94 |
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-014",
+        source_file="diagnostic.pdf",
+        markdown_text=markdown,
+        tables=[
+            {
+                "csv": "Metric,Value\nSensitivity,0.88\nSpecificity,0.94",
+                "normalization_metadata": {
+                    "rows": [["Diagnostic accuracy summary for multiplex assay"]],
+                },
+            }
+        ],
+    )
+
+    table_chunk = next(chunk for chunk in chunks if chunk.metadata.chunk_type == "table")
+    assert "linked_table_contexts" not in table_chunk.metadata.extra

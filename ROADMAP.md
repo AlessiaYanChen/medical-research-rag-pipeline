@@ -136,6 +136,7 @@ Current checkpoint:
 - `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection, and it can now update the rebuild manifest entry during the same operation so the local corpus record does not drift immediately after a repair
 - Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
 - Table-context improvement now proceeds through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic, and returned table chunks now surface that linked context when the metadata is present
+- On March 24, 2026, table-context coverage was broadened within the same metadata-linked design: ingestion can now link same-section prose back to a table even without a literal `Table N` reference when caption/table terminology overlaps strongly enough to support a narrow semantic attachment
 - A new diagnostic script, `scripts/inspect_retrieval_candidates.py`, now exists to inspect initial search hits, post-filter candidates, ranked candidates, and final returned chunks for one query before changing ranking logic
 - Current OOD inspection established that the stewardship-review miss was not a candidate-recall failure: the Fabre paper was already present in early candidates, and a narrow document-level disambiguation step was sufficient to resolve `O03` and `O10`
 - The next retrieval step should not add extra embedding stages, hybrid retrieval, or query expansion; header-precision and table-hit drift should be diagnosed first, and any new behavior should stay similarly narrow and benchmark-backed
@@ -220,6 +221,12 @@ Current checkpoint:
 - rebuild, UI ingestion, and single-document repair now reject duplicate `doc_id`, `source_file`, or `local_file` identities before they write new corpus state, so re-ingested files cannot silently create parallel document entries for the same source PDF identity
 - the collection audit now reports duplicate identity conflicts across Qdrant, the rebuild manifest, and the local registry, it can write a non-destructive cleanup plan that recommends safe keep/drop actions only when metadata establishes a clear canonical `doc_id`, and `--fail-on-issues` now lets the same audit act as an explicit rollout gate
 - the March 23, 2026 audit on `medical_research_chunks_v1` returned zero missing-doc, count-mismatch, or duplicate-identity issues, and the generated cleanup plan was empty
+- on March 24, 2026, setup hardening/onboarding documentation was tightened without changing retrieval behavior:
+  - the checked-in `requirements.txt` and `.env.example` remain the base setup surface
+  - `README.md` now documents clearer setup/run instructions for both PowerShell/Windows and bash/macOS/Linux
+  - the required env vars for embeddings, Qdrant, and optional answer synthesis are now documented explicitly
+  - `.env.example` no longer relies on `${...}` interpolation for Azure embedding settings, avoiding a PowerShell/env-loader footgun that broke Azure embedding calls during onboarding verification
+  - the documented onboarding flow was verified by rerunning unit tests and the stable retrieval eval against `medical_research_chunks_v1`, preserving the existing clean `1.0` retrieval baseline
 
 Exit criteria:
 
@@ -290,8 +297,8 @@ Recommended next implementation order:
 5. Keep setup hardening moving:
    - maintain the checked-in `requirements.txt`
    - maintain the checked-in `.env.example`
-   - add clearer cross-platform setup docs
-6. Broaden table-context coverage within the same metadata-linked design so more returned table chunks carry caption/prose context without positional heuristics
+   - keep the clearer cross-platform setup docs aligned with the actual script/runtime behavior as setup changes land
+6. Keep table-context coverage improvements narrow and metadata-linked so more returned table chunks carry caption/prose context without positional heuristics or new retrieval stages
 7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
 8. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
 9. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo

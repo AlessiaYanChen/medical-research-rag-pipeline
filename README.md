@@ -46,7 +46,8 @@ Current benchmark status:
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
 - explicit `Table N` references are now preserved in chunk metadata so explicit table queries can recover linked prose evidence when parser output leaves the table callout in narrative text
 - table chunks now carry semantic metadata such as metric/comparison flags and lightweight captions to support payload-driven filtering after rebuilds
-- returned table chunks now prepend lightweight caption and linked-prose context when explicit table references already exist in metadata, improving answer context without adding a new retrieval stage
+- returned table chunks now prepend lightweight caption and linked-prose context when metadata establishes a table-prose linkage, improving answer context without adding a new retrieval stage
+- metadata-linked table context is no longer limited to literal `Table N` mentions; ingestion can also attach same-section prose when caption/table terminology overlaps strongly enough to support a narrow semantic linkage
 - rebuild, UI ingestion, and single-document repair now fail fast on duplicate document identities (`doc_id`, `source_file`, `local_file`) instead of silently creating parallel entries for the same source PDF
 - `scripts/audit_collection_state.py` now reports duplicate identity conflicts and can emit a non-destructive cleanup plan before any manual corpus reconciliation work
 - next benchmark work is keeping the stable and expanded records separate while validating that future retrieval or ingestion changes do not regress the now-clean baseline
@@ -272,51 +273,137 @@ Why the nested metadata shape matters:
 
 - Qdrant running locally or remotely
 - Marker installed for PDF parsing
-- OpenAI or Azure OpenAI credentials if using research synthesis
+- OpenAI or Azure OpenAI credentials for embeddings
+- Optional OpenAI or Azure OpenAI credentials for answer synthesis
 
-## Installation
+## Setup
 
-Create and activate a virtual environment:
+The checked-in `requirements.txt` and `.env.example` are the base setup surface for this repo.
+
+Important runtime note:
+- the repo does not auto-load `.env`
+- copying `.env.example` to `.env` is useful as a template, but the values only apply if your shell/session loads them or if you pass the equivalent CLI flags
+- the CLI scripts and the Streamlit UI read environment variables via `os.getenv(...)`; they do not call `python-dotenv`
+- keep concrete values in `.env`; do not rely on `${OTHER_VAR}` interpolation unless your own shell loader expands it before Python starts
+
+Create a virtual environment and upgrade `pip`:
 
 ```powershell
 py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
 ```
 
-Install core dependencies:
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
+
+Install the base dependencies:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Copy the example environment file and fill in your provider settings:
+```bash
+python -m pip install -r requirements.txt
+```
+
+Create a local env file from the checked-in template:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Setup hardening is improved but still not finished:
-- a checked-in `requirements.txt` now exists for the current local workflow
-- a checked-in `.env.example` now exists for OpenAI/Azure/Qdrant configuration
-- install guidance is still written mainly for PowerShell and should be complemented with clearer cross-platform setup notes before wider rollout
+```bash
+cp .env.example .env
+```
 
-If you want local re-ranking:
+Load `.env` into your shell if you want the scripts to pick those values up automatically.
+
+PowerShell example:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install transformers
+Get-Content .env | Where-Object { $_ -and -not $_.StartsWith('#') } | ForEach-Object {
+    $name, $value = $_ -split '=', 2
+    Set-Item -Path "Env:$name" -Value $value
+}
 ```
+
+Bash example:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+### Required Environment Variables
+
+For embeddings:
+
+- `EMBEDDING_PROVIDER`: `openai` or `azure_openai`
+- `EMBEDDING_MODEL`: OpenAI embedding model name or Azure embedding deployment name
+- `EMBEDDING_DIMENSIONS`: embedding vector size; set `0` to use provider default when supported
+- `EMBEDDING_API_KEY`: required by the retrieval and ingestion scripts unless `OPENAI_API_KEY` is being used as the fallback for OpenAI embeddings
+
+For Azure OpenAI embeddings only:
+
+- `EMBEDDING_AZURE_OPENAI_ENDPOINT` or `AZURE_OPENAI_ENDPOINT`
+- `EMBEDDING_AZURE_OPENAI_API_VERSION` or `AZURE_OPENAI_API_VERSION`
+
+PowerShell note:
+- if you use the README's PowerShell loader, set `EMBEDDING_AZURE_OPENAI_ENDPOINT` and `EMBEDDING_AZURE_OPENAI_API_VERSION` to explicit values in `.env`
+- a line like `EMBEDDING_AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}` will stay literal and break Azure embedding calls
+
+For Qdrant:
+
+- `QDRANT_URL`: documented base URL for your Qdrant instance
+- `QDRANT_COLLECTION`: documented default collection name for this repo
+
+Current behavior note:
+- the scripts still take Qdrant settings from CLI flags and built-in defaults rather than automatically consuming `QDRANT_URL` or `QDRANT_COLLECTION`
+- `scripts/test_e2e_flow.py` and `scripts/ui_app.py` default to `medical_research_chunks`
+- the preserved benchmark baseline is on `medical_research_chunks_v1`, so set that collection explicitly when you want to work against the clean retrieval baseline
+
+For optional answer synthesis:
+
+- `OPENAI_API_KEY`: used by the Streamlit UI for answer synthesis by default; also acts as the fallback key for OpenAI embeddings
+- `OPENAI_MODEL`: OpenAI chat model name or Azure chat deployment name for answer synthesis
+- `AZURE_OPENAI_ENDPOINT`: required for Azure OpenAI answer synthesis
+- `AZURE_OPENAI_API_VERSION`: required for Azure OpenAI answer synthesis
+
+### Dependency Notes
+
+- `requirements.txt` is the supported base install
+- local re-ranking support is already included there via `transformers`
+- the `torch` dependency is pinned to the CPU wheel index in `requirements.txt`
 
 ## Run Qdrant
 
 ```powershell
-docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
+docker run --rm -p 6333:6333 -p 6334:6334 qdrant/qdrant
+```
+
+```bash
+docker run --rm -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
 ## Run the UI
 
 ```powershell
-.\.venv\Scripts\python.exe -m streamlit run scripts/ui_app.py
+python -m streamlit run scripts/ui_app.py
 ```
+
+```bash
+python -m streamlit run scripts/ui_app.py
+```
+
+Before using the UI:
+- start Qdrant first
+- provide embedding credentials in the sidebar
+- if you want to use the preserved benchmark collection, change the sidebar collection from `medical_research_chunks` to `medical_research_chunks_v1`
 
 The UI supports:
 - PDF upload and ingestion
@@ -327,10 +414,14 @@ The UI supports:
 
 ## Local Test Commands
 
-Run unit tests:
+Run unit tests first:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q tests/unit
+.\.venv\Scripts\python.exe -m pytest -q tests/unit --basetemp .pytest_tmp_run
+```
+
+```bash
+python -m pytest -q tests/unit --basetemp .pytest_tmp_run
 ```
 
 Test parsing on one PDF:
@@ -351,10 +442,20 @@ Run an end-to-end ingestion and retrieval flow:
 .\.venv\Scripts\python.exe scripts/test_e2e_flow.py --pdf "data/raw_pdfs/your_file.pdf" --query "What does the paper say about lipid biomarkers?" --recreate-collection
 ```
 
+```bash
+python scripts/test_e2e_flow.py --pdf "data/raw_pdfs/your_file.pdf" --query "What does the paper say about lipid biomarkers?" --recreate-collection
+```
+
+`scripts/test_e2e_flow.py` defaults to the `medical_research_chunks` collection. Pass `--collection medical_research_chunks_v1` only if you intentionally want to point it at the preserved benchmark collection.
+
 Run the retrieval evaluation harness against an indexed collection:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
+```bash
+python scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 When `--json-out` and `--csv-out` are omitted, the stable baseline now writes to `data/eval/results/retrieval_eval_sample.json` and `data/eval/results/retrieval_eval_sample.csv` by default so it does not overwrite broader benchmark runs.
@@ -365,6 +466,10 @@ Run the expanded benchmark without changing the stable baseline dataset:
 .\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
+```bash
+python scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
 The expanded benchmark now defaults to `data/eval/results/retrieval_eval_expanded.json` and `data/eval/results/retrieval_eval_expanded.csv`, keeping the stable and expanded records separate unless you explicitly override the paths.
 
 Run the separate OOD/adversarial phrasing track with its own result files:
@@ -373,10 +478,18 @@ Run the separate OOD/adversarial phrasing track with its own result files:
 .\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
 ```
 
+```bash
+python scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
+```
+
 Inspect one OOD query across retrieval stages before changing ranking logic:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
+```bash
+python scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 Deterministically rebuild a collection from the uploaded benchmark PDFs:
@@ -449,7 +562,7 @@ Current parser planning note:
 - header-quality metrics still contain real ambiguity because some valid evidence is returned from adjacent sections such as `Introduction`, `Methods`, or normalized opening metadata
 - sparse/hybrid retrieval is not implemented yet; this is a deliberate deferral until benchmark evidence shows lexical recall failures that metadata-first filtering cannot address cleanly
 - ontology-backed query expansion is not implemented yet; this is also deferred until failing queries show real abbreviation/synonym mismatch that justifies the added query-policy complexity
-- table context is now attached through explicit caption and linked-prose metadata when available, but coverage still depends on explicit table references or caption metadata present at ingestion time
+- table context is now attached through caption and linked-prose metadata when available, including narrow same-section semantic linkage added during ingestion, but coverage still depends on usable caption/table terminology being present in parser output
 - the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
 - the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
 - current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream

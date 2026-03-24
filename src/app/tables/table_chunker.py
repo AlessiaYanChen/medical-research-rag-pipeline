@@ -874,6 +874,14 @@ class UnifiedChunker:
                 if cleaned_parent_content not in current_contexts:
                     current_contexts.append(cleaned_parent_content)
 
+        table_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "table"]
+        if table_chunks:
+            self._attach_semantic_table_context(
+                text_chunks=[chunk for chunk in chunks if chunk.metadata.chunk_type == "text"],
+                table_chunks=table_chunks,
+                linked_context_by_table=linked_context_by_table,
+            )
+
         for chunk in chunks:
             if chunk.metadata.chunk_type != "table":
                 continue
@@ -887,3 +895,118 @@ class UnifiedChunker:
                 continue
 
             chunk.metadata.extra["linked_table_contexts"] = linked_contexts[:2]
+
+    def _attach_semantic_table_context(
+        self,
+        text_chunks: list[Chunk],
+        table_chunks: list[Chunk],
+        linked_context_by_table: dict[tuple[str, int], list[str]],
+    ) -> None:
+        tables_by_doc_and_header: dict[tuple[str, str], list[tuple[int, set[str]]]] = {}
+
+        for chunk in table_chunks:
+            raw_table_index = chunk.metadata.extra.get("table_index")
+            if not isinstance(raw_table_index, int):
+                continue
+            descriptor_tokens = self._table_descriptor_tokens(chunk)
+            if len(descriptor_tokens) < 2:
+                continue
+
+            header_key = self._context_header_key(chunk.metadata.parent_header)
+            tables_by_doc_and_header.setdefault((chunk.metadata.doc_id, header_key), []).append(
+                (raw_table_index, descriptor_tokens)
+            )
+
+        for chunk in text_chunks:
+            referenced_indices = chunk.metadata.extra.get("referenced_table_indices")
+            if isinstance(referenced_indices, list) and referenced_indices:
+                continue
+
+            parent_content = str(chunk.metadata.extra.get("parent_content", chunk.content)).strip()
+            if not parent_content:
+                continue
+
+            context_tokens = self._context_tokens(parent_content)
+            if len(context_tokens) < 2:
+                continue
+
+            header_key = self._context_header_key(chunk.metadata.parent_header)
+            candidates = tables_by_doc_and_header.get((chunk.metadata.doc_id, header_key), [])
+            if not candidates:
+                continue
+
+            scored_candidates: list[tuple[int, int]] = []
+            for table_index, descriptor_tokens in candidates:
+                overlap = len(context_tokens & descriptor_tokens)
+                if overlap <= 0:
+                    continue
+                scored_candidates.append((table_index, overlap))
+
+            if not scored_candidates:
+                continue
+
+            scored_candidates.sort(key=lambda item: item[1], reverse=True)
+            best_table_index, best_overlap = scored_candidates[0]
+            second_best_overlap = scored_candidates[1][1] if len(scored_candidates) > 1 else 0
+            overlap_threshold = 2 if len(candidates) == 1 else 3
+            if best_overlap < overlap_threshold:
+                continue
+            if len(candidates) > 1 and best_overlap <= second_best_overlap:
+                continue
+
+            cleaned_parent_content = " ".join(parent_content.split())
+            table_key = (chunk.metadata.doc_id, best_table_index)
+            current_contexts = linked_context_by_table.setdefault(table_key, [])
+            if cleaned_parent_content not in current_contexts:
+                current_contexts.append(cleaned_parent_content)
+
+    @classmethod
+    def _table_descriptor_tokens(cls, chunk: Chunk) -> set[str]:
+        table_caption = str(chunk.metadata.extra.get("table_caption", "")).strip()
+        table_payload = str(chunk.content).split("\n", 1)[1] if "\n" in str(chunk.content) else str(chunk.content)
+        descriptor_text = " ".join(
+            part
+            for part in (
+                chunk.metadata.parent_header,
+                table_caption,
+                table_payload,
+            )
+            if str(part).strip()
+        )
+        return cls._context_tokens(descriptor_text)
+
+    @staticmethod
+    def _context_header_key(header: str) -> str:
+        return " ".join(header.lower().split())
+
+    @staticmethod
+    def _context_tokens(text: str) -> set[str]:
+        stop_words = {
+            "table",
+            "tables",
+            "results",
+            "result",
+            "discussion",
+            "conclusion",
+            "conclusions",
+            "section",
+            "study",
+            "studies",
+            "paper",
+            "value",
+            "values",
+            "data",
+            "group",
+            "groups",
+            "summary",
+            "shows",
+            "showed",
+            "reported",
+            "report",
+            "across",
+        }
+        return {
+            token
+            for token in re.findall(r"[a-z0-9]+", text.lower())
+            if len(token) > 3 and token not in stop_words and not token.isdigit()
+        }
