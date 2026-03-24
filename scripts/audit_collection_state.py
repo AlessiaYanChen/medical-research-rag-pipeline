@@ -93,6 +93,19 @@ def should_fail_audit(
     return bool(manifest_version_issues) or issue_count > 0 or cleanup_plan_count > 0
 
 
+def load_manifest_payload(manifest_path: Path) -> dict[str, object]:
+    try:
+        loaded_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"manifest is not valid JSON: {manifest_path} "
+            f"(line {exc.lineno}, column {exc.colno}: {exc.msg})"
+        ) from exc
+    if not isinstance(loaded_manifest, dict):
+        raise ValueError(f"manifest is not a JSON object: {manifest_path}")
+    return loaded_manifest
+
+
 def main() -> int:
     args = parse_args()
     client = QdrantClient(url=args.qdrant_url)
@@ -114,9 +127,11 @@ def main() -> int:
     manifest_path = Path(args.manifest) if args.manifest.strip() else default_manifest_path_for_collection(args.collection)
     manifest_payload: dict[str, object] = {}
     if manifest_path.exists():
-        loaded_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if isinstance(loaded_manifest, dict):
-            manifest_payload = loaded_manifest
+        try:
+            manifest_payload = load_manifest_payload(manifest_path)
+        except ValueError as exc:
+            print(f"ERROR: {exc}")
+            return 1
     manifest_docs = build_manifest_doc_summary(manifest_payload)
     manifest_identities = build_manifest_doc_identities(manifest_payload)
     manifest_version_issues = (
