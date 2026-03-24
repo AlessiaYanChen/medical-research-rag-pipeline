@@ -548,6 +548,34 @@ Use the audit as an explicit rollout gate for Phase 5 or any medium-scale ingest
 Manifest-aware repair paths now enforce collection and ingestion/chunking version compatibility before updating local records, so a stale or mismatched manifest fails fast instead of being silently reused.
 The same audit path now surfaces duplicate `doc_id`, `source_file`, and `local_file` conflicts explicitly; if the cleanup plan is empty, Qdrant, manifest, and registry agree on document identity at the metadata level. With `--fail-on-issues`, the command returns exit code `1` for any manifest version issue, reconciliation issue, or cleanup-plan step.
 
+## Recommended Batch Workflow
+
+For medium-scale ingestion work, the current operator path is:
+
+1. Rebuild the collection with manifest output:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --continue-on-error
+```
+
+2. Review any rebuild failures written to `data/eval/results/rebuild_failures_medical_research_chunks_v1.json`.
+
+3. Repair individual documents as needed:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
+```
+
+4. Review any single-document repair failures under `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
+
+5. Run the audit gate before treating the collection as rollout-ready:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan.json --fail-on-issues
+```
+
+This keeps the current operational loop explicit: rebuild, inspect failures, repair specific documents, then run the audit gate before larger rollout work.
+
 ## Parser Bakeoff Guidance
 
 If parser comparison work starts, keep it inside this repo and isolate it from the active ingestion path:
