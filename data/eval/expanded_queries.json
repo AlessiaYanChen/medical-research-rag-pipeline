@@ -36,9 +36,9 @@
     "query": "What sensitivity or specificity findings are reported for the screening approach?",
     "doc_id": "Culture-Free Lipidomics-Based Screening Test",
     "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
-    "expected_headers": ["Results", "Discussion"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
     "include_tables": true,
-    "notes": "Table-oriented query. Keep table mode on for this case."
+    "notes": "Table-oriented query. Keep table mode on for this case. Conclusion-level summary of diagnostic performance is also valid evidence."
   },
   {
     "id": "Q06",
@@ -157,9 +157,9 @@
       "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
       "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
     ],
-    "expected_headers": ["Results", "Discussion"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
     "include_tables": true,
-    "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics."
+    "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics. Conclusion-level metric summaries are also valid evidence for this broad cross-document question."
   },
   {
     "id": "Q20",

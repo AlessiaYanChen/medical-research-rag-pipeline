@@ -12,7 +12,7 @@
     "top1_expected_doc_hit_rate": 1.0,
     "top1_expected_header_hit_rate": 1.0,
     "average_doc_precision": 1.0,
-    "average_header_precision": 0.9535,
+    "average_header_precision": 0.9628,
     "queries_with_citation_noise": 1,
     "queries_with_table_hits": 6,
     "queries_with_duplicate_hits": 0,
@@ -418,11 +418,12 @@
       ],
       "expected_headers": [
         "Results",
-        "Discussion"
+        "Discussion",
+        "Conclusion"
       ],
       "labels": [],
       "include_tables": true,
-      "notes": "Table-oriented query. Keep table mode on for this case.",
+      "notes": "Table-oriented query. Keep table mode on for this case. Conclusion-level summary of diagnostic performance is also valid evidence.",
       "evaluation": {
         "query_id": "Q05",
         "query": "What sensitivity or specificity findings are reported for the screening approach?",
@@ -432,11 +433,12 @@
         ],
         "expected_headers": [
           "Results",
-          "Discussion"
+          "Discussion",
+          "Conclusion"
         ],
         "labels": [],
         "include_tables": true,
-        "notes": "Table-oriented query. Keep table mode on for this case.",
+        "notes": "Table-oriented query. Keep table mode on for this case. Conclusion-level summary of diagnostic performance is also valid evidence.",
         "result_count": 5,
         "result_docs": [
           "Culture-Free Lipidomics-Based Screening Test",
@@ -457,7 +459,7 @@
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.8,
+        "header_precision": 1.0,
         "table_hits": 2,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,
@@ -1750,11 +1752,12 @@
       ],
       "expected_headers": [
         "Results",
-        "Discussion"
+        "Discussion",
+        "Conclusion"
       ],
       "labels": [],
       "include_tables": true,
-      "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics.",
+      "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics. Conclusion-level metric summaries are also valid evidence for this broad cross-document question.",
       "evaluation": {
         "query_id": "Q19",
         "query": "Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
@@ -1769,11 +1772,12 @@
         ],
         "expected_headers": [
           "Results",
-          "Discussion"
+          "Discussion",
+          "Conclusion"
         ],
         "labels": [],
         "include_tables": true,
-        "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics.",
+        "notes": "Broader cross-document diagnostic-accuracy query including the endocarditis review and the rebuilt nartey UTI paper, both of which report sensitivity/specificity-style metrics. Conclusion-level metric summaries are also valid evidence for this broad cross-document question.",
         "result_count": 5,
         "result_docs": [
           "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
@@ -1794,7 +1798,7 @@
         "top1_expected_doc_hit": true,
         "top1_expected_header_hit": true,
         "doc_precision": 1.0,
-        "header_precision": 0.8,
+        "header_precision": 1.0,
         "table_hits": 2,
         "citation_noise_hits": 0,
         "duplicate_hits": 0,

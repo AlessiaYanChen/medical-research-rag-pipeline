@@ -96,7 +96,7 @@ Current checkpoint:
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.9308`
+  - average header precision: `0.9462`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `4`
@@ -107,12 +107,12 @@ Current checkpoint:
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.9535`
+  - average header precision: `0.9628`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `6`
   - non-structural header queries: `0`
-- Re-running the rebuilt collection on March 23, 2026 preserved perfect expected doc/header hit rates; a narrow cross-document metadata suppression fix improved header precision slightly, while remaining debt is still concentrated in expectation cleanup plus a small number of explicit ranking-noise cases
+- Re-running the rebuilt collection on March 23, 2026 preserved perfect expected doc/header hit rates; a narrow cross-document metadata suppression fix plus expectation cleanup improved header precision slightly, and the remaining debt is now concentrated in a small number of explicit ranking-noise cases (`Q03`, `Q07`, `Q09`, `Q10`, `Q26`, and expanded-only `Q32`)
 - OOD reruns on March 20, 2026 now resolve the previously unresolved singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after a narrow document-level disambiguation step
 - Benchmark metrics now explicitly include non-structural header hits so title-like or custom headers can be tracked as retrieval-quality debt
 - A normalization pass now maps subsection/title/citation-like headers back to stable parent retrieval headers while preserving the original header in metadata
@@ -272,7 +272,7 @@ Phase gate:
 
 Recommended next implementation order:
 
-1. Finish expectation cleanup on the remaining stable/expanded header-precision debt, keeping `Q15` visible as the main unresolved cross-document ranking case before adding more retrieval logic
+1. Review the remaining stable/expanded header-precision debt as explicit ranking-noise work, keeping `Q03`, `Q07`, `Q09`, `Q10`, `Q26`, and expanded-only `Q32` visible before adding more retrieval logic
 2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
 3. Use `scripts/inspect_retrieval_candidates.py` on any new OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
 4. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless measured recall gaps require them

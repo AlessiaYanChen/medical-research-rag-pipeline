@@ -12,7 +12,7 @@ Current benchmark status:
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.9308`
+  - average header precision: `0.9462`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `4`
@@ -23,12 +23,13 @@ Current benchmark status:
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.9535`
+  - average header precision: `0.9628`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `6`
   - non-structural header queries: `0`
 - the March 23, 2026 rerun preserved perfect expected doc/header hit rates while modestly improving header precision after benchmark expectation cleanup plus a narrow cross-document metadata suppression fix
+- the latest expectation-only cleanup raised average header precision to `0.9462` on the stable benchmark and `0.9628` on the expanded benchmark without changing retrieval logic; the remaining header debt is now concentrated in explicit ranking-noise cases such as `Q03`, `Q07`, `Q09`, `Q10`, `Q26`, and expanded-only `Q32`
 - the March 20, 2026 OOD reruns now resolve the previously stubborn singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after the narrow document-level disambiguation step
 - current retrieval baseline is metadata-first filtering in Qdrant plus a smaller query-dependent ranking/diversity layer
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
