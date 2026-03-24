@@ -930,7 +930,7 @@
           "chunk_type": "text",
           "content_role": "child",
           "page_number": null,
-          "content": "We investigated the diagnostic performance of FLAT in a clinical cohort to highlight the potential benefits of this assay in comparison with conventional urine culture. FLAT analysis identified urine samples without culturable pathogens (negative UTIs) with 99% ID agreement, whereas urinalysis showed 37% ID agreement with the gold standard urine culture. This technique shows that microbial membrane lipids analyzed by MS represent biomarkers that can be used to identify monomicrobial or polymicrobial specimens directly from urine samples without the need for culture. The FLAT assay identified common uropathogens directly from urine samples within 1 hour of collection."
+          "content": "The culture of urine samples remains the gold standard for diagnosing UTIs, but this process takes 24\u201372 hours to complete, and inappropriate sampling or storage conditions can lead to false positive results \\(18\\). A rapid and inexpensive test with high negative predictive value would reduce unnecessary urine culture and inappropriate empiric antimicrobial treatment. In this study, we present FLAT, a lipid-based method that allows direct lipid extraction on a MALDI plate for pathogen detection in under an hour from receipt of a sample. We investigated the diagnostic performance of FLAT in a clinical cohort to highlight the potential benefits of this assay in comparison with conventional urine culture."
         }
       ]
     }

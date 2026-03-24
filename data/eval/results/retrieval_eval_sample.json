@@ -153,16 +153,14 @@
         "labels": [],
         "include_tables": null,
         "notes": "Use this to test discussion preference over abstract.",
-        "result_count": 3,
+        "result_count": 2,
         "result_docs": [
-          "BAL SM",
           "BAL SM",
           "BAL SM"
         ],
         "result_headers": [
           "Discussion",
-          "Discussion",
-          "Introduction"
+          "Discussion"
         ],
         "expected_doc_hit": true,
         "expected_header_hit": true,
@@ -176,7 +174,7 @@
         "non_structural_header_hits": 0,
         "non_structural_headers": [],
         "distinct_doc_count": 1,
-        "distinct_header_count": 2
+        "distinct_header_count": 1
       },
       "results": [
         {
@@ -196,15 +194,6 @@
           "content_role": "child",
           "page_number": null,
           "content": "The array of pathogens might thus probably differ and influence the overall performance of PCR/ESI-MS. A recent study on BAL samples from mechanically ventilated patients [\\[26\\]](#page-12-0) indicated promising clinical performance of PCR/ESI-MS in comparison with other microbiological diagnostic approaches. In conclusion, our study demonstrates overall reliable detection of respiratory pathogens by PCR/ESI-MS directly from BAL samples. PCR/ESI-MS thus provides an interestingly tool for the rapid detection of a wide range of pathogens from polymicrobial samples."
-        },
-        {
-          "rank": 3,
-          "doc_id": "BAL SM",
-          "source": "Introduction",
-          "chunk_type": "text",
-          "content_role": "child",
-          "page_number": null,
-          "content": "The lack of a gold standard method hampers evaluation of discrepant findings originated from conventional culture-dependent methods and PCR/ESI-MS. In the hitherto published studies, detections from PCR/ESI-MS were not systematically confirmed by complementing methods when culture results were missing. This situation makes it extremely difficult to interpret the quality of the PCR/ESI-MS results reported previously.  In November 2014, a PCR/ESI-MS platform was CE-marked and became commercially available with the product name IRIDICA. The aim of the present study was to evaluate its performance in detection of respiratory pathogens in clinical BAL samples, using the IRIDICA BAC LRT Assay (Ibis Biosciences, Abbott Molecular, Des Plaines, IL)."
         }
       ]
     },
