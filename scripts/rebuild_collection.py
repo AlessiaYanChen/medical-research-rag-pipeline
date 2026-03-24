@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import sys
+from typing import Any
 
 
 def _ensure_project_root_on_path() -> None:
@@ -68,6 +70,16 @@ def parse_args() -> argparse.Namespace:
         help="Path to write rebuild manifest JSON.",
     )
     parser.add_argument(
+        "--continue-on-error",
+        action="store_true",
+        help="Keep processing later PDFs after a per-document failure and report all failures at the end.",
+    )
+    parser.add_argument(
+        "--failure-report-out",
+        default="",
+        help="Optional path to write a JSON report describing per-document rebuild failures.",
+    )
+    parser.add_argument(
         "--embedding-provider",
         choices=["openai", "azure_openai"],
         default=os.getenv("EMBEDDING_PROVIDER", "openai"),
@@ -100,6 +112,41 @@ def parse_args() -> argparse.Namespace:
         help="Azure OpenAI API version for embeddings.",
     )
     return parser.parse_args()
+
+
+def build_failure_record(
+    *,
+    pdf_path: Path,
+    stage: str,
+    error: Exception,
+    doc_id: str | None = None,
+) -> dict[str, str]:
+    error_message = str(error).strip() or f"{error.__class__.__name__}"
+    return {
+        "pdf_path": str(pdf_path),
+        "doc_id": doc_id or "",
+        "stage": stage,
+        "error": error_message,
+    }
+
+
+def write_failure_report(
+    *,
+    output_path: str | Path,
+    collection: str,
+    pdf_dir: str | Path,
+    failures: list[dict[str, str]],
+) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "collection": collection,
+        "pdf_dir": str(pdf_dir),
+        "failure_count": len(failures),
+        "failures": failures,
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
 
 
 def main() -> int:
@@ -147,49 +194,77 @@ def main() -> int:
 
     manifest_docs: list[dict[str, object]] = []
     total_chunks = 0
+    failures: list[dict[str, str]] = []
 
     for index, pdf_path in enumerate(pdf_paths):
         print(f"[{index + 1}/{len(pdf_paths)}] Parsing {pdf_path}")
-        parsed = parser.parse(pdf_path)
-        normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
-        doc_id = doc_id_from_path(pdf_path)
-        chunks = chunker.chunk_document(
-            doc_id=doc_id,
-            source_file=pdf_path.name,
-            markdown_text=parsed.markdown_text,
-            tables=normalized_tables,
-            local_file=str(pdf_path),
-        )
-        if not chunks:
-            print(f"ERROR: no chunks generated for {pdf_path}")
-            return 1
-
-        if repository is None:
-            vector_size = len(embedding_fn([chunks[0].content])[0])
-            ensure_collection(
-                client=client,
-                collection_name=args.collection,
-                vector_size=vector_size,
-                recreate=True,
-            )
-            repository = QdrantRepository(
-                qdrant_client=client,
-                collection_name=args.collection,
-                embedding_fn=embedding_fn,
-            )
-
-        repository.upsert_chunks(chunks)
-        total_chunks += len(chunks)
-        manifest_docs.append(
-            build_manifest_doc_entry(
+        doc_id: str | None = None
+        try:
+            parsed = parser.parse(pdf_path)
+            normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
+            doc_id = doc_id_from_path(pdf_path)
+            chunks = chunker.chunk_document(
                 doc_id=doc_id,
                 source_file=pdf_path.name,
+                markdown_text=parsed.markdown_text,
+                tables=normalized_tables,
                 local_file=str(pdf_path),
-                chunks=chunks,
-                ingestion_version=UnifiedChunker.INGESTION_VERSION,
-                chunking_version=UnifiedChunker.CHUNKING_VERSION,
             )
-        )
+            if not chunks:
+                raise RuntimeError("no chunks generated")
+
+            if repository is None:
+                vector_size = len(embedding_fn([chunks[0].content])[0])
+                ensure_collection(
+                    client=client,
+                    collection_name=args.collection,
+                    vector_size=vector_size,
+                    recreate=True,
+                )
+                repository = QdrantRepository(
+                    qdrant_client=client,
+                    collection_name=args.collection,
+                    embedding_fn=embedding_fn,
+                )
+
+            repository.upsert_chunks(chunks)
+            total_chunks += len(chunks)
+            manifest_docs.append(
+                build_manifest_doc_entry(
+                    doc_id=doc_id,
+                    source_file=pdf_path.name,
+                    local_file=str(pdf_path),
+                    chunks=chunks,
+                    ingestion_version=UnifiedChunker.INGESTION_VERSION,
+                    chunking_version=UnifiedChunker.CHUNKING_VERSION,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            failure = build_failure_record(
+                pdf_path=pdf_path,
+                doc_id=doc_id,
+                stage="rebuild_document",
+                error=exc,
+            )
+            failures.append(failure)
+            print(
+                f"ERROR: failed to rebuild {pdf_path}"
+                f"{f' (doc_id={doc_id})' if doc_id else ''}: {failure['error']}"
+            )
+            if not args.continue_on_error:
+                return 1
+
+    if not manifest_docs:
+        print("ERROR: rebuild produced no successfully ingested documents.")
+        if args.failure_report_out.strip() and failures:
+            failure_report_path = write_failure_report(
+                output_path=args.failure_report_out,
+                collection=args.collection,
+                pdf_dir=pdf_dir,
+                failures=failures,
+            )
+            print(f"Failure report: {failure_report_path}")
+        return 1
 
     manifest_path = Path(args.manifest_out)
     write_rebuild_manifest(
@@ -206,6 +281,17 @@ def main() -> int:
     print(f"Documents ingested: {len(manifest_docs)}")
     print(f"Chunks stored: {total_chunks}")
     print(f"Manifest: {manifest_path}")
+    if failures and args.failure_report_out.strip():
+        failure_report_path = write_failure_report(
+            output_path=args.failure_report_out,
+            collection=args.collection,
+            pdf_dir=pdf_dir,
+            failures=failures,
+        )
+        print(f"Failure report: {failure_report_path}")
+    if failures:
+        print(f"Failures: {len(failures)}")
+        return 1
     return 0
 
 

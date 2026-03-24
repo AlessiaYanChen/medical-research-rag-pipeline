@@ -50,6 +50,7 @@ Current benchmark status:
 - metadata-linked table context is no longer limited to literal `Table N` mentions; ingestion can also attach same-section prose when caption/table terminology overlaps strongly enough to support a narrow semantic linkage
 - rebuild, UI ingestion, and single-document repair now fail fast on duplicate document identities (`doc_id`, `source_file`, `local_file`) instead of silently creating parallel entries for the same source PDF
 - `scripts/audit_collection_state.py` now reports duplicate identity conflicts and can emit a non-destructive cleanup plan before any manual corpus reconciliation work
+- `scripts/rebuild_collection.py` now supports batch-oriented `--continue-on-error` operation plus an optional structured failure report so larger rebuilds can retain successful documents while surfacing per-file failures explicitly
 - next benchmark work is keeping the stable and expanded records separate while validating that future retrieval or ingestion changes do not regress the now-clean baseline
 - hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
@@ -497,6 +498,14 @@ Deterministically rebuild a collection from the uploaded benchmark PDFs:
 ```powershell
 .\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
 ```
+
+If you want a medium-scale batch rebuild to continue past per-file failures while still recording them for follow-up:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_v1.json
+```
+
+With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the optional JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up.
 
 Reparse and replace a single document in an existing collection, optionally syncing the rebuild manifest entry at the same time:
 

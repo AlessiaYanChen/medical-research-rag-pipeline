@@ -222,6 +222,10 @@ Current checkpoint:
 - rebuild, UI ingestion, and single-document repair now reject duplicate `doc_id`, `source_file`, or `local_file` identities before they write new corpus state, so re-ingested files cannot silently create parallel document entries for the same source PDF identity
 - the collection audit now reports duplicate identity conflicts across Qdrant, the rebuild manifest, and the local registry, it can write a non-destructive cleanup plan that recommends safe keep/drop actions only when metadata establishes a clear canonical `doc_id`, and `--fail-on-issues` now lets the same audit act as an explicit rollout gate
 - the March 23, 2026 audit on `medical_research_chunks_v1` returned zero missing-doc, count-mismatch, or duplicate-identity issues, and the generated cleanup plan was empty
+- on March 24, 2026, `scripts/rebuild_collection.py` gained batch-oriented hardening for medium-scale ingest work:
+  - `--continue-on-error` now allows later PDFs in the batch to continue after a per-document failure
+  - `--failure-report-out` can now write a structured JSON report for per-file rebuild failures
+  - partial-success rebuilds still write a manifest for successful documents but exit nonzero when any failures occurred, keeping automation and follow-up repair work explicit
 - on March 24, 2026, setup hardening/onboarding documentation was tightened without changing retrieval behavior:
   - the checked-in `requirements.txt` and `.env.example` remain the base setup surface
   - `README.md` now documents clearer setup/run instructions for both PowerShell/Windows and bash/macOS/Linux
