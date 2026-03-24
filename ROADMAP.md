@@ -229,7 +229,7 @@ Current checkpoint:
   - partial-success rebuilds still write a manifest for successful documents but exit nonzero when any failures occurred, keeping automation and follow-up repair work explicit
 - on March 24, 2026, `scripts/reingest_single_doc.py` gained structured failure reporting for single-document repair attempts:
   - `--failure-report-out` can now write a JSON failure record for a repair attempt
-  - failure stages are now surfaced explicitly across manifest validation, embedding preflight, parse, chunk, delete, upsert, and manifest update paths
+  - failure stages are now surfaced explicitly across malformed-manifest and other manifest-validation failures, embedding preflight, parse, chunk, delete, upsert, and manifest update paths
 - on March 24, 2026, setup hardening/onboarding documentation was tightened without changing retrieval behavior:
   - the checked-in `requirements.txt` and `.env.example` remain the base setup surface
   - `README.md` now documents clearer setup/run instructions for both PowerShell/Windows and bash/macOS/Linux

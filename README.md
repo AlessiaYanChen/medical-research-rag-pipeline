@@ -519,7 +519,7 @@ If you want a structured failure record for a repair attempt:
 .\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --failure-report-out data/eval/results/reingest_failure_your_doc_id.json
 ```
 
-The single-document repair flow now writes stage-specific failure context, covering manifest validation, embedding preflight, parse, chunk, delete, upsert, and manifest-update failures. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
+The single-document repair flow now writes stage-specific failure context, covering malformed manifest JSON and other manifest-validation failures, embedding preflight, parse, chunk, delete, upsert, and manifest-update failures. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
 
 Export stored chunks from Qdrant for validation:
 

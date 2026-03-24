@@ -136,6 +136,19 @@ def resolve_failure_report_path(
     return Path("data/eval/results") / f"reingest_failure_{collection}_{safe_doc_id}.json"
 
 
+def load_manifest_json_object(manifest_path: Path) -> dict[str, Any]:
+    try:
+        loaded_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            f"manifest is not valid JSON: {manifest_path} "
+            f"(line {exc.lineno}, column {exc.colno}: {exc.msg})"
+        ) from exc
+    if not isinstance(loaded_manifest, dict):
+        raise ValueError(f"manifest is not a JSON object: {manifest_path}")
+    return loaded_manifest
+
+
 def write_failure_report(
     *,
     output_path: str | Path,
@@ -224,14 +237,15 @@ def main() -> int:
     if args.manifest.strip():
         manifest_path = Path(args.manifest)
         if manifest_path.exists():
-            loaded_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            if not isinstance(loaded_manifest, dict):
+            try:
+                loaded_manifest = load_manifest_json_object(manifest_path)
+            except ValueError as exc:
                 return report_failure(
                     pdf_path=pdf_path,
                     doc_id=normalized_doc_id,
                     collection=args.collection,
                     stage="manifest_validation",
-                    error=f"manifest is not a JSON object: {manifest_path}",
+                    error=exc,
                     failure_report_out=args.failure_report_out,
                     manifest_path=args.manifest,
                 )

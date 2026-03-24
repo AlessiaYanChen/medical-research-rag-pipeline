@@ -3,7 +3,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.reingest_single_doc import build_failure_record, resolve_failure_report_path, write_failure_report
+import pytest
+
+from scripts.reingest_single_doc import (
+    build_failure_record,
+    load_manifest_json_object,
+    resolve_failure_report_path,
+    write_failure_report,
+)
 
 
 def test_reingest_build_failure_record_includes_stage_and_collection(tmp_path: Path) -> None:
@@ -70,3 +77,28 @@ def test_reingest_resolve_failure_report_path_sanitizes_doc_id() -> None:
     )
 
     assert resolved == Path("data/eval/results/reingest_failure_medical_research_chunks_v1_DOC_7_alpha.json")
+
+
+def test_load_manifest_json_object_reads_object_payload(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps({"collection": "medical_research_chunks_v1"}), encoding="utf-8")
+
+    payload = load_manifest_json_object(manifest_path)
+
+    assert payload == {"collection": "medical_research_chunks_v1"}
+
+
+def test_load_manifest_json_object_rejects_invalid_json(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text("{invalid", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"manifest is not valid JSON: .*line 1, column 2"):
+        load_manifest_json_object(manifest_path)
+
+
+def test_load_manifest_json_object_rejects_non_object_payload(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="manifest is not a JSON object"):
+        load_manifest_json_object(manifest_path)
