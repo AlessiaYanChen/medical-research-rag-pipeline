@@ -246,7 +246,7 @@ Exit criteria:
 
 ## Phase 4B: Parser Bakeoff
 
-Status: Deferred
+Status: In Progress
 
 Objectives:
 
@@ -270,6 +270,15 @@ Exit criteria:
 - Parser choice is justified by retrieval evidence
 - Experimental parser work does not interfere with active ingestion or the production collection
 - Parser comparison is completed before any large Phase 5 corpus rollout that would otherwise require expensive re-ingestion
+
+Current checkpoint:
+
+- `experiments/parser_bakeoff.py` now exists as an isolated in-repo bakeoff runner for `Marker`, `Docling`, or both
+- parser artifacts now write under `data/parser_bakeoff/artifacts/<parser>/...`
+- parser summaries and a combined comparison file now write under `data/parser_bakeoff/results/...`
+- bakeoff ingestion uses parser-specific collection names and remains isolated from `medical_research_chunks_v1`
+- `src/adapters/parsing/docling_parser.py` now adapts `Docling` output into the same `ParsedDocument` / `ParsedTable` contract used by the current ingestion path, keeping parser experimentation narrow
+- the current chunker and retrieval logic remain unchanged; the bakeoff still needs fixed-subset runs and benchmark comparison before any parser migration decision
 
 ## Phase 5: Corpus Rollout
 

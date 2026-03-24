@@ -596,6 +596,25 @@ Current parser planning note:
 - if `Docling` wins clearly, prefer `Docling` alone over a permanent `Marker + Docling` blended pipeline unless a combined approach has a deterministic, benchmark-backed merge strategy
 - parser bakeoff should happen before large Phase 5 corpus rollout work; discovering a better parser after ingesting hundreds of PDFs would force an avoidable large-scale re-ingestion
 
+Isolated parser bakeoff tooling now exists:
+- `experiments/parser_bakeoff.py` can run `Marker`, `Docling`, or both against a fixed PDF subset
+- parser artifacts are written under `data/parser_bakeoff/artifacts/<parser>/...`
+- parser summaries and comparison output are written under `data/parser_bakeoff/results/...`
+- bakeoff ingestion uses separate parser-specific collection names and does not touch `medical_research_chunks_v1`
+- `Docling` remains an optional experiment-only dependency; the checked-in `requirements.txt` is still the base production setup surface for this repo
+
+Parse-only example for initial artifact inspection:
+
+```powershell
+.\.venv\Scripts\python.exe experiments/parser_bakeoff.py --pdf-dir data/parser_bakeoff/input_subset --parser both --parse-only
+```
+
+If you later want isolated ingestion plus evaluation into parser-specific collections:
+
+```powershell
+.\.venv\Scripts\python.exe experiments/parser_bakeoff.py --pdf-dir data/parser_bakeoff/input_subset --parser both --marker-collection medical_research_chunks_marker_bakeoff --docling-collection medical_research_chunks_docling_bakeoff --recreate-collections --run-eval --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+```
+
 ## Current Limitations
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
