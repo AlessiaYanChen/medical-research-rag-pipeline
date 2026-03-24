@@ -12,7 +12,7 @@ Current benchmark status:
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.9462`
+  - average header precision: `1.0`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `4`
@@ -23,14 +23,24 @@ Current benchmark status:
   - top-1 expected doc hit rate: `1.0`
   - top-1 expected header hit rate: `1.0`
   - average doc precision: `1.0`
-  - average header precision: `0.9628`
+  - average header precision: `1.0`
   - cross-document average doc precision: `1.0`
   - citation noise queries: `1`
   - table-hit queries: `6`
   - non-structural header queries: `0`
-- the March 23, 2026 rerun preserved perfect expected doc/header hit rates while modestly improving header precision after benchmark expectation cleanup plus a narrow cross-document metadata suppression fix
-- the latest expectation-only cleanup raised average header precision to `0.9462` on the stable benchmark and `0.9628` on the expanded benchmark without changing retrieval logic; the remaining header debt is now concentrated in explicit ranking-noise cases such as `Q03`, `Q07`, `Q09`, `Q10`, `Q26`, and expanded-only `Q32`
-- the March 20, 2026 OOD reruns now resolve the previously stubborn singular contrastive stewardship-review queries, so `O03` and `O10` both return the Fabre stewardship review in top-1 after the narrow document-level disambiguation step
+- the March 23, 2026 rerun now shows perfect stable and expanded benchmark precision on the current corpus after two narrow final-selection suppressions removed residual `Methods`, `Introduction`, and conclusion-tail `Results` noise from doc-filtered queries
+- OOD/adversarial benchmark (`data/eval/ood_adversarial_queries.json`) from the current March 23, 2026 rerun on `medical_research_chunks_v1`:
+  - expected doc hit rate: `1.0`
+  - expected header hit rate: `1.0`
+  - top-1 expected doc hit rate: `1.0`
+  - top-1 expected header hit rate: `1.0`
+  - average doc precision: `1.0`
+  - average header precision: `1.0`
+  - cross-document average doc precision: `1.0`
+  - citation noise queries: `0`
+  - table-hit queries: `2`
+  - non-structural header queries: `0`
+- the March 23, 2026 OOD rerun now resolves the remaining OOD precision cases as well, so the stable, expanded, and OOD tracks all sit at `1.0` doc/header precision on the current collection
 - current retrieval baseline is metadata-first filtering in Qdrant plus a smaller query-dependent ranking/diversity layer
 - preserving markdown table placement during parsing improved table retrieval after re-ingestion
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
@@ -38,7 +48,7 @@ Current benchmark status:
 - table chunks now carry semantic metadata such as metric/comparison flags and lightweight captions to support payload-driven filtering after rebuilds
 - rebuild, UI ingestion, and single-document repair now fail fast on duplicate document identities (`doc_id`, `source_file`, `local_file`) instead of silently creating parallel entries for the same source PDF
 - `scripts/audit_collection_state.py` now reports duplicate identity conflicts and can emit a non-destructive cleanup plan before any manual corpus reconciliation work
-- next benchmark work is finishing expectation cleanup on the remaining explicit ranking-debt queries, especially `Q15`, before any further retrieval logic is considered
+- next benchmark work is keeping the stable and expanded records separate while validating that future retrieval or ingestion changes do not regress the now-clean baseline
 - hybrid dense+sparse retrieval and ontology-backed query expansion are recognized future options, but they are not the current priority because the present benchmark debt is concentrated in metadata/header quality rather than document-hit recall
 - benchmark diversification is now a near-term need: add a separate out-of-distribution evaluation track with clinician-style, journal-club-style, shorthand, and paraphrased queries so retrieval is not tuned only to developer-authored prompt patterns
 - the OOD/adversarial track should be run with separate JSON/CSV output paths so its noisier phrasing cases do not overwrite the baseline result artifacts
@@ -275,14 +285,18 @@ py -3.11 -m venv .venv
 Install core dependencies:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install pandas pytest qdrant-client streamlit openai
-.\.venv\Scripts\python.exe -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-.\.venv\Scripts\python.exe -m pip install marker-pdf
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Repo setup hardening is still incomplete:
-- a checked-in `requirements.txt` or equivalent lock/install file is still needed
-- a `.env.example` file is still needed for OpenAI/Azure/Qdrant configuration
+Copy the example environment file and fill in your provider settings:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Setup hardening is improved but still not finished:
+- a checked-in `requirements.txt` now exists for the current local workflow
+- a checked-in `.env.example` now exists for OpenAI/Azure/Qdrant configuration
 - install guidance is still written mainly for PowerShell and should be complemented with clearer cross-platform setup notes before wider rollout
 
 If you want local re-ranking:

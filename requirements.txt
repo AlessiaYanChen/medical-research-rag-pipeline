@@ -1,0 +1,10 @@
+pandas
+pytest
+qdrant-client
+streamlit
+openai
+torch --index-url https://download.pytorch.org/whl/cpu
+marker-pdf
+
+# Optional local re-ranking support
+transformers
