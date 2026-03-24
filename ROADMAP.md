@@ -30,7 +30,7 @@ Current observed issues:
 - Corpus management is still local-manifest based and not robust for large-scale ingestion
 - The benchmark still needs continued expectation refinement as broader coverage surfaces header-quality edge cases
 - Header precision and table-hit behavior should be revalidated explicitly after the latest ingestion/retrieval changes before more retrieval logic is added
-- Hybrid dense+sparse retrieval and ontology-backed query expansion remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
+- Hybrid dense+sparse retrieval, including BM25- or Qdrant-sparse-style lexical retrieval, and query expansion options such as synonym expansion or HyDE remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
 - The current benchmark is still vulnerable to author-style bias; retrieval should also be checked against clinician-style and out-of-distribution phrasing before scaling to the full corpus
 - Parser changes remain unevaluated against downstream retrieval; parser experimentation should be isolated and benchmark-driven rather than folded directly into the active ingestion path
 
@@ -179,8 +179,9 @@ Objectives:
 Tasks:
 
 1. Evaluate whether hybrid dense+sparse retrieval improves recall on measured failures rather than hypothetical scale concerns
-2. Evaluate ontology-backed query expansion only on benchmark cases with confirmed abbreviation or synonym mismatch
-3. Prefer explicit, auditable retrieval configuration over opaque expansion or branching behavior
+2. Evaluate sparse lexical retrieval options explicitly, including BM25-style retrieval or Qdrant sparse vectors, on terminology-heavy failures where exact token match may matter more than dense semantic similarity
+3. Evaluate query expansion approaches, including ontology-backed synonym expansion and HyDE, only on benchmark cases with confirmed abbreviation or synonym mismatch
+4. Prefer explicit, auditable retrieval configuration over opaque expansion or branching behavior
 
 Exit criteria:
 
