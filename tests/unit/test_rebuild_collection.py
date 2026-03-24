@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.rebuild_collection import build_failure_record, write_failure_report
+from scripts.rebuild_collection import build_failure_record, resolve_failure_report_path, write_failure_report
 
 
 def test_build_failure_record_uses_explicit_doc_id_and_error_message(tmp_path: Path) -> None:
@@ -69,3 +69,21 @@ def test_write_failure_report_writes_summary_payload(tmp_path: Path) -> None:
     assert payload["pdf_dir"] == "data/raw_pdfs/uploaded"
     assert payload["failure_count"] == 2
     assert payload["failures"] == failures
+
+
+def test_resolve_failure_report_path_uses_default_collection_path() -> None:
+    resolved = resolve_failure_report_path(
+        output_path="",
+        collection="medical_research_chunks_v1",
+    )
+
+    assert resolved == Path("data/eval/results/rebuild_failures_medical_research_chunks_v1.json")
+
+
+def test_resolve_failure_report_path_preserves_explicit_override() -> None:
+    resolved = resolve_failure_report_path(
+        output_path="custom/rebuild_failures.json",
+        collection="medical_research_chunks_v1",
+    )
+
+    assert resolved == Path("custom/rebuild_failures.json")

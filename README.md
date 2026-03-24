@@ -505,7 +505,7 @@ If you want a medium-scale batch rebuild to continue past per-file failures whil
 .\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_v1.json
 ```
 
-With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the optional JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up.
+With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/rebuild_failures_<collection>.json`.
 
 Reparse and replace a single document in an existing collection, optionally syncing the rebuild manifest entry at the same time:
 
@@ -519,7 +519,7 @@ If you want a structured failure record for a repair attempt:
 .\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --failure-report-out data/eval/results/reingest_failure_your_doc_id.json
 ```
 
-The single-document repair flow now writes stage-specific failure context when requested, covering manifest validation, embedding preflight, parse, chunk, delete, upsert, and manifest-update failures.
+The single-document repair flow now writes stage-specific failure context, covering manifest validation, embedding preflight, parse, chunk, delete, upsert, and manifest-update failures. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
 
 Export stored chunks from Qdrant for validation:
 

@@ -123,6 +123,19 @@ def build_failure_record(
     }
 
 
+def resolve_failure_report_path(
+    *,
+    output_path: str,
+    collection: str,
+    doc_id: str,
+) -> Path:
+    if output_path.strip():
+        return Path(output_path)
+    safe_doc_id = "".join(char if char.isalnum() or char in {"-", "_"} else "_" for char in doc_id).strip("_")
+    safe_doc_id = safe_doc_id or "unknown_doc"
+    return Path("data/eval/results") / f"reingest_failure_{collection}_{safe_doc_id}.json"
+
+
 def write_failure_report(
     *,
     output_path: str | Path,
@@ -160,13 +173,16 @@ def report_failure(
         error=error,
     )
     print(f"ERROR [{stage}]: {failure['error']}")
-    if failure_report_out.strip():
-        written_path = write_failure_report(
+    written_path = write_failure_report(
+        output_path=resolve_failure_report_path(
             output_path=failure_report_out,
-            failure=failure,
-            manifest_path=manifest_path,
-        )
-        print(f"Failure report: {written_path}")
+            collection=collection,
+            doc_id=doc_id,
+        ),
+        failure=failure,
+        manifest_path=manifest_path,
+    )
+    print(f"Failure report: {written_path}")
     return 1
 
 

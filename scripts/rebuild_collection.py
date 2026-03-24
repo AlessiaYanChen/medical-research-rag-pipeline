@@ -130,6 +130,16 @@ def build_failure_record(
     }
 
 
+def resolve_failure_report_path(
+    *,
+    output_path: str,
+    collection: str,
+) -> Path:
+    if output_path.strip():
+        return Path(output_path)
+    return Path("data/eval/results") / f"rebuild_failures_{collection}.json"
+
+
 def write_failure_report(
     *,
     output_path: str | Path,
@@ -256,9 +266,12 @@ def main() -> int:
 
     if not manifest_docs:
         print("ERROR: rebuild produced no successfully ingested documents.")
-        if args.failure_report_out.strip() and failures:
+        if failures:
             failure_report_path = write_failure_report(
-                output_path=args.failure_report_out,
+                output_path=resolve_failure_report_path(
+                    output_path=args.failure_report_out,
+                    collection=args.collection,
+                ),
                 collection=args.collection,
                 pdf_dir=pdf_dir,
                 failures=failures,
@@ -281,9 +294,12 @@ def main() -> int:
     print(f"Documents ingested: {len(manifest_docs)}")
     print(f"Chunks stored: {total_chunks}")
     print(f"Manifest: {manifest_path}")
-    if failures and args.failure_report_out.strip():
+    if failures:
         failure_report_path = write_failure_report(
-            output_path=args.failure_report_out,
+            output_path=resolve_failure_report_path(
+                output_path=args.failure_report_out,
+                collection=args.collection,
+            ),
             collection=args.collection,
             pdf_dir=pdf_dir,
             failures=failures,
