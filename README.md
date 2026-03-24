@@ -46,6 +46,7 @@ Current benchmark status:
 - thematic markdown headings for header-poor papers are now normalized back to stable retrieval sections while preserving the original header in metadata
 - explicit `Table N` references are now preserved in chunk metadata so explicit table queries can recover linked prose evidence when parser output leaves the table callout in narrative text
 - table chunks now carry semantic metadata such as metric/comparison flags and lightweight captions to support payload-driven filtering after rebuilds
+- returned table chunks now prepend lightweight caption and linked-prose context when explicit table references already exist in metadata, improving answer context without adding a new retrieval stage
 - rebuild, UI ingestion, and single-document repair now fail fast on duplicate document identities (`doc_id`, `source_file`, `local_file`) instead of silently creating parallel entries for the same source PDF
 - `scripts/audit_collection_state.py` now reports duplicate identity conflicts and can emit a non-destructive cleanup plan before any manual corpus reconciliation work
 - next benchmark work is keeping the stable and expanded records separate while validating that future retrieval or ingestion changes do not regress the now-clean baseline
@@ -448,7 +449,7 @@ Current parser planning note:
 - header-quality metrics still contain real ambiguity because some valid evidence is returned from adjacent sections such as `Introduction`, `Methods`, or normalized opening metadata
 - sparse/hybrid retrieval is not implemented yet; this is a deliberate deferral until benchmark evidence shows lexical recall failures that metadata-first filtering cannot address cleanly
 - ontology-backed query expansion is not implemented yet; this is also deferred until failing queries show real abbreviation/synonym mismatch that justifies the added query-policy complexity
-- table retrieval does not yet attach caption/prose context automatically to every returned table chunk; the preferred next path is metadata-linked table context, not a generic "previous paragraph" heuristic
+- table context is now attached through explicit caption and linked-prose metadata when available, but coverage still depends on explicit table references or caption metadata present at ingestion time
 - the current benchmark is still curated in-house, so it may underrepresent clinician-style or adversarial phrasing unless a separate OOD evaluation track is maintained
 - the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
 - current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream

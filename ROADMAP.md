@@ -135,7 +135,7 @@ Current checkpoint:
 - Explicit `Table N` references are now preserved in chunk metadata so explicit table queries can still recover linked evidence when parser output leaves the table callout in narrative text
 - `scripts/reingest_single_doc.py` now exists to repair one document in place without recreating the full collection, and it can now update the rebuild manifest entry during the same operation so the local corpus record does not drift immediately after a repair
 - Table semantic metadata is now part of the ingestion baseline so rebuilt collections can filter metric/comparison tables from payload metadata instead of re-deriving table type in ranking code
-- Table-context improvement should proceed through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic
+- Table-context improvement now proceeds through explicit caption/prose linkage metadata rather than a positional "previous paragraph" heuristic, and returned table chunks now surface that linked context when the metadata is present
 - A new diagnostic script, `scripts/inspect_retrieval_candidates.py`, now exists to inspect initial search hits, post-filter candidates, ranked candidates, and final returned chunks for one query before changing ranking logic
 - Current OOD inspection established that the stewardship-review miss was not a candidate-recall failure: the Fabre paper was already present in early candidates, and a narrow document-level disambiguation step was sufficient to resolve `O03` and `O10`
 - The next retrieval step should not add extra embedding stages, hybrid retrieval, or query expansion; header-precision and table-hit drift should be diagnosed first, and any new behavior should stay similarly narrow and benchmark-backed
@@ -291,7 +291,7 @@ Recommended next implementation order:
    - maintain the checked-in `requirements.txt`
    - maintain the checked-in `.env.example`
    - add clearer cross-platform setup docs
-6. Add metadata-linked table caption/prose context so table hits can carry better reasoning context without positional heuristics
+6. Broaden table-context coverage within the same metadata-linked design so more returned table chunks carry caption/prose context without positional heuristics
 7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
 8. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
 9. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
