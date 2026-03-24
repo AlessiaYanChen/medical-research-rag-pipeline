@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+from typing import Any
 
 
 def _ensure_project_root_on_path() -> None:
@@ -63,6 +64,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional rebuild manifest JSON to update after successful reingestion.",
     )
     parser.add_argument(
+        "--failure-report-out",
+        default="",
+        help="Optional path to write a JSON report describing the failed reingestion attempt.",
+    )
+    parser.add_argument(
         "--embedding-provider",
         choices=["openai", "azure_openai"],
         default=os.getenv("EMBEDDING_PROVIDER", "openai"),
@@ -97,27 +103,122 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def build_failure_record(
+    *,
+    pdf_path: Path,
+    doc_id: str,
+    collection: str,
+    stage: str,
+    error: Exception | str,
+) -> dict[str, str]:
+    error_message = str(error).strip() or (
+        error.__class__.__name__ if isinstance(error, Exception) else "Unknown error"
+    )
+    return {
+        "pdf_path": str(pdf_path),
+        "doc_id": doc_id,
+        "collection": collection,
+        "stage": stage,
+        "error": error_message,
+    }
+
+
+def write_failure_report(
+    *,
+    output_path: str | Path,
+    failure: dict[str, str],
+    manifest_path: str = "",
+) -> Path:
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "doc_id": failure["doc_id"],
+        "collection": failure["collection"],
+        "pdf_path": failure["pdf_path"],
+        "manifest_path": manifest_path,
+        "failure": failure,
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
+
+
+def report_failure(
+    *,
+    pdf_path: Path,
+    doc_id: str,
+    collection: str,
+    stage: str,
+    error: Exception | str,
+    failure_report_out: str,
+    manifest_path: str = "",
+) -> int:
+    failure = build_failure_record(
+        pdf_path=pdf_path,
+        doc_id=doc_id,
+        collection=collection,
+        stage=stage,
+        error=error,
+    )
+    print(f"ERROR [{stage}]: {failure['error']}")
+    if failure_report_out.strip():
+        written_path = write_failure_report(
+            output_path=failure_report_out,
+            failure=failure,
+            manifest_path=manifest_path,
+        )
+        print(f"Failure report: {written_path}")
+    return 1
+
+
 def main() -> int:
     args = parse_args()
     pdf_path = Path(args.pdf)
     try:
         normalized_doc_id = normalize_doc_id(args.doc_id)
     except ValueError as exc:
-        print(f"ERROR: {exc}")
-        return 1
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=args.doc_id,
+            collection=args.collection,
+            stage="normalize_doc_id",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
     if not pdf_path.exists():
-        print(f"ERROR: PDF not found: {pdf_path}")
-        return 1
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="validate_pdf_path",
+            error=f"PDF not found: {pdf_path}",
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
     if not args.embedding_api_key:
-        print("ERROR: embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.")
-        return 1
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="validate_embedding_config",
+            error="embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.",
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
     if args.manifest.strip():
         manifest_path = Path(args.manifest)
         if manifest_path.exists():
             loaded_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             if not isinstance(loaded_manifest, dict):
-                print(f"ERROR: manifest is not a JSON object: {manifest_path}")
-                return 1
+                return report_failure(
+                    pdf_path=pdf_path,
+                    doc_id=normalized_doc_id,
+                    collection=args.collection,
+                    stage="manifest_validation",
+                    error=f"manifest is not a JSON object: {manifest_path}",
+                    failure_report_out=args.failure_report_out,
+                    manifest_path=args.manifest,
+                )
             compatibility_issues = validate_manifest_compatibility(
                 loaded_manifest,
                 expected_collection=args.collection,
@@ -125,10 +226,15 @@ def main() -> int:
                 expected_chunking_version=UnifiedChunker.CHUNKING_VERSION,
             )
             if compatibility_issues:
-                print("ERROR: manifest compatibility check failed:")
-                for issue in compatibility_issues:
-                    print(f"- {issue}")
-                return 1
+                return report_failure(
+                    pdf_path=pdf_path,
+                    doc_id=normalized_doc_id,
+                    collection=args.collection,
+                    stage="manifest_validation",
+                    error="manifest compatibility check failed: " + " | ".join(compatibility_issues),
+                    failure_report_out=args.failure_report_out,
+                    manifest_path=args.manifest,
+                )
             try:
                 ensure_doc_identity_is_available(
                     doc_id=normalized_doc_id,
@@ -141,8 +247,15 @@ def main() -> int:
                     allowed_doc_ids={normalized_doc_id},
                 )
             except ValueError as exc:
-                print(f"ERROR: {exc}")
-                return 1
+                return report_failure(
+                    pdf_path=pdf_path,
+                    doc_id=normalized_doc_id,
+                    collection=args.collection,
+                    stage="manifest_validation",
+                    error=exc,
+                    failure_report_out=args.failure_report_out,
+                    manifest_path=args.manifest,
+                )
 
     embedding_fn = OpenAIEmbeddingAdapter(
         api_key=args.embedding_api_key,
@@ -155,22 +268,51 @@ def main() -> int:
     try:
         embedding_fn(["embedding auth preflight"])
     except Exception as exc:  # noqa: BLE001
-        print(f"ERROR: embedding preflight failed: {exc}")
-        return 1
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="embedding_preflight",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
 
     parser = MarkerParser()
     chunker = UnifiedChunker(max_chars=args.max_chars, overlap_paragraphs=args.overlap_paragraphs)
 
     print(f"Parsing: {pdf_path}")
-    parsed = parser.parse(pdf_path)
-    normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
-    chunks = chunker.chunk_document(
-        doc_id=normalized_doc_id,
-        source_file=pdf_path.name,
-        markdown_text=parsed.markdown_text,
-        tables=normalized_tables,
-        local_file=str(pdf_path),
-    )
+    try:
+        parsed = parser.parse(pdf_path)
+    except Exception as exc:  # noqa: BLE001
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="parse",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
+    try:
+        normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
+        chunks = chunker.chunk_document(
+            doc_id=normalized_doc_id,
+            source_file=pdf_path.name,
+            markdown_text=parsed.markdown_text,
+            tables=normalized_tables,
+            local_file=str(pdf_path),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="chunk",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
 
     client = QdrantClient(url=args.qdrant_url)
     repository = QdrantRepository(
@@ -188,36 +330,76 @@ def main() -> int:
             allowed_doc_ids={normalized_doc_id},
         )
     except ValueError as exc:
-        print(f"ERROR: {exc}")
-        return 1
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="validate_collection_identity",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
 
-    client.delete(
-        collection_name=args.collection,
-        points_selector=Filter(
-            must=[FieldCondition(key="doc_id", match=MatchValue(value=normalized_doc_id))]
-        ),
-        wait=True,
-    )
-    repository.upsert_chunks(chunks)
+    try:
+        client.delete(
+            collection_name=args.collection,
+            points_selector=Filter(
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=normalized_doc_id))]
+            ),
+            wait=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="delete_old_doc",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
+    try:
+        repository.upsert_chunks(chunks)
+    except Exception as exc:  # noqa: BLE001
+        return report_failure(
+            pdf_path=pdf_path,
+            doc_id=normalized_doc_id,
+            collection=args.collection,
+            stage="upsert_new_doc",
+            error=exc,
+            failure_report_out=args.failure_report_out,
+            manifest_path=args.manifest,
+        )
 
     text_chunks = sum(chunk.metadata.chunk_type == "text" for chunk in chunks)
     table_chunks = sum(chunk.metadata.chunk_type == "table" for chunk in chunks)
     if args.manifest.strip():
-        manifest_entry = build_manifest_doc_entry(
-            doc_id=normalized_doc_id,
-            source_file=pdf_path.name,
-            local_file=str(pdf_path),
-            chunks=chunks,
-            ingestion_version=UnifiedChunker.INGESTION_VERSION,
-            chunking_version=UnifiedChunker.CHUNKING_VERSION,
-        )
-        upsert_manifest_doc_entry(
-            manifest_path=args.manifest,
-            collection=args.collection,
-            doc_entry=manifest_entry,
-            ingestion_version=UnifiedChunker.INGESTION_VERSION,
-            chunking_version=UnifiedChunker.CHUNKING_VERSION,
-        )
+        try:
+            manifest_entry = build_manifest_doc_entry(
+                doc_id=normalized_doc_id,
+                source_file=pdf_path.name,
+                local_file=str(pdf_path),
+                chunks=chunks,
+                ingestion_version=UnifiedChunker.INGESTION_VERSION,
+                chunking_version=UnifiedChunker.CHUNKING_VERSION,
+            )
+            upsert_manifest_doc_entry(
+                manifest_path=args.manifest,
+                collection=args.collection,
+                doc_entry=manifest_entry,
+                ingestion_version=UnifiedChunker.INGESTION_VERSION,
+                chunking_version=UnifiedChunker.CHUNKING_VERSION,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return report_failure(
+                pdf_path=pdf_path,
+                doc_id=normalized_doc_id,
+                collection=args.collection,
+                stage="manifest_update",
+                error=exc,
+                failure_report_out=args.failure_report_out,
+                manifest_path=args.manifest,
+            )
 
     print(f"Reingested doc_id: {normalized_doc_id}")
     print(f"Collection: {args.collection}")

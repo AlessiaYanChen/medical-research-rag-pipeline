@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from scripts.reingest_single_doc import build_failure_record, write_failure_report
+
+
+def test_reingest_build_failure_record_includes_stage_and_collection(tmp_path: Path) -> None:
+    pdf_path = tmp_path / "study.pdf"
+    pdf_path.write_text("placeholder", encoding="utf-8")
+
+    failure = build_failure_record(
+        pdf_path=pdf_path,
+        doc_id="DOC-7",
+        collection="medical_research_chunks_v1",
+        stage="parse",
+        error=RuntimeError("parse failed"),
+    )
+
+    assert failure == {
+        "pdf_path": str(pdf_path),
+        "doc_id": "DOC-7",
+        "collection": "medical_research_chunks_v1",
+        "stage": "parse",
+        "error": "parse failed",
+    }
+
+
+def test_reingest_write_failure_report_writes_single_failure_payload(tmp_path: Path) -> None:
+    output_path = tmp_path / "reports" / "reingest_failure.json"
+    failure = {
+        "pdf_path": "C:/docs/study.pdf",
+        "doc_id": "DOC-7",
+        "collection": "medical_research_chunks_v1",
+        "stage": "manifest_update",
+        "error": "manifest write failed",
+    }
+
+    written_path = write_failure_report(
+        output_path=output_path,
+        failure=failure,
+        manifest_path="data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json",
+    )
+
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert written_path == output_path
+    assert payload["doc_id"] == "DOC-7"
+    assert payload["collection"] == "medical_research_chunks_v1"
+    assert payload["pdf_path"] == "C:/docs/study.pdf"
+    assert payload["manifest_path"] == "data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json"
+    assert payload["failure"] == failure
