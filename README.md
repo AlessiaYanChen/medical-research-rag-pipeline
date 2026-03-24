@@ -496,16 +496,16 @@ python scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eva
 Deterministically rebuild a collection from the uploaded benchmark PDFs:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 If you want a medium-scale batch rebuild to continue past per-file failures while still recording them for follow-up:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_v1.json
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_v1.json
 ```
 
-With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/rebuild_failures_<collection>.json`.
+If `--manifest-out` is omitted, rebuilds now default to `data/ingestion_manifests/<collection>_rebuild_manifest.json`, which keeps the rebuild output aligned with the default audit and reingest workflow for the same collection. With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/rebuild_failures_<collection>.json`.
 
 Reparse and replace a single document in an existing collection, optionally syncing the rebuild manifest entry at the same time:
 
@@ -555,7 +555,7 @@ For medium-scale ingestion work, the current operator path is:
 1. Rebuild the collection with manifest output:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest-out data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --continue-on-error
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error
 ```
 
 2. Review any rebuild failures written to `data/eval/results/rebuild_failures_medical_research_chunks_v1.json`.

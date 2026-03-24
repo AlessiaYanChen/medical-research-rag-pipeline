@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import json
+import shlex
 from pathlib import Path
 
-from scripts.rebuild_collection import build_failure_record, resolve_failure_report_path, write_failure_report
+from scripts.rebuild_collection import (
+    build_failure_record,
+    parse_args,
+    resolve_failure_report_path,
+    resolve_manifest_output_path,
+    write_failure_report,
+)
 
 
 def test_build_failure_record_uses_explicit_doc_id_and_error_message(tmp_path: Path) -> None:
@@ -87,3 +94,30 @@ def test_resolve_failure_report_path_preserves_explicit_override() -> None:
     )
 
     assert resolved == Path("custom/rebuild_failures.json")
+
+
+def test_resolve_manifest_output_path_uses_collection_specific_default() -> None:
+    resolved = resolve_manifest_output_path(
+        output_path="",
+        collection="medical_research_chunks_v1",
+    )
+
+    assert resolved == Path("data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json")
+
+
+def test_resolve_manifest_output_path_preserves_explicit_override() -> None:
+    resolved = resolve_manifest_output_path(
+        output_path="custom/manifest.json",
+        collection="medical_research_chunks_v1",
+    )
+
+    assert resolved == Path("custom/manifest.json")
+
+
+def test_parse_args_leaves_manifest_out_blank_until_collection_is_known(monkeypatch) -> None:
+    argv = shlex.split("--pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1")
+    monkeypatch.setattr("sys.argv", ["rebuild_collection.py", *argv])
+
+    args = parse_args()
+
+    assert args.manifest_out == ""

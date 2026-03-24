@@ -225,6 +225,7 @@ Current checkpoint:
 - on March 24, 2026, `scripts/rebuild_collection.py` gained batch-oriented hardening for medium-scale ingest work:
   - `--continue-on-error` now allows later PDFs in the batch to continue after a per-document failure
   - `--failure-report-out` can now write a structured JSON report for per-file rebuild failures
+  - when `--manifest-out` is omitted, rebuilds now write to the collection-specific default path `data/ingestion_manifests/<collection>_rebuild_manifest.json`, keeping rebuild, repair, and audit workflows aligned by default
   - partial-success rebuilds still write a manifest for successful documents but exit nonzero when any failures occurred, keeping automation and follow-up repair work explicit
 - on March 24, 2026, `scripts/reingest_single_doc.py` gained structured failure reporting for single-document repair attempts:
   - `--failure-report-out` can now write a JSON failure record for a repair attempt

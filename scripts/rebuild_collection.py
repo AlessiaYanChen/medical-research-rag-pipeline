@@ -24,6 +24,7 @@ from src.app.ingestion.dedup_utils import build_doc_identity, validate_unique_do
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, write_rebuild_manifest  # noqa: E402
+from src.app.ingestion.registry_utils import default_manifest_path_for_collection  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from scripts.test_e2e_flow import ensure_collection, normalize_tables  # noqa: E402
 
@@ -66,8 +67,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--manifest-out",
-        default="data/ingestion_manifests/rebuild_manifest.json",
-        help="Path to write rebuild manifest JSON.",
+        default="",
+        help="Optional path to write rebuild manifest JSON. Defaults to data/ingestion_manifests/<collection>_rebuild_manifest.json.",
     )
     parser.add_argument(
         "--continue-on-error",
@@ -138,6 +139,16 @@ def resolve_failure_report_path(
     if output_path.strip():
         return Path(output_path)
     return Path("data/eval/results") / f"rebuild_failures_{collection}.json"
+
+
+def resolve_manifest_output_path(
+    *,
+    output_path: str,
+    collection: str,
+) -> Path:
+    if output_path.strip():
+        return Path(output_path)
+    return default_manifest_path_for_collection(collection)
 
 
 def write_failure_report(
@@ -279,7 +290,10 @@ def main() -> int:
             print(f"Failure report: {failure_report_path}")
         return 1
 
-    manifest_path = Path(args.manifest_out)
+    manifest_path = resolve_manifest_output_path(
+        output_path=args.manifest_out,
+        collection=args.collection,
+    )
     write_rebuild_manifest(
         manifest_path=manifest_path,
         collection=args.collection,
