@@ -104,6 +104,8 @@ class DoclingParser(ParserPort):
         cleaned = cls._collapse_pdf_spacing_artifacts(cleaned)
         cleaned = cls._dedupe_opening_boilerplate(cleaned)
         cleaned = cls._normalize_opening_structured_abstract(cleaned)
+        cleaned = cls._strip_inline_numeric_citations(cleaned)
+        cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
         cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
         cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
         return cleaned.strip()
@@ -176,6 +178,13 @@ class DoclingParser(ParserPort):
             normalized_lines.append(line)
 
         return "\n".join(normalized_lines)
+
+    @staticmethod
+    def _strip_inline_numeric_citations(text: str) -> str:
+        citation_pattern = re.compile(
+            r"\s*\[\s*(?:\d+\s*(?:-\s*\d+)?)(?:\s*,\s*\d+\s*(?:-\s*\d+)?)*\s*\]"
+        )
+        return citation_pattern.sub("", text)
 
     @staticmethod
     def _extract_document_object(rendered: Any) -> Any | None:

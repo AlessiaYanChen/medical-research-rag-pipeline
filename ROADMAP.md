@@ -283,6 +283,7 @@ Current checkpoint:
   - `Docling` parsed and ingested the subset successfully after adapting `TableItem.export_to_dataframe()` into the repo's parser contract
   - a narrow `Docling` markdown cleanup pass now strips image placeholders, collapses repeated opening boilerplate, and reduces obvious spacing/OCR artifacts before chunking so parser-side regression diagnosis can continue without changing retrieval logic
   - `Docling` opening structured-abstract prose is now normalized into an explicit `Structured Abstract` section before the real article body so top-of-paper summary blocks are easier to diagnose and less likely to dominate body evidence during the bakeoff
+  - follow-up regression diagnosis showed most remaining stable/expanded `citation_noise_hits` came from inline numeric citation clusters surviving inside otherwise-valid body chunks, so the isolated `Docling` parser now also strips those citation runs before chunking without changing retrieval behavior or the production `Marker` path
   - `Docling` did not yet beat the current `Marker` baseline downstream: chunk count increased (`2810` vs `2317`), citation-noise queries increased on the stable and expanded tracks, table-hit coverage decreased on those tracks, and the OOD track regressed to `0.9167` expected doc hit / top-1 expected doc hit / average doc precision on the subset
   - the current next step is targeted regression diagnosis with parser-specific result comparison plus `inspect_retrieval_candidates.py`, not a production parser switch
 

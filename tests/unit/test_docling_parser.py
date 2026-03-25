@@ -187,3 +187,29 @@ Body section starts here.
     assert "## Structured Abstract" in parsed.markdown_text
     assert parsed.markdown_text.count("## Structured Abstract") == 1
     assert "## METHODS" in parsed.markdown_text
+
+
+def test_docling_parser_strips_inline_numeric_citation_runs(tmp_path: Path) -> None:
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    markdown = """
+## DISCUSSION
+
+Rapid testing enabled faster modifications [21]. Notably, RAPID enabled escalation sooner for resistant infections [6, 22]. This remained clinically meaningful.
+"""
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": markdown,
+            "tables": [],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert "[21]" not in parsed.markdown_text
+    assert "[6, 22]" not in parsed.markdown_text
+    assert "Rapid testing enabled faster modifications." in parsed.markdown_text
+    assert "Notably, RAPID enabled escalation sooner for resistant infections." in parsed.markdown_text
+    assert "This remained clinically meaningful." in parsed.markdown_text
