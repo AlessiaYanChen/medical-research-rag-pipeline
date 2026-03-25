@@ -620,9 +620,13 @@ Current parser bakeoff note from the March 25, 2026 8-PDF subset run:
 - the `Docling` adapter now also applies a narrow markdown cleanup pass before chunking to strip `<!-- image -->` fragments, collapse repeated opening boilerplate, and reduce obvious spacing/OCR artifacts exposed by the first bakeoff diagnostics
 - the `Docling` adapter now also normalizes opening structured-abstract blocks into an explicit `Structured Abstract` header before the real article body, reducing how aggressively top-of-paper summary prose competes with body sections during retrieval
 - the isolated `Docling` bakeoff parser now also strips inline numeric citation runs such as `[21]` or `[5, 6, 9, 11-14]` before chunking, based on regression diagnosis showing citation-noise hits were still coming from otherwise-eligible body chunks rather than retrieval-stage reference chunks
+- the isolated `Docling` bakeoff parser now also recovers the pathological Culture-Free LOD table from page text and links table chunks to shorter table-led context snippets so duplicate prose does not crowd those tables out during final selection
 - parse and ingest completed for all 8 subset PDFs in both parser-specific bakeoff collections
 - despite better-looking parser artifacts in spot checks, the first downstream retrieval comparison does not justify a production switch yet
-- on the current 8-PDF subset, `Docling` increased chunk count (`2810` vs `2317`), increased citation-noise queries on the stable and expanded tracks, reduced table-hit coverage on those tracks, and regressed the OOD doc-hit / top-1 doc-hit / doc-precision metrics
+- on the current 8-PDF subset, the current isolated `Docling` summary is `2781` chunks total, `2751` text chunks, and `30` table chunks
+- citation-noise regressions are now fixed in the isolated `Docling` path
+- the stable and expanded regression set has narrowed to `Q19` only; `Q05` and `Q18` now match or exceed the `Marker` baseline on table hits
+- the remaining `Q19` miss is no longer the Culture-Free LOD table path; current diagnosis indicates a cross-document selection/ranking issue where duplicate `smith-et-al-2023-comparison-of-three-rapid-diagnostic-tests-for-bloodstream-infections-using-benefit-risk-evaluation` evidence still displaces an additional expected table-bearing document
 - the current recommendation is to keep `Marker` as production and treat `Docling` as an isolated parser experiment until those regressions are explained
 
 For deeper `Docling` diagnosis, compare query-level regressions directly before changing parser or retrieval logic:
@@ -653,7 +657,7 @@ Use the same comparison helper on the stable and expanded result files as needed
 - the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
 - current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream
 - the current recommended order is: keep the stable and expanded benchmark records separate, diagnose any precision/table regressions, then only add further retrieval behavior if those measured regressions require it; do not add extra retrieval stages such as hybrid search, query expansion, or extra embedding-based routing before that work is complete
-- parser bakeoff tooling is not implemented yet; any parser migration should be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
+- parser bakeoff tooling is implemented and should remain isolated from the active collection; any parser migration should still be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
 
 ## Roadmap
 
