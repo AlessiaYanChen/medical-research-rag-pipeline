@@ -513,7 +513,10 @@ class DoclingParser(ParserPort):
                 header_offset += 2
             rows.append(row)
 
-        csv_text = cls._build_csv(headers=headers, rows=rows)
+        csv_text = (
+            "Table 2. LOD determination using contrived samples (CFU/\u00b5L)\n"
+            f"{cls._build_csv(headers=headers, rows=rows)}"
+        )
         return ParsedTable(headers=headers, rows=rows, csv=csv_text)
 
     @staticmethod

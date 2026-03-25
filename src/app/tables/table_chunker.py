@@ -865,14 +865,14 @@ class UnifiedChunker:
             if not parent_content:
                 continue
 
-            cleaned_parent_content = " ".join(parent_content.split())
             for raw_index in referenced_indices:
                 if not isinstance(raw_index, int):
                     continue
                 table_key = (chunk.metadata.doc_id, raw_index)
                 current_contexts = linked_context_by_table.setdefault(table_key, [])
-                if cleaned_parent_content not in current_contexts:
-                    current_contexts.append(cleaned_parent_content)
+                for snippet in self._table_reference_context_snippets(parent_content=parent_content, table_index=raw_index):
+                    if snippet not in current_contexts:
+                        current_contexts.append(snippet)
 
         table_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "table"]
         if table_chunks:
@@ -890,11 +890,53 @@ class UnifiedChunker:
             if not isinstance(raw_table_index, int):
                 continue
 
-            linked_contexts = linked_context_by_table.get((chunk.metadata.doc_id, raw_table_index), [])
+            linked_contexts = self._prioritize_linked_table_contexts(
+                table_index=raw_table_index,
+                linked_contexts=linked_context_by_table.get((chunk.metadata.doc_id, raw_table_index), []),
+            )
             if not linked_contexts:
                 continue
 
             chunk.metadata.extra["linked_table_contexts"] = linked_contexts[:2]
+
+    @classmethod
+    def _table_reference_context_snippets(cls, *, parent_content: str, table_index: int) -> list[str]:
+        cleaned_parent_content = " ".join(parent_content.split())
+        if not cleaned_parent_content:
+            return []
+
+        table_pattern = re.compile(rf"\btable\s+{table_index}\b", flags=re.IGNORECASE)
+        sentences = cls._split_sentences(cleaned_parent_content)
+        matching_sentences = [sentence for sentence in sentences if table_pattern.search(sentence)]
+        if not matching_sentences:
+            return [cleaned_parent_content]
+
+        preferred_sentences = [
+            sentence
+            for sentence in matching_sentences
+            if re.match(rf"^\s*table\s+{table_index}\b", sentence, flags=re.IGNORECASE)
+        ]
+        return preferred_sentences or matching_sentences
+
+    @staticmethod
+    def _prioritize_linked_table_contexts(*, table_index: int, linked_contexts: list[str]) -> list[str]:
+        if not linked_contexts:
+            return []
+
+        def priority(context: str) -> tuple[int, int]:
+            normalized = " ".join(context.lower().split())
+            leads_with_table = bool(re.match(rf"^table\s+{table_index}\b", normalized))
+            contains_explicit_table = f"table {table_index}" in normalized
+            return (
+                2 if leads_with_table else 1 if contains_explicit_table else 0,
+                -len(normalized),
+            )
+
+        ordered = sorted(linked_contexts, key=priority, reverse=True)
+        best_score = priority(ordered[0])[0]
+        if best_score > 0:
+            ordered = [context for context in ordered if priority(context)[0] == best_score]
+        return ordered
 
     def _attach_semantic_table_context(
         self,

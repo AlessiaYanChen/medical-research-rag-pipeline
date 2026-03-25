@@ -385,6 +385,37 @@ Table 1 summarizes discrepant respiratory-pathogen findings and explains why rou
     ]
 
 
+def test_unified_chunker_prefers_table_led_context_snippets_over_long_duplicate_paragraphs() -> None:
+    markdown = """# Results
+
+Lysozyme improved detection limits for gram-positive organisms (Table 2). The workflow also improved signal quality. Table 2 confirmed that gram-negative E. coli detection limits were unchanged while lipid A signal improved.
+
+| Organism | LOD |
+| --- | --- |
+| E. coli | 10^2 |
+"""
+    chunker = UnifiedChunker(max_chars=400, overlap_paragraphs=0)
+
+    chunks = chunker.chunk_document(
+        doc_id="DOC-015",
+        source_file="lod.pdf",
+        markdown_text=markdown,
+        tables=[
+            {"csv": "Group,Count\nAdults,10"},
+            {"csv": "Organism,LOD\nE. coli,10^2"},
+        ],
+    )
+
+    table_chunk = next(
+        chunk
+        for chunk in chunks
+        if chunk.metadata.chunk_type == "table" and chunk.metadata.extra["table_index"] == 2
+    )
+    assert table_chunk.metadata.extra["linked_table_contexts"] == [
+        "Table 2 confirmed that gram-negative E. coli detection limits were unchanged while lipid A signal improved."
+    ]
+
+
 def test_unified_chunker_links_semantic_table_context_without_explicit_table_number() -> None:
     markdown = """# Results
 

@@ -369,6 +369,7 @@ def test_docling_parser_recovers_pathological_lod_table_from_page_text_fallback(
 
     assert len(parsed.tables) == 1
     table = parsed.tables[0]
+    assert table.csv.splitlines()[0] == "Table 2. LOD determination using contrived samples (CFU/µL)"
     assert table.headers == [
         "Test strain",
         "LOD without lysozyme treatment (CFU/\u00b5L)",
