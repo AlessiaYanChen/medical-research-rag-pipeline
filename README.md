@@ -618,6 +618,7 @@ If you later want isolated ingestion plus evaluation into parser-specific collec
 Current parser bakeoff note from the March 25, 2026 8-PDF subset run:
 - `Docling` is now operational in the isolated bakeoff path after adapting `TableItem.export_to_dataframe()` into the repo's `ParsedTable` contract
 - the `Docling` adapter now also applies a narrow markdown cleanup pass before chunking to strip `<!-- image -->` fragments, collapse repeated opening boilerplate, and reduce obvious spacing/OCR artifacts exposed by the first bakeoff diagnostics
+- the `Docling` adapter now also normalizes opening structured-abstract blocks into an explicit `Structured Abstract` header before the real article body, reducing how aggressively top-of-paper summary prose competes with body sections during retrieval
 - parse and ingest completed for all 8 subset PDFs in both parser-specific bakeoff collections
 - despite better-looking parser artifacts in spot checks, the first downstream retrieval comparison does not justify a production switch yet
 - on the current 8-PDF subset, `Docling` increased chunk count (`2810` vs `2317`), increased citation-noise queries on the stable and expanded tracks, reduced table-hit coverage on those tracks, and regressed the OOD doc-hit / top-1 doc-hit / doc-precision metrics

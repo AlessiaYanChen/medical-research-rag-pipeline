@@ -103,6 +103,7 @@ class DoclingParser(ParserPort):
         cleaned = re.sub(r"<!--\s*image\s*-->", " ", cleaned, flags=re.IGNORECASE)
         cleaned = cls._collapse_pdf_spacing_artifacts(cleaned)
         cleaned = cls._dedupe_opening_boilerplate(cleaned)
+        cleaned = cls._normalize_opening_structured_abstract(cleaned)
         cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
         cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
         return cleaned.strip()
@@ -143,6 +144,38 @@ class DoclingParser(ParserPort):
             cleaned_lines.append(normalized)
 
         return "\n".join(cleaned_lines)
+
+    @staticmethod
+    def _normalize_opening_structured_abstract(text: str) -> str:
+        lines = text.splitlines()
+        if not lines:
+            return text
+
+        body_header_index: int | None = None
+        for index, line in enumerate(lines):
+            stripped = line.strip()
+            if re.match(r"^##\s+(methods|results|discussion|introduction|conclusion)\b", stripped, flags=re.IGNORECASE):
+                body_header_index = index
+                break
+
+        window_end = body_header_index if body_header_index is not None else min(len(lines), 80)
+        structured_prefixes = ("background.", "methods.", "results.", "conclusions.", "conclusion.")
+        normalized_lines: list[str] = []
+        abstract_seen = False
+
+        for index, line in enumerate(lines):
+            stripped = line.strip()
+            if index < window_end and stripped:
+                lower = stripped.lower()
+                if lower.startswith(structured_prefixes):
+                    if not abstract_seen:
+                        normalized_lines.append("## Structured Abstract")
+                        abstract_seen = True
+                    normalized_lines.append(stripped)
+                    continue
+            normalized_lines.append(line)
+
+        return "\n".join(normalized_lines)
 
     @staticmethod
     def _extract_document_object(rendered: Any) -> Any | None:

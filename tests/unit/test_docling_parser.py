@@ -153,3 +153,37 @@ Within the fi rst 4 days after enrollment, duration of vancomycin was not differ
     assert parsed.markdown_text.count("randomized to SOC testing") == 1
     assert "fi rst" not in parsed.markdown_text
     assert "first 4 days" in parsed.markdown_text
+
+
+def test_docling_parser_normalizes_opening_structured_abstract(tmp_path: Path) -> None:
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    markdown = """
+## Trial Title
+
+Background. Rapid diagnostics were evaluated in a randomized study.
+
+Methods. Patients were randomized to control or intervention arms.
+
+Results. Rapid testing shortened time to therapy change.
+
+Conclusions. Rapid testing improved antibiotic modification timing.
+
+## METHODS
+
+Body section starts here.
+"""
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": markdown,
+            "tables": [],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert "## Structured Abstract" in parsed.markdown_text
+    assert parsed.markdown_text.count("## Structured Abstract") == 1
+    assert "## METHODS" in parsed.markdown_text
