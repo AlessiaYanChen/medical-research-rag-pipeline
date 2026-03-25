@@ -5,6 +5,8 @@ import csv
 from io import StringIO
 from pathlib import Path
 import re
+import shutil
+import subprocess
 from typing import Any
 
 from src.ports.parser_port import ParsedDocument, ParsedTable, ParserPort
@@ -23,7 +25,7 @@ class DoclingParser(ParserPort):
 
         rendered = self._document_converter(source_path)
         markdown_text = self._clean_markdown_text(self._extract_markdown_text(rendered))
-        tables = self._extract_tables(rendered)
+        tables = self._resolve_tables(rendered=rendered, markdown_text=markdown_text, pdf_path=source_path)
         if not markdown_text.strip() and not tables:
             raise RuntimeError("Docling returned no markdown text or tables.")
 
@@ -76,7 +78,7 @@ class DoclingParser(ParserPort):
         return ""
 
     @classmethod
-    def _extract_tables(cls, rendered: Any) -> list[ParsedTable]:
+    def _extract_raw_tables(cls, rendered: Any) -> list[Any]:
         candidates = [rendered]
         document = cls._extract_document_object(rendered)
         if document is not None and document is not rendered:
@@ -95,7 +97,26 @@ class DoclingParser(ParserPort):
         if not isinstance(raw_tables, list):
             return []
 
-        return [cls._normalize_table(table) for table in raw_tables]
+        return raw_tables
+
+    @classmethod
+    def _extract_tables(cls, rendered: Any, *, pdf_path: Path | None = None) -> list[ParsedTable]:
+        raw_tables = cls._extract_raw_tables(rendered)
+        normalized_tables = [cls._normalize_table(table, pdf_path=pdf_path) for table in raw_tables]
+        return [table for table in normalized_tables if cls._table_has_meaningful_content(table)]
+
+    @classmethod
+    def _resolve_tables(cls, *, rendered: Any, markdown_text: str, pdf_path: Path | None = None) -> list[ParsedTable]:
+        extracted_tables = cls._extract_tables(rendered, pdf_path=pdf_path)
+        markdown_tables = cls._extract_markdown_tables(markdown_text)
+
+        if not extracted_tables:
+            return markdown_tables
+        if markdown_tables and len(markdown_tables) > len(extracted_tables):
+            return markdown_tables
+        if markdown_tables and cls._has_duplicate_tables(extracted_tables):
+            return markdown_tables
+        return extracted_tables
 
     @classmethod
     def _clean_markdown_text(cls, markdown_text: str) -> str:
@@ -193,13 +214,18 @@ class DoclingParser(ParserPort):
         return getattr(rendered, "document", None)
 
     @classmethod
-    def _normalize_table(cls, raw_table: Any) -> ParsedTable:
+    def _normalize_table(cls, raw_table: Any, *, pdf_path: Path | None = None) -> ParsedTable:
         if isinstance(raw_table, ParsedTable):
             return raw_table
 
         dataframe_export = getattr(raw_table, "export_to_dataframe", None)
         if callable(dataframe_export):
-            return cls._normalize_dataframe_table(raw_table)
+            table = cls._normalize_dataframe_table(raw_table)
+            if pdf_path is not None and cls._table_needs_page_text_recovery(raw_table=raw_table, table=table):
+                recovered = cls._recover_table_from_page_text(pdf_path=pdf_path, raw_table=raw_table)
+                if recovered is not None:
+                    return recovered
+            return table
 
         payload = cls._table_payload(raw_table)
         headers = [str(value).strip() for value in payload.get("headers", []) if str(value).strip()]
@@ -221,13 +247,14 @@ class DoclingParser(ParserPort):
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(f"Failed to export Docling table to dataframe: {exc}") from exc
 
-        headers = [str(column).strip() for column in list(dataframe.columns)]
+        columns = list(dataframe.columns)
+        headers = [str(column).strip() for column in columns]
         rows: list[dict[str, str]] = []
         for record in dataframe.fillna("").to_dict(orient="records"):
             rows.append(
                 {
-                    header: str(record.get(header, "")).strip()
-                    for header in headers
+                    header: str(record.get(column, "")).strip()
+                    for header, column in zip(headers, columns)
                 }
             )
 
@@ -303,3 +330,304 @@ class DoclingParser(ParserPort):
         for row in rows:
             writer.writerow([row.get(header, "") for header in headers])
         return buffer.getvalue().strip()
+
+    @staticmethod
+    def _table_has_meaningful_content(table: ParsedTable) -> bool:
+        if not table.rows:
+            return False
+        for row in table.rows:
+            if any(str(value).strip() for value in row.values()):
+                return True
+        return False
+
+    @classmethod
+    def _table_needs_page_text_recovery(cls, *, raw_table: Any, table: ParsedTable) -> bool:
+        data = getattr(raw_table, "data", None)
+        prov = getattr(raw_table, "prov", None)
+        if data is None or not isinstance(prov, list) or not prov:
+            return False
+
+        table_cells = getattr(data, "table_cells", None)
+        if not isinstance(table_cells, list) or not table_cells:
+            return False
+
+        has_column_headers = any(bool(getattr(cell, "column_header", False)) for cell in table_cells)
+        if has_column_headers:
+            return False
+
+        csv_text = re.sub(r"\s+", " ", table.csv).strip().lower()
+        if "lod with lysozyme treatment" not in csv_text:
+            return False
+
+        num_cols = int(getattr(data, "num_cols", 0) or 0)
+        if num_cols < 8:
+            return False
+        return True
+
+    @classmethod
+    def _recover_table_from_page_text(cls, *, pdf_path: Path, raw_table: Any) -> ParsedTable | None:
+        prov = getattr(raw_table, "prov", None)
+        if not isinstance(prov, list) or not prov:
+            return None
+
+        page_no = int(getattr(prov[0], "page_no", 0) or 0)
+        if page_no <= 0:
+            return None
+
+        page_text = cls._extract_pdftotext_page_text(pdf_path=pdf_path, page_no=page_no)
+        if not page_text:
+            return None
+
+        return cls._parse_lod_matrix_from_page_text(page_text)
+
+    @staticmethod
+    def _extract_pdftotext_page_text(*, pdf_path: Path, page_no: int) -> str:
+        executable = shutil.which("pdftotext") or shutil.which("pdftotext.exe")
+        if not executable:
+            return ""
+
+        completed = subprocess.run(
+            [executable, "-f", str(page_no), "-l", str(page_no), "-table", str(pdf_path), "-"],
+            capture_output=True,
+            text=True,
+            encoding="cp1252",
+            errors="replace",
+            check=False,
+        )
+        if completed.returncode != 0:
+            return ""
+        return completed.stdout
+
+    @classmethod
+    def _parse_lod_matrix_from_page_text(cls, page_text: str) -> ParsedTable | None:
+        normalized_text = cls._normalize_pdftotext_chars(page_text)
+        raw_lines = [line.rstrip("\f") for line in normalized_text.splitlines()]
+        lines = [line.rstrip() for line in raw_lines if line.strip()]
+        if not lines:
+            return None
+
+        download_idx = next((idx for idx, line in enumerate(lines) if "Downloaded from " in line), len(lines))
+        lines = lines[:download_idx]
+        if not any("LOD with lysozyme treatment" in line for line in lines):
+            return None
+        if not any("Incubation (mins)" in line for line in lines):
+            return None
+
+        table_left = min(
+            line.index(marker)
+            for line in lines
+            for marker in ("Test strain", "CFU/", "Incubation (mins)")
+            if marker in line
+        )
+        trimmed_lines = [line[table_left:] if len(line) > table_left else line for line in lines]
+
+        try:
+            without_idx = next(idx for idx, line in enumerate(trimmed_lines) if "LOD without lysozyme treatment" in line)
+            with_idx = next(idx for idx, line in enumerate(trimmed_lines) if "LOD with lysozyme treatment" in line)
+            no_species_line = next(
+                trimmed_lines[idx] for idx in range(without_idx + 1, with_idx) if "Test strain" in trimmed_lines[idx]
+            )
+            no_values_line = next(
+                trimmed_lines[idx] for idx in range(without_idx + 1, with_idx) if "CFU/" in trimmed_lines[idx]
+            )
+            with_species_line = next(
+                trimmed_lines[idx] for idx in range(with_idx + 1, len(trimmed_lines)) if "Test strain" in trimmed_lines[idx]
+            )
+            incubation_line = next(
+                trimmed_lines[idx] for idx in range(with_idx + 1, len(trimmed_lines)) if "Incubation (mins)" in trimmed_lines[idx]
+            )
+        except StopIteration:
+            return None
+
+        no_value_segments = cls._fixed_width_segments(no_values_line)
+        incubation_segments = cls._fixed_width_segments(incubation_line)
+        if len(no_value_segments) != 6 or len(incubation_segments) != 11:
+            return None
+
+        no_treatment_anchors = [start for start, _ in no_value_segments[1:]]
+        strains = [
+            re.sub(r"^Test strain\s+", "", token, flags=re.IGNORECASE).strip()
+            for token in cls._tokens_from_anchor_windows(no_species_line, no_treatment_anchors)
+        ]
+        no_treatment_values = [value for _, value in no_value_segments[1:]]
+        if len(strains) != 5 or len(no_treatment_values) != 5:
+            return None
+
+        with_strains = strains.copy()
+        if cls._tokens_from_anchor_windows(with_species_line, [start for start, _ in incubation_segments[1::2]])[-1:] == ["E. coli"]:
+            with_strains[-1] = "E. coli"
+
+        incubation_values = [value for _, value in incubation_segments[1:]]
+        if len(incubation_values) != 10:
+            return None
+
+        concentration_rows: list[tuple[str, list[str]]] = []
+        for line in trimmed_lines:
+            if not re.match(r"^\s*\d+\w*\s+\(CFU/", line):
+                continue
+            segments = cls._fixed_width_segments(line)
+            if len(segments) < 11:
+                continue
+            label_match = re.match(r"(\d+\w*)", segments[0][1])
+            if label_match is None:
+                continue
+            label = label_match.group(1)
+            values = [value for _, value in segments[1:11]]
+            concentration_rows.append((label, values))
+
+        if len(concentration_rows) < 5:
+            return None
+
+        headers = [
+            "Test strain",
+            "LOD without lysozyme treatment (CFU/\u00b5L)",
+            "10 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+            "10 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+            "50 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+            "50 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+            "100 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+            "100 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+            "500 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+            "500 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+            "1000 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+            "1000 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+        ]
+
+        concentration_order = ["10", "50", "100b", "500", "1000"]
+        concentration_map = {label: values for label, values in concentration_rows}
+        if not all(label in concentration_map for label in concentration_order):
+            return None
+
+        rows: list[dict[str, str]] = []
+        for strain_index, strain in enumerate(with_strains):
+            row: dict[str, str] = {
+                headers[0]: strain,
+                headers[1]: no_treatment_values[strain_index],
+            }
+            header_offset = 2
+            for label in concentration_order:
+                values = concentration_map[label]
+                value_index = strain_index * 2
+                row[headers[header_offset]] = values[value_index]
+                row[headers[header_offset + 1]] = values[value_index + 1]
+                header_offset += 2
+            rows.append(row)
+
+        csv_text = cls._build_csv(headers=headers, rows=rows)
+        return ParsedTable(headers=headers, rows=rows, csv=csv_text)
+
+    @staticmethod
+    def _normalize_pdftotext_chars(text: str) -> str:
+        normalized = re.sub(r"CFU/[^\s,.)]+", "CFU/\u00b5L", text)
+        normalized = re.sub(r"\([^)]*/mL\)", "(\u00b5g/mL)", normalized)
+        normalized = normalized.replace("(CFU/L)", "(CFU/\u00b5L)")
+        return normalized
+
+    @staticmethod
+    def _fixed_width_segments(line: str) -> list[tuple[int, str]]:
+        return [
+            (match.start(), re.sub(r"\s+", " ", match.group()).strip())
+            for match in re.finditer(r"\S(?:.*?\S)?(?=\s{2,}|$)", line)
+        ]
+
+    @staticmethod
+    def _tokens_from_anchor_windows(line: str, anchors: list[int]) -> list[str]:
+        if not anchors:
+            return []
+
+        boundaries: list[int] = [0]
+        for left, right in zip(anchors, anchors[1:]):
+            boundaries.append((left + right) // 2)
+        boundaries.append(len(line))
+
+        tokens: list[str] = []
+        for index, anchor in enumerate(anchors):
+            left = boundaries[index]
+            right = boundaries[index + 1]
+            window = line[left:right]
+            if anchor < len(line):
+                window = line[left:max(right, anchor + 1)]
+            tokens.append(re.sub(r"\s+", " ", window).strip())
+        return tokens
+
+    @classmethod
+    def _extract_markdown_tables(cls, markdown_text: str) -> list[ParsedTable]:
+        lines = markdown_text.splitlines()
+        blocks: list[list[str]] = []
+        current: list[str] = []
+        in_table = False
+
+        for line in lines:
+            stripped = line.strip()
+            if cls._is_markdown_table_line(stripped):
+                current.append(line)
+                in_table = True
+                continue
+
+            if in_table:
+                if current:
+                    blocks.append(current)
+                current = []
+                in_table = False
+
+        if current:
+            blocks.append(current)
+
+        parsed_tables: list[ParsedTable] = []
+        for block in blocks:
+            if len(block) < 2 or not cls._looks_like_markdown_table(block):
+                continue
+            table = cls._parse_markdown_table_block("\n".join(block))
+            if cls._table_has_meaningful_content(table):
+                parsed_tables.append(table)
+        return parsed_tables
+
+    @staticmethod
+    def _is_markdown_table_line(line: str) -> bool:
+        return line.count("|") >= 2
+
+    @staticmethod
+    def _looks_like_markdown_table(lines: list[str]) -> bool:
+        divider = lines[1].strip()
+        return bool(re.match(r"^\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?$", divider))
+
+    @classmethod
+    def _parse_markdown_table_block(cls, table_block: str) -> ParsedTable:
+        lines = [line.strip() for line in table_block.splitlines() if line.strip()]
+        if len(lines) < 2:
+            return ParsedTable(headers=[], rows=[], csv="")
+
+        headers = cls._split_markdown_row(lines[0])
+        data_lines = [line for line in lines[2:] if cls._is_markdown_table_line(line)]
+
+        rows: list[dict[str, str]] = []
+        csv_lines = [",".join(headers)]
+        for data_line in data_lines:
+            values = cls._split_markdown_row(data_line)
+            if len(values) < len(headers):
+                values.extend([""] * (len(headers) - len(values)))
+            elif len(values) > len(headers):
+                values = values[: len(headers)]
+
+            row = dict(zip(headers, values))
+            rows.append(row)
+            csv_lines.append(",".join(values))
+
+        return ParsedTable(headers=headers, rows=rows, csv="\n".join(csv_lines))
+
+    @staticmethod
+    def _split_markdown_row(row: str) -> list[str]:
+        trimmed = row.strip().strip("|")
+        return [cell.strip() for cell in trimmed.split("|")]
+
+    @staticmethod
+    def _has_duplicate_tables(tables: list[ParsedTable]) -> bool:
+        seen: set[str] = set()
+        for table in tables:
+            normalized = re.sub(r"\s+", " ", table.csv).strip().lower()
+            if not normalized:
+                continue
+            if normalized in seen:
+                return True
+            seen.add(normalized)
+        return False

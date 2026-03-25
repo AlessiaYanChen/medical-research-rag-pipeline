@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from src.adapters.parsing.docling_parser import DoclingParser
@@ -213,3 +214,177 @@ Rapid testing enabled faster modifications [21]. Notably, RAPID enabled escalati
     assert "Rapid testing enabled faster modifications." in parsed.markdown_text
     assert "Notably, RAPID enabled escalation sooner for resistant infections." in parsed.markdown_text
     assert "This remained clinically meaningful." in parsed.markdown_text
+
+
+def test_docling_parser_drops_structurally_empty_tables(tmp_path: Path) -> None:
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": "# Results\n\nTable below.",
+            "tables": [
+                {
+                    "headers": ["0", "1", "2"],
+                    "rows": [
+                        {"0": "", "1": "", "2": ""},
+                        {"0": " ", "1": "", "2": ""},
+                    ],
+                },
+                {
+                    "headers": ["Metric", "Value"],
+                    "rows": [
+                        {"Metric": "Sensitivity", "Value": "94%"},
+                    ],
+                },
+            ],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 1
+    assert parsed.tables[0].headers == ["Metric", "Value"]
+    assert parsed.tables[0].rows == [{"Metric": "Sensitivity", "Value": "94%"}]
+
+
+def test_docling_parser_prefers_markdown_table_order_when_structured_tables_are_duplicated(tmp_path: Path) -> None:
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    markdown = """
+# Results
+
+| Metric | Value |
+| --- | --- |
+| Sensitivity | 94% |
+
+| Organism | Count |
+| --- | --- |
+| E. coli | 7 |
+"""
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": markdown,
+            "tables": [
+                {
+                    "headers": ["Metric", "Value"],
+                    "rows": [{"Metric": "Sensitivity", "Value": "94%"}],
+                },
+                {
+                    "headers": ["Metric", "Value"],
+                    "rows": [{"Metric": "Sensitivity", "Value": "94%"}],
+                },
+            ],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 2
+    assert parsed.tables[0].headers == ["Metric", "Value"]
+    assert parsed.tables[0].rows == [{"Metric": "Sensitivity", "Value": "94%"}]
+    assert parsed.tables[1].headers == ["Organism", "Count"]
+    assert parsed.tables[1].rows == [{"Organism": "E. coli", "Count": "7"}]
+
+
+def test_docling_parser_recovers_pathological_lod_table_from_page_text_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeCell:
+        def __init__(self) -> None:
+            self.column_header = False
+
+    class FakeData:
+        num_cols = 11
+        table_cells = [FakeCell()]
+
+    class FakeProv:
+        page_no = 5
+
+    class FakeDoclingTable:
+        data = FakeData()
+        prov = [FakeProv()]
+
+        def export_to_dataframe(self):
+            return pd.DataFrame(
+                [
+                    ["LOD without lysozyme treatment Gram-positive", "Gram-negative E. coli", "10 2", "LOD with lysozyme treatment"],
+                    ["", "E. faecalis", "10 5", "LOD with lysozyme treatment"],
+                ]
+            )
+
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    page_text = """
+                                                                     Table   2.   LOD determination using contrived samples            (CFU/L).a
+
+                                                                                           LOD without lysozyme treatment
+
+                                                                                                   Gram-positive
+
+                                                                                                                                                                               Gram-negative
+
+             Test strain                         S. aureus                        S.  epidermidis                       E. avium                  E. faecalis                  E. coli
+
+             CFU/\u7121                              104                                  105                                 104                          105                     102
+
+                                                                                           LOD with lysozyme treatment
+
+                                                                                                           Gram-positive
+
+                                                                                                                                                                          Gram-negative
+
+             Test strain                                         S.  aureus                S. epidermidis                    E. avium                  E.  faecalis            E. coli
+
+             Incubation (mins)                              30               60       30           60                   30             60         30                 60   30            60
+
+             Amount of lysozyme (\u75e2/mL)
+
+             10 (CFU/\u7121)                                    104              104      104          104                  104            104        105                104  102           102
+
+             50 (CFU/\u7121)                                    104              104      104          104                  104            104        104                104  102           102
+
+             100b (CFU/\u7121)                                  102              102      103          103                  103            102        103                103  102           102
+
+             500 (CFU/\u7121)                                   102              102      103          103                  103            102        103                103  102           102
+
+             1000 (CFU/\u7121)                                  102              102      103          103                  102            102        103                103  102           102
+"""
+
+    monkeypatch.setattr(
+        DoclingParser,
+        "_extract_pdftotext_page_text",
+        staticmethod(lambda **_: page_text),
+    )
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": "# Results\n\nLOD summary.",
+            "tables": [FakeDoclingTable()],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 1
+    table = parsed.tables[0]
+    assert table.headers == [
+        "Test strain",
+        "LOD without lysozyme treatment (CFU/\u00b5L)",
+        "10 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+        "10 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+        "50 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+        "50 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+        "100 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+        "100 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+        "500 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+        "500 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+        "1000 \u00b5g/mL 30 mins (CFU/\u00b5L)",
+        "1000 \u00b5g/mL 60 mins (CFU/\u00b5L)",
+    ]
+    assert table.rows[0]["Test strain"] == "S. aureus"
+    assert table.rows[0]["LOD without lysozyme treatment (CFU/\u00b5L)"] == "104"
+    assert table.rows[0]["100 \u00b5g/mL 60 mins (CFU/\u00b5L)"] == "102"
+    assert table.rows[-1]["Test strain"] == "E. coli"
+    assert table.rows[-1]["500 \u00b5g/mL 30 mins (CFU/\u00b5L)"] == "102"
