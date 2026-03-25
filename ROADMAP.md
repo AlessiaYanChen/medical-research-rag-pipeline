@@ -279,6 +279,10 @@ Current checkpoint:
 - bakeoff ingestion uses parser-specific collection names and remains isolated from `medical_research_chunks_v1`
 - `src/adapters/parsing/docling_parser.py` now adapts `Docling` output into the same `ParsedDocument` / `ParsedTable` contract used by the current ingestion path, keeping parser experimentation narrow
 - the current chunker and retrieval logic remain unchanged; the bakeoff still needs fixed-subset runs and benchmark comparison before any parser migration decision
+- the first March 25, 2026 8-PDF subset bakeoff run now completed end to end for both parser-specific collections:
+  - `Docling` parsed and ingested the subset successfully after adapting `TableItem.export_to_dataframe()` into the repo's parser contract
+  - `Docling` did not yet beat the current `Marker` baseline downstream: chunk count increased (`2810` vs `2317`), citation-noise queries increased on the stable and expanded tracks, table-hit coverage decreased on those tracks, and the OOD track regressed to `0.9167` expected doc hit / top-1 expected doc hit / average doc precision on the subset
+  - the current next step is targeted regression diagnosis with parser-specific result comparison plus `inspect_retrieval_candidates.py`, not a production parser switch
 
 ## Phase 5: Corpus Rollout
 

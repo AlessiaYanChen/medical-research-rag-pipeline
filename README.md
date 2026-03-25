@@ -615,6 +615,25 @@ If you later want isolated ingestion plus evaluation into parser-specific collec
 .\.venv\Scripts\python.exe experiments/parser_bakeoff.py --pdf-dir data/parser_bakeoff/input_subset --parser both --marker-collection medical_research_chunks_marker_bakeoff --docling-collection medical_research_chunks_docling_bakeoff --recreate-collections --run-eval --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
+Current parser bakeoff note from the March 25, 2026 8-PDF subset run:
+- `Docling` is now operational in the isolated bakeoff path after adapting `TableItem.export_to_dataframe()` into the repo's `ParsedTable` contract
+- parse and ingest completed for all 8 subset PDFs in both parser-specific bakeoff collections
+- despite better-looking parser artifacts in spot checks, the first downstream retrieval comparison does not justify a production switch yet
+- on the current 8-PDF subset, `Docling` increased chunk count (`2810` vs `2317`), increased citation-noise queries on the stable and expanded tracks, reduced table-hit coverage on those tracks, and regressed the OOD doc-hit / top-1 doc-hit / doc-precision metrics
+- the current recommendation is to keep `Marker` as production and treat `Docling` as an isolated parser experiment until those regressions are explained
+
+For deeper `Docling` diagnosis, compare query-level regressions directly before changing parser or retrieval logic:
+
+```powershell
+.\.venv\Scripts\python.exe experiments/compare_parser_bakeoff_results.py --baseline data/parser_bakeoff/results/marker/ood_adversarial_queries.json --candidate data/parser_bakeoff/results/docling/ood_adversarial_queries.json --json-out data/parser_bakeoff/results/comparisons/ood_regressions_docling_vs_marker.json
+```
+
+Use the same comparison helper on the stable and expanded result files as needed. The recommended workflow is:
+- identify the exact regressed query IDs first
+- inspect those queries with `scripts/inspect_retrieval_candidates.py` against `medical_research_chunks_docling_bakeoff`
+- compare the matching `Marker` and `Docling` artifacts for the implicated documents
+- keep any follow-up changes parser-side and narrow until the regression source is clear
+
 ## Current Limitations
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
