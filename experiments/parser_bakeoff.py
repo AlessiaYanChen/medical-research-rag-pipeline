@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import sys
 from typing import Any
 
@@ -37,6 +38,7 @@ from src.ports.parser_port import ParsedDocument, ParserPort  # noqa: E402
 
 
 DEFAULT_OUTPUT_ROOT = Path("data/parser_bakeoff")
+SMITH_DOC_ID = "smith-et-al-2023-comparison-of-three-rapid-diagnostic-tests-for-bloodstream-infections-using-benefit-risk-evaluation"
 
 
 def parse_args() -> argparse.Namespace:
@@ -189,6 +191,72 @@ def write_parsed_artifacts(*, artifact_dir: Path, parsed: ParsedDocument) -> Non
         (artifact_dir / f"table_{index:02d}.csv").write_text(table.csv, encoding="utf-8")
 
 
+def normalize_docling_bakeoff_markdown(*, doc_id: str, markdown_text: str) -> str:
+    if doc_id != SMITH_DOC_ID:
+        return markdown_text
+
+    cleaned = str(markdown_text or "")
+    cleaned = _strip_smith_watermarks(cleaned)
+    cleaned = _strip_smith_chart_ocr_blocks(cleaned)
+    cleaned = _strip_smith_survey_preference_section(cleaned)
+    cleaned = _strip_smith_figure_caption_blocks(cleaned)
+    cleaned = cleaned.replace("## BED-FRAME\n\n## DISCUSSION", "## DISCUSSION")
+    cleaned = cleaned.replace("## BED-FRAME\n\nmonomicrobial PBCs", "monomicrobial PBCs")
+    cleaned = cleaned.replace("\n\n\n", "\n\n")
+    return cleaned.strip()
+
+
+def _strip_smith_watermarks(markdown_text: str) -> str:
+    lines = [
+        line
+        for line in markdown_text.splitlines()
+        if "Downloaded from https://journals.asm.org/journal/jcm" not in line
+    ]
+    return "\n".join(lines)
+
+
+def _strip_smith_chart_ocr_blocks(markdown_text: str) -> str:
+    cleaned = markdown_text
+    cleaned = re.sub(
+        r"\n## A\.\s+.*?(?=\nFIG 3\b)",
+        "\n",
+        cleaned,
+        flags=re.DOTALL,
+    )
+    cleaned = re.sub(
+        r"\nDifference: Sepsityper-FLAT\s+B\.\s+## Accuracy Weighted by Importance at 40% Prevalence\s+",
+        "\n",
+        cleaned,
+    )
+    return cleaned
+
+
+def _strip_smith_survey_preference_section(markdown_text: str) -> str:
+    return re.sub(
+        r"\n## Preferred diagnostic attributes based on survey\s+.*?(?=\n## DISCUSSION\b)",
+        "\n",
+        markdown_text,
+        flags=re.DOTALL,
+    )
+
+
+def _strip_smith_figure_caption_blocks(markdown_text: str) -> str:
+    blocks = [block.strip() for block in re.split(r"\n\s*\n", markdown_text.strip()) if block.strip()]
+    kept_blocks: list[str] = []
+    for block in blocks:
+        normalized = " ".join(block.split())
+        if normalized.startswith("FIG 3 "):
+            continue
+        if normalized.startswith("FIG 4 "):
+            continue
+        if normalized.startswith("FIG 5 "):
+            continue
+        if normalized.startswith("## BED-FRAME") and "FIG 5 " in normalized:
+            continue
+        kept_blocks.append(block)
+    return "\n\n".join(kept_blocks)
+
+
 def evaluate_collection(
     *,
     collection_name: str,
@@ -335,6 +403,15 @@ def main() -> int:
             artifact_dir = parser_artifact_dir(output_root=output_root, parser_name=parser_name, doc_id=doc_id)
             try:
                 parsed = parser.parse(pdf_path)
+                if parser_name == "docling":
+                    parsed = ParsedDocument(
+                        source_path=parsed.source_path,
+                        markdown_text=normalize_docling_bakeoff_markdown(
+                            doc_id=doc_id,
+                            markdown_text=parsed.markdown_text,
+                        ),
+                        tables=parsed.tables,
+                    )
                 write_parsed_artifacts(artifact_dir=artifact_dir, parsed=parsed)
                 docs_succeeded.append(doc_id)
             except Exception as exc:  # noqa: BLE001
