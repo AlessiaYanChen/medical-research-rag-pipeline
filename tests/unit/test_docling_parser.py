@@ -63,6 +63,39 @@ def test_docling_parser_normalizes_structured_table_payload(tmp_path: Path) -> N
     )
 
 
+def test_docling_parser_normalizes_dataframe_export_table(tmp_path: Path) -> None:
+    import pandas as pd
+
+    class FakeDoclingTable:
+        def export_to_dataframe(self):
+            return pd.DataFrame(
+                [
+                    {"Metric": "Response Rate", "Group A": "81%", "Group B": "67%"},
+                    {"Metric": "Adverse Events", "Group A": "9%", "Group B": "14%"},
+                ]
+            )
+
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": "# Results\n\nTable below.",
+            "tables": [FakeDoclingTable()],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 1
+    table = parsed.tables[0]
+    assert table.headers == ["Metric", "Group A", "Group B"]
+    assert table.rows == [
+        {"Metric": "Response Rate", "Group A": "81%", "Group B": "67%"},
+        {"Metric": "Adverse Events", "Group A": "9%", "Group B": "14%"},
+    ]
+
+
 def test_docling_parser_rejects_unsupported_table_format(tmp_path: Path) -> None:
     dummy_pdf = tmp_path / "dummy.pdf"
     dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
@@ -91,3 +124,32 @@ def test_docling_parser_rejects_empty_output(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="Docling returned no markdown text or tables"):
         parser.parse(dummy_pdf)
+
+
+def test_docling_parser_cleans_markdown_noise_artifacts(tmp_path: Path) -> None:
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    noisy_markdown = """
+<!-- image -->
+The Author(s) 2020. Published by Oxford University Press for the Infectious Diseases Society of America. All rights reserved. For permissions...
+The Author(s) 2020. Published by Oxford University Press for the Infectious Diseases Society of America. All rights reserved. For permissions...
+Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship (ASP).
+Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship (ASP).
+Within the fi rst 4 days after enrollment, duration of vancomycin was not different between groups.
+"""
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": noisy_markdown,
+            "tables": [],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert "<!-- image -->" not in parsed.markdown_text
+    assert parsed.markdown_text.count("Published by Oxford University Press") == 1
+    assert parsed.markdown_text.count("randomized to SOC testing") == 1
+    assert "fi rst" not in parsed.markdown_text
+    assert "first 4 days" in parsed.markdown_text

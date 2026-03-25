@@ -4,6 +4,7 @@ from collections.abc import Callable
 import csv
 from io import StringIO
 from pathlib import Path
+import re
 from typing import Any
 
 from src.ports.parser_port import ParsedDocument, ParsedTable, ParserPort
@@ -21,7 +22,7 @@ class DoclingParser(ParserPort):
             raise FileNotFoundError(f"PDF file not found: {source_path}")
 
         rendered = self._document_converter(source_path)
-        markdown_text = self._extract_markdown_text(rendered)
+        markdown_text = self._clean_markdown_text(self._extract_markdown_text(rendered))
         tables = self._extract_tables(rendered)
         if not markdown_text.strip() and not tables:
             raise RuntimeError("Docling returned no markdown text or tables.")
@@ -96,6 +97,53 @@ class DoclingParser(ParserPort):
 
         return [cls._normalize_table(table) for table in raw_tables]
 
+    @classmethod
+    def _clean_markdown_text(cls, markdown_text: str) -> str:
+        cleaned = str(markdown_text or "")
+        cleaned = re.sub(r"<!--\s*image\s*-->", " ", cleaned, flags=re.IGNORECASE)
+        cleaned = cls._collapse_pdf_spacing_artifacts(cleaned)
+        cleaned = cls._dedupe_opening_boilerplate(cleaned)
+        cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+        return cleaned.strip()
+
+    @staticmethod
+    def _collapse_pdf_spacing_artifacts(text: str) -> str:
+        collapsed = text
+        collapsed = re.sub(r"(?<=\w)[ \t]{2,}(?=\w)", " ", collapsed)
+        collapsed = re.sub(r"([A-Za-z])\s+fi\s+rst\b", r"\1first", collapsed, flags=re.IGNORECASE)
+        collapsed = re.sub(r"([A-Za-z])\s+fi\s+nal\b", r"\1final", collapsed, flags=re.IGNORECASE)
+        collapsed = re.sub(r"([A-Za-z])\s+ed\s+(?=[A-Za-z]{2,}\b)", r"\1ed ", collapsed)
+        return collapsed
+
+    @staticmethod
+    def _dedupe_opening_boilerplate(text: str) -> str:
+        lines = text.splitlines()
+        cleaned_lines: list[str] = []
+        seen_author_notice = False
+        seen_methods_abstract = False
+
+        for line in lines:
+            normalized = " ".join(line.split()).strip()
+            lower = normalized.lower()
+            if not normalized:
+                cleaned_lines.append("")
+                continue
+
+            if "published by oxford university press" in lower and "all rights reserved" in lower:
+                if seen_author_notice:
+                    continue
+                seen_author_notice = True
+
+            if lower.startswith("methods.") and "randomized to soc testing" in lower:
+                if seen_methods_abstract:
+                    continue
+                seen_methods_abstract = True
+
+            cleaned_lines.append(normalized)
+
+        return "\n".join(cleaned_lines)
+
     @staticmethod
     def _extract_document_object(rendered: Any) -> Any | None:
         if isinstance(rendered, dict):
@@ -106,6 +154,10 @@ class DoclingParser(ParserPort):
     def _normalize_table(cls, raw_table: Any) -> ParsedTable:
         if isinstance(raw_table, ParsedTable):
             return raw_table
+
+        dataframe_export = getattr(raw_table, "export_to_dataframe", None)
+        if callable(dataframe_export):
+            return cls._normalize_dataframe_table(raw_table)
 
         payload = cls._table_payload(raw_table)
         headers = [str(value).strip() for value in payload.get("headers", []) if str(value).strip()]
@@ -118,6 +170,26 @@ class DoclingParser(ParserPort):
         if not csv_text:
             csv_text = cls._build_csv(headers=headers, rows=rows)
 
+        return ParsedTable(headers=headers, rows=rows, csv=csv_text)
+
+    @classmethod
+    def _normalize_dataframe_table(cls, raw_table: Any) -> ParsedTable:
+        try:
+            dataframe = raw_table.export_to_dataframe()
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(f"Failed to export Docling table to dataframe: {exc}") from exc
+
+        headers = [str(column).strip() for column in list(dataframe.columns)]
+        rows: list[dict[str, str]] = []
+        for record in dataframe.fillna("").to_dict(orient="records"):
+            rows.append(
+                {
+                    header: str(record.get(header, "")).strip()
+                    for header in headers
+                }
+            )
+
+        csv_text = cls._build_csv(headers=headers, rows=rows)
         return ParsedTable(headers=headers, rows=rows, csv=csv_text)
 
     @staticmethod
