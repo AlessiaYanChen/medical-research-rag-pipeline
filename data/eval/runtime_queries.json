@@ -108,5 +108,49 @@
     "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
     "labels": ["runtime", "stewardship", "optimization", "single_doc"],
     "notes": "Single-document stewardship query focused on rationale and arguments."
+  },
+  {
+    "id": "R13",
+    "query": "What was the overall detection rate of PCR/ESI-MS compared to routine culture in BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Abstract", "Results"],
+    "labels": ["runtime", "metric", "rate", "bal", "iridica", "single_doc"],
+    "notes": "Real user-style factual metric query. Expected answer path includes 118/121 (98%) by PCR/ESI-MS versus 104/121 (86%) by routine culture."
+  },
+  {
+    "id": "R14",
+    "query": "What was the lower detection limit for S. aureus by PCR/ESI-MS in CFU/ml?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Materials and Methods", "Discussion"],
+    "labels": ["runtime", "metric", "lod", "bal", "iridica", "single_doc"],
+    "notes": "Real user-style lower-limit query. Expected answer path includes the reported lower detection limit of 0.4 x 10^4 CFU/ml."
+  },
+  {
+    "id": "R15",
+    "query": "Which resistance determinants were NOT detected in the BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Resistance determinants mecA, vanA and vanB and blaKPC"],
+    "labels": ["runtime", "negation", "resistance", "bal", "iridica", "single_doc"],
+    "notes": "Real user-style negation query. Expected answer path should make clear that mecA was the only detected resistance determinant."
+  },
+  {
+    "id": "R16",
+    "query": "Which atypical pathogens were detected by PCR/ESI-MS but not by routine culture in the BAL study?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Abstract"],
+    "labels": ["runtime", "atypical_pathogens", "bal", "iridica", "single_doc"],
+    "notes": "Real user-style exception query. Expected answer path includes Legionella pneumophila, Bordetella pertussis, Nocardia species, and Mycoplasma pneumoniae."
+  },
+  {
+    "id": "R17",
+    "query": "Which specimen types have been evaluated for direct pathogen detection without culture?",
+    "expected_docs": ["BAL SM", "Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Abstract", "Introduction", "Conclusion", "Discussion"],
+    "labels": ["runtime", "cross_doc", "specimen_types", "culture_free"],
+    "notes": "Cross-paper runtime query intended to surface bronchoalveolar lavage and urine as direct-detection specimen types."
   }
 ]
