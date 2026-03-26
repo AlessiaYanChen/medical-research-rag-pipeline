@@ -296,12 +296,12 @@ class RetrievalService:
         doc_id: str | None,
         chunks: list[Chunk],
     ) -> list[Chunk]:
-        if doc_id is not None or not self._query_uses_contrastive_stewardship_doc_lock(query):
+        if doc_id is not None or not self._query_uses_contrastive_single_doc_lock(query):
             return chunks
         if not chunks:
             return chunks
 
-        locked_doc = self._best_document_for_contrastive_stewardship_query(query=query, chunks=chunks)
+        locked_doc = self._best_document_for_contrastive_single_doc_query(query=query, chunks=chunks)
         if locked_doc is None:
             return chunks
 
@@ -312,6 +312,17 @@ class RetrievalService:
             if self._clean_markdown(chunk.metadata.doc_id).lower() == locked_doc_key
         ]
         return locked_chunks or chunks
+
+    def _best_document_for_contrastive_single_doc_query(
+        self,
+        query: str,
+        chunks: list[Chunk],
+    ) -> str | None:
+        if self._query_uses_contrastive_stewardship_doc_lock(query):
+            return self._best_document_for_contrastive_stewardship_query(query=query, chunks=chunks)
+        if self._query_uses_contrastive_turnaround_doc_lock(query):
+            return self._best_document_for_contrastive_turnaround_query(query=query, chunks=chunks)
+        return None
 
     def _filter_chunks(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
         query_prefers_tables = self._query_prefers_tables(query)
@@ -706,6 +717,44 @@ class RetrievalService:
         best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
         return doc_ids[best_doc_key]
 
+    def _best_document_for_contrastive_turnaround_query(
+        self,
+        query: str,
+        chunks: list[Chunk],
+    ) -> str | None:
+        docs_with_body_sections = {
+            self._clean_markdown(chunk.metadata.doc_id).lower()
+            for chunk in chunks
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        }
+        doc_scores: dict[str, tuple[int, int, int, tuple[int, int, int]]] = {}
+        doc_ids: dict[str, str] = {}
+
+        for chunk in chunks:
+            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+            doc_ids.setdefault(doc_key, self._clean_markdown(chunk.metadata.doc_id))
+            contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
+            title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
+            chunk_priority = self._chunk_priority(
+                query=query,
+                chunk=chunk,
+                docs_with_body_sections=docs_with_body_sections,
+            )
+            current = doc_scores.get(doc_key)
+            next_score = (
+                max(current[0], contrast_bonus) if current else contrast_bonus,
+                (current[1] if current else 0) + max(0, contrast_bonus),
+                max(current[2], title_overlap) if current else title_overlap,
+                max(current[3], chunk_priority) if current else chunk_priority,
+            )
+            doc_scores[doc_key] = next_score
+
+        if not doc_scores:
+            return None
+
+        best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
+        return doc_ids[best_doc_key]
+
     @staticmethod
     def _query_section_profile(query: str) -> dict[str, int]:
         normalized = query.lower()
@@ -875,6 +924,21 @@ class RetrievalService:
         )
 
     @staticmethod
+    def _query_uses_contrastive_turnaround_doc_lock(query: str) -> bool:
+        return (
+            RetrievalService._query_prefers_single_document_target(query)
+            and RetrievalService._query_targets_turnaround_or_rapid_outcomes(query)
+            and RetrievalService._query_contrasts_against_stewardship_policy(query)
+        )
+
+    @staticmethod
+    def _query_uses_contrastive_single_doc_lock(query: str) -> bool:
+        return (
+            RetrievalService._query_uses_contrastive_stewardship_doc_lock(query)
+            or RetrievalService._query_uses_contrastive_turnaround_doc_lock(query)
+        )
+
+    @staticmethod
     def _query_prefers_metadata(query: str) -> bool:
         normalized = query.lower()
         signals = ("abstract", "summary", "overview", "opening summary")
@@ -942,9 +1006,6 @@ class RetrievalService:
 
     def _contrastive_query_bonus(self, query: str, chunk: Chunk) -> int:
         normalized = query.lower()
-        if not self._query_targets_stewardship_process(query):
-            return 0
-
         doc_text = self._doc_text_for_ranking(chunk)
         content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
         combined_text = f"{doc_text} {content_text}"
@@ -974,16 +1035,47 @@ class RetrievalService:
             "templated comments",
         )
 
+        rapid_markers = (
+            "turnaround",
+            "organism id",
+            "ast",
+            "rapid",
+            "faster",
+            "hours",
+            "phenotypic ast",
+        )
+
+        stewardship_policy_markers = (
+            "stewardship policy",
+            "diagnostic stewardship",
+            "blood culture use",
+            "blood culture utilization",
+            "utilization",
+            "ordering",
+            "collection",
+            "preanalytical",
+            "hospital setting",
+        )
+
         bonus = 0
-        if any(marker in combined_text for marker in process_markers):
-            bonus += 4
-        if self._query_contrasts_against_trial_or_platform(query) and any(marker in combined_text for marker in trial_markers):
-            bonus -= 10
-        if self._query_contrasts_against_trial_or_platform(query):
-            if title_overlap > 0:
-                bonus += min(8, title_overlap * 4)
-            elif self._query_prefers_single_document_target(query):
-                bonus -= 4
+        if self._query_targets_stewardship_process(query):
+            if any(marker in combined_text for marker in process_markers):
+                bonus += 4
+            if self._query_contrasts_against_trial_or_platform(query) and any(marker in combined_text for marker in trial_markers):
+                bonus -= 10
+            if self._query_contrasts_against_trial_or_platform(query):
+                if title_overlap > 0:
+                    bonus += min(8, title_overlap * 4)
+                elif self._query_prefers_single_document_target(query):
+                    bonus -= 4
+
+        if self._query_targets_turnaround_or_rapid_outcomes(query):
+            if any(marker in combined_text for marker in rapid_markers):
+                bonus += 4
+            if self._query_contrasts_against_stewardship_policy(query) and any(
+                marker in combined_text for marker in stewardship_policy_markers
+            ):
+                bonus -= 10
         return bonus
 
     def _doc_title_overlap(self, query: str, chunk: Chunk) -> int:
@@ -1031,14 +1123,50 @@ class RetrievalService:
             "utilization",
             "hospital setting",
             "blood culture use",
+            "blood culture utilization",
             "ordering",
             "ordered",
             "collection",
             "collected",
             "draw blood",
             "improving when and how blood cultures",
+            "optimizing blood culture use",
+            "optimize blood culture use",
         )
         return any(signal in normalized for signal in process_signals)
+
+    @staticmethod
+    def _query_targets_turnaround_or_rapid_outcomes(query: str) -> bool:
+        normalized = query.lower()
+        signals = (
+            "turnaround",
+            "turnaround improvements",
+            "organism id",
+            "ast",
+            "rapid test outcomes",
+            "rapid diagnostic outcomes",
+            "rapid reporting",
+        )
+        return any(signal in normalized for signal in signals)
+
+    @staticmethod
+    def _query_contrasts_against_stewardship_policy(query: str) -> bool:
+        normalized = query.lower()
+        contrast_signals = (
+            "instead of",
+            "rather than",
+            "not about",
+            "not just",
+            "not ",
+        )
+        target_signals = (
+            "stewardship",
+            "stewardship policy",
+            "policy",
+        )
+        return any(signal in normalized for signal in contrast_signals) and any(
+            signal in normalized for signal in target_signals
+        )
 
     @staticmethod
     def _query_contrasts_against_trial_or_platform(query: str) -> bool:
@@ -1054,6 +1182,9 @@ class RetrievalService:
             "patient-outcomes",
             "patient outcomes",
             "platform",
+            "rapid test outcomes",
+            "rapid diagnostic outcomes",
+            "reporting rapid test outcomes",
         )
         return any(signal in normalized for signal in contrast_signals) and any(
             signal in normalized for signal in target_signals

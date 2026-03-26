@@ -1929,6 +1929,120 @@ def test_retrieval_service_does_not_doc_lock_plural_stewardship_queries() -> Non
     )
 
 
+def test_retrieval_service_detects_contrastive_blood_culture_use_queries_without_explicit_stewardship_term() -> None:
+    service = RetrievalService(repo=FakeVectorRepository([]), embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    assert (
+        service._query_uses_contrastive_stewardship_doc_lock(
+            "Which paper is about optimizing blood culture use rather than reporting rapid test outcomes?"
+        )
+        is True
+    )
+
+
+def test_retrieval_service_locks_blood_culture_use_query_to_stewardship_review() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Discussion of rapid test outcomes and prescribing changes in a single-site randomized trial.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Discussion of rapid test outcomes and prescribing changes in a single-site randomized trial.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Introduction to optimizing blood culture use, collection, and utilization in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Introduction to optimizing blood culture use, collection, and utilization in the hospital setting.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which paper is about optimizing blood culture use rather than reporting rapid test outcomes?",
+        limit=1,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    ]
+
+
+def test_retrieval_service_detects_contrastive_turnaround_queries_against_stewardship_policy() -> None:
+    service = RetrievalService(repo=FakeVectorRepository([]), embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    assert (
+        service._query_uses_contrastive_single_doc_lock(
+            "Which paper should I read for blood-culture turnaround improvements, not stewardship policy?"
+        )
+        is True
+    )
+
+
+def test_retrieval_service_locks_turnaround_query_to_rapid_paper_over_stewardship_review() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-STEW:P00001:C01",
+            content="Introduction to diagnostic stewardship policy and optimizing blood culture use in hospitals.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-STEW:P00001",
+                    "parent_content": "Introduction to diagnostic stewardship policy and optimizing blood culture use in hospitals.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Discussion of faster organism ID and AST turnaround from a rapid blood-culture diagnostic workflow.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Discussion of faster organism ID and AST turnaround from a rapid blood-culture diagnostic workflow.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
+        limit=1,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["RAPID"]
 
 
 def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:

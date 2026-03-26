@@ -208,5 +208,50 @@
     "expected_headers": ["Results", "Discussion", "Conclusion"],
     "labels": ["runtime", "flat", "lysozyme", "metric", "cross_doc"],
     "notes": "Real UI query from manual Streamlit testing. Expected answer path includes the quantitative gram-positive detection improvement reported in prose, including the 8% to 51% improvement span surfaced in the current active collection. Current active collection appears to contain the FLAT paper under two document identities, so either document id is acceptable for this runtime regression."
+  },
+  {
+    "id": "R24",
+    "query": "Which BAL paper chunk best states the overall advantage of PCR/ESI-MS over routine culture?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Abstract", "Discussion"],
+    "labels": ["runtime", "bal", "iridica", "advantage", "single_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should prioritize the BAL abstract or discussion summary chunks that state PCR/ESI-MS had equal or higher sensitivity than routine culture, including better detection in culture-negative samples and broader pathogen coverage."
+  },
+  {
+    "id": "R25",
+    "query": "In the BAL IRIDICA paper, what did they actually detect in culture-negative samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Results", "Abstract"],
+    "labels": ["runtime", "bal", "iridica", "culture_negative", "single_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should state that PCR/ESI-MS identified microorganisms in 15/17 (88%) culture-negative samples and surface the main prose-supported examples from the BAL discussion/results rather than requiring exhaustive table-cell reconstruction."
+  },
+  {
+    "id": "R26",
+    "query": "Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["DISCUSSION", "RESULTS", "Structured Abstract"],
+    "labels": ["runtime", "rapid", "turnaround", "contrastive", "cross_doc", "doc_selection"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should identify the RAPID paper as the best match for blood-culture organism ID and AST turnaround improvements, while excluding the stewardship review as the target."
+  },
+  {
+    "id": "R27",
+    "query": "Which paper is about optimizing blood culture use rather than reporting rapid test outcomes?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Summary", "Discussion"],
+    "labels": ["runtime", "stewardship", "contrastive", "cross_doc", "doc_selection"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should identify the Fabre diagnostic stewardship review as the paper about optimizing blood culture use rather than reporting rapid test outcomes."
+  },
+  {
+    "id": "R28",
+    "query": "Which urine paper reports the direct-detection screening workflow, and what metric did it improve most?",
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["runtime", "flat", "urine", "workflow", "metric", "cross_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should stay on the urine FLAT papers and surface their direct-detection workflow plus the main improved metric in prose, without drifting to BAL."
   }
 ]
