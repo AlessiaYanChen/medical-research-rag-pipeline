@@ -295,6 +295,24 @@ Current checkpoint:
   - regenerated `data/parser_bakeoff/results/comparisons/sample_regressions_docling_vs_marker.json` and `expanded_regressions_docling_vs_marker.json` now both show `0` regressions
   - current parser-side recommendation remains unchanged: keep `Marker` as production and keep `Docling` isolated unless a later benchmark-backed migration decision is made
   - the current next step is targeted parser-side diagnosis on that duplicated Smith evidence path with parser-specific artifact and chunk comparison, not a production parser switch
+- March 26, 2026 production-readiness checkpoint for a controlled `Docling` migration:
+  - commit `9219af1` adds a selectable ingestion parser with `Marker` still as the default, wiring `Docling` into rebuild, reingest, single-PDF debug, end-to-end test, and UI ingestion entry points without changing retrieval behavior
+  - parser provenance is now persisted in collection manifests and the local registry so `Docling`-built collections are explicit operationally
+  - a new collection `medical_research_chunks_docling_v1` was rebuilt locally with parser `docling` over the current 7-document uploaded set:
+    - `doc_count: 7`
+    - `chunk_count: 2512`
+  - local retrieval evaluation against `medical_research_chunks_docling_v1` showed no benchmark blocker on the checked stable sets:
+    - `sample_queries.json`: expected doc hit `1.0`, expected header hit `1.0`, top-1 doc/header `1.0`, average doc precision `0.9923`
+    - `expanded_queries.json`: expected doc hit `1.0`, expected header hit `1.0`, top-1 doc/header `1.0`, average doc precision `0.9953`
+  - manual spot-checking then exposed one real production-style regression on the query `What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?`
+    - `Docling` did contain the right BAL SM evidence
+    - the failure was retrieval-stage ranking and table eligibility, not missing parser content
+  - commit `f5b3138` narrows retrieval heuristics for metric-style confirmation/rate questions so result/table evidence is surfaced correctly for that BAL/IRIDICA case without broad retrieval tuning
+  - unit tests now pass after the retrieval fix with `162 passed`
+  - current migration recommendation:
+    - `Docling` is now viable for a controlled cutover to `medical_research_chunks_docling_v1`
+    - keep `medical_research_chunks_v1` available as rollback
+    - do not commit local generated state such as `data/eval/results/*`, `data/kb_registry.json`, or local collection manifests; document the checkpoint instead
 
 ## Phase 5: Corpus Rollout
 

@@ -629,6 +629,25 @@ Current parser bakeoff note from the March 25, 2026 8-PDF subset run:
 - the remaining `Q19` miss is no longer the Culture-Free LOD table path; current diagnosis indicates a cross-document selection/ranking issue where duplicate `smith-et-al-2023-comparison-of-three-rapid-diagnostic-tests-for-bloodstream-infections-using-benefit-risk-evaluation` evidence still displaces an additional expected table-bearing document
 - the current recommendation is to keep `Marker` as production and treat `Docling` as an isolated parser experiment until those regressions are explained
 
+Follow-up production migration note from March 26, 2026:
+- a production-safe parser selector now exists in the ingestion entry points, with `Marker` remaining the default until you explicitly choose `Docling`
+- local rebuild and validation of `medical_research_chunks_docling_v1` over the current 7-document uploaded set completed successfully
+- checked retrieval eval results for that local `Docling` collection were strong on the stable benchmark sets:
+  - `sample_queries.json`: expected doc/header `1.0`, top-1 doc/header `1.0`, average doc precision `0.9923`
+  - `expanded_queries.json`: expected doc/header `1.0`, top-1 doc/header `1.0`, average doc precision `0.9953`
+- one manual production-style query exposed a real regression in retrieval-stage ranking rather than parser extraction:
+  - `What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?`
+- retrieval heuristics were then narrowed to better surface metric/result evidence for confirmation-rate questions without broad retrieval tuning
+- current recommendation is a controlled cutover only:
+  - use `medical_research_chunks_docling_v1` as the active collection only after manual go/no-go spot checks pass
+  - keep `medical_research_chunks_v1` intact as rollback
+
+Local operational state policy:
+- keep `data/eval/results/*` local
+- keep `data/kb_registry.json` local
+- keep machine-local rebuild manifests local unless you intentionally decide to version operational state for a shared deployment workflow
+- commit code, tests, and documentation checkpoints; do not commit per-run local collection state by default
+
 For deeper `Docling` diagnosis, compare query-level regressions directly before changing parser or retrieval logic:
 
 ```powershell
