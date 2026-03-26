@@ -1977,6 +1977,139 @@ def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:
     assert [chunk.chunk_type for chunk in result] == ["table"]
 
 
+def test_retrieval_service_treats_confirmation_rate_queries_as_table_friendly() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:T00001",
+            content=(
+                "Source File: BAL SM.pdf | Table Index: 1 | Section: Results\n"
+                "Primary and potential pathogens.,IRIDICA-positive.Total,IRIDICA-positive.Confirmed by culture and/orPCR\n"
+                "Staphylococcus aureus,33,27 a"
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": (
+                        "Primary and potential pathogens.,IRIDICA-positive.Total,"
+                        "IRIDICA-positive.Confirmed by culture and/orPCR\n"
+                        "Staphylococcus aureus,33,27 a"
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="BAL-SM:P00001:C01",
+            content=(
+                "PCR/ESI-MS demonstrated an overall higher sensitivity compared to routine culture-based"
+                " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                " culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00001",
+                    "parent_content": (
+                        "PCR/ESI-MS demonstrated an overall higher sensitivity compared to routine"
+                        " culture-based microbiological diagnostics, with identification of microorganisms"
+                        " in 15/17 (88%) culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?",
+        limit=2,
+    )
+
+    assert repo.last_search_args is not None
+    filters = repo.last_search_args[3]
+    assert filters is not None
+    assert not any(item.key == "content_role" and item.value == "table" for item in filters.must_not)
+    assert result[0].chunk_type == "table"
+    assert result[0].doc_id == "BAL SM"
+
+
+def test_retrieval_service_prefers_results_for_confirmation_rate_queries_without_tables() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:P00002:C01",
+            content=(
+                "All 15 samples with significant growth of S. aureus yielded levels above this threshold."
+                " In 12/18 (67%) culture-negative samples, detection of S. aureus by PCR/ESI-MS was"
+                " confirmed by species-specific PCR. Together, the presence of S. aureus was verified by"
+                " culture and/or PCR in 27/33 (82%) PCR/ESI-MS-positive samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00002",
+                    "parent_content": (
+                        "All 15 samples with significant growth of S. aureus yielded levels above this threshold."
+                        " In 12/18 (67%) culture-negative samples, detection of S. aureus by PCR/ESI-MS was"
+                        " confirmed by species-specific PCR. Together, the presence of S. aureus was verified by"
+                        " culture and/or PCR in 27/33 (82%) PCR/ESI-MS-positive samples."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="BAL-SM:P00003:C01",
+            content=(
+                "PCR/ESI-MS is one of the most recent methods developed for detection and identification"
+                " of microorganisms and selected resistance markers directly from clinical specimens."
+                " PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                " demonstrated an overall higher sensitivity compared to routine culture-based diagnostics,"
+                " with identification of microorganisms in 15/17 (88%) culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00003",
+                    "parent_content": (
+                        "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                        " demonstrated an overall higher sensitivity compared to routine culture-based diagnostics,"
+                        " with identification of microorganisms in 15/17 (88%) culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?",
+        doc_id="BAL SM",
+        limit=2,
+    )
+
+    assert [chunk.source for chunk in result] == ["Results", "Discussion"]
+
+
 def test_retrieval_service_requires_table_chunks_for_explicit_table_queries() -> None:
     chunks = [
         Chunk(

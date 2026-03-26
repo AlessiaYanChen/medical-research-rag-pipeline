@@ -439,7 +439,26 @@ class RetrievalService:
     @staticmethod
     def _query_prefers_tables(query: str) -> bool:
         normalized = query.lower()
-        table_signals = ("table", "compare", "comparison", "value", "values", "sensitivity", "specificity", "odds ratio", "ct-value", "ct value", "assay panel")
+        table_signals = (
+            "table",
+            "compare",
+            "comparison",
+            "value",
+            "values",
+            "sensitivity",
+            "specificity",
+            "odds ratio",
+            "ct-value",
+            "ct value",
+            "assay panel",
+            "confirmation rate",
+            "detection rate",
+            "positivity rate",
+            "confirmed by culture",
+            "confirmed by pcr",
+            "culture or pcr",
+            "culture and/or pcr",
+        )
         return any(signal in normalized for signal in table_signals)
 
     @staticmethod
@@ -703,9 +722,30 @@ class RetrievalService:
             add_bonus(("introduction", "discussion", "summary", "conclusion"), 4)
             add_bonus(("result", "results", "methods", "document metadata/abstract", "abstract"), -4)
 
-        if any(token in normalized for token in ("performance", "sensitivity", "specificity", "findings", "result", "outcome", "outcomes", "data", "diagnostic performance")):
+        if any(
+            token in normalized
+            for token in (
+                "performance",
+                "sensitivity",
+                "specificity",
+                "findings",
+                "result",
+                "outcome",
+                "outcomes",
+                "data",
+                "diagnostic performance",
+                "rate",
+                "rates",
+                "confirmation",
+                "confirmed",
+                "percentage",
+                "proportion",
+                "achieved",
+            )
+        ):
             add_bonus(("result", "results"), 3)
             add_bonus(("conclusion",), -2)
+            add_bonus(("discussion",), -1)
         if any(token in normalized for token in ("biomarker", "biomarkers", "differentiat", "marker")):
             add_bonus(("result", "results", "discussion"), 2)
             add_bonus(("conclusion",), -3)
