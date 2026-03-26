@@ -3,9 +3,12 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 from pathlib import Path
 import sys
 from typing import Any
+
+from dotenv import load_dotenv
 
 
 def _ensure_project_root_on_path() -> None:
@@ -15,6 +18,7 @@ def _ensure_project_root_on_path() -> None:
 
 
 _ensure_project_root_on_path()
+load_dotenv()
 
 from qdrant_client import QdrantClient  # noqa: E402
 
@@ -25,12 +29,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--collection",
-        default="medical_research_chunks",
+        default=os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_v1"),
         help="Qdrant collection name.",
     )
     parser.add_argument(
         "--qdrant-url",
-        default="http://localhost:6333",
+        default=os.getenv("QDRANT_URL", "http://localhost:6333"),
         help="Qdrant base URL.",
     )
     parser.add_argument(

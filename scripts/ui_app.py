@@ -8,6 +8,7 @@ import re
 import sys
 
 import pandas as pd
+from dotenv import load_dotenv
 
 
 def _ensure_project_root_on_path() -> None:
@@ -17,6 +18,7 @@ def _ensure_project_root_on_path() -> None:
 
 
 _ensure_project_root_on_path()
+load_dotenv()
 
 try:
     import streamlit as st
@@ -51,6 +53,9 @@ from src.ports.parser_port import ParsedTable  # noqa: E402
 
 UPLOAD_DIR = Path("data/raw_pdfs/uploaded")
 REGISTRY_PATH = Path("data/kb_registry.json")
+DEFAULT_QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+DEFAULT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_v1")
+DEFAULT_EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "azure_openai")
 
 
 def build_embedding_fn(
@@ -547,8 +552,8 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Runtime")
-        qdrant_url = st.text_input("Qdrant URL", value="http://localhost:6333")
-        collection_name = st.text_input("Collection", value="medical_research_chunks")
+        qdrant_url = st.text_input("Qdrant URL", value=DEFAULT_QDRANT_URL)
+        collection_name = st.text_input("Collection", value=DEFAULT_COLLECTION_NAME)
         parser_name = st.selectbox(
             "Parser",
             options=list(PARSER_CHOICES),
@@ -562,7 +567,7 @@ def main() -> None:
         embedding_provider_label = st.selectbox(
             "Embedding Provider",
             options=["OpenAI", "Azure OpenAI"],
-            index=0,
+            index=1 if DEFAULT_EMBEDDING_PROVIDER == "azure_openai" else 0,
         )
         embedding_provider = "azure_openai" if embedding_provider_label == "Azure OpenAI" else "openai"
         embedding_api_key = st.text_input(

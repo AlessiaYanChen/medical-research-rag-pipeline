@@ -3,6 +3,7 @@ pytest
 qdrant-client
 streamlit
 openai
+python-dotenv
 torch --index-url https://download.pytorch.org/whl/cpu
 marker-pdf
 
