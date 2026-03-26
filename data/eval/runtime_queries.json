@@ -1,0 +1,46 @@
+[
+  {
+    "id": "R01",
+    "query": "What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results"],
+    "labels": ["runtime", "metric", "rate", "bal", "iridica", "single_doc"],
+    "notes": "Real user query. Direct factual metric question. Expected answer path includes 27/33 (82%)."
+  },
+  {
+    "id": "R02",
+    "query": "What lysozyme concentration and incubation time gave optimal cardiolipin detection in the FLAT assay?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results"],
+    "labels": ["runtime", "method", "optimization", "flat", "single_doc"],
+    "notes": "Real user query. Expected answer path includes 100 ug lysozyme and 60 minutes."
+  },
+  {
+    "id": "R03",
+    "query": "What were the organism ID and AST turnaround improvements in the RAPID study?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["RESULTS", "Results"],
+    "labels": ["runtime", "rapid", "turnaround", "results", "single_doc"],
+    "notes": "Real user query. Expected answer path includes faster organism ID and AST times versus SOC."
+  },
+  {
+    "id": "R04",
+    "query": "For IRIDICA/PCR-ESI-MS on BAL, where do the authors talk about false negatives, organism coverage gaps, or why I should still be cautious clinically?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "labels": ["runtime", "bal", "iridica", "caveat", "discussion", "single_doc"],
+    "notes": "Real user-style caution query. Discussion/conclusion evidence is preferred over raw results."
+  },
+  {
+    "id": "R05",
+    "query": "Which indexed paper is a review of laboratory diagnosis for blood-culture-negative endocarditis?",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Document Metadata/Abstract", "Methods"],
+    "labels": ["runtime", "title_query", "review", "endocarditis", "cross_doc"],
+    "notes": "Real user query. Primary goal is selecting the correct paper; adjacent opening sections are acceptable."
+  }
+]
