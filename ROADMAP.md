@@ -344,14 +344,18 @@ Recommended next implementation order:
 
 1. Keep the stable and expanded benchmark records separate and treat the current `1.0` header-precision state as the regression baseline before adding more retrieval logic
 2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
-3. Use `scripts/inspect_retrieval_candidates.py` on any new OOD misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
-4. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless measured recall gaps require them
-5. Keep setup hardening moving:
+3. Build a small runtime regression set from real app usage, preferably `data/eval/runtime_queries.json`, before reopening retrieval architecture work:
+   - start with roughly 15-25 real user questions
+   - include both successes and failures
+   - cover exact metric/rate questions, study-identification prompts, caveat queries, and abbreviation-heavy wording
+4. Use `scripts/inspect_retrieval_candidates.py` on any new OOD or runtime-set misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
+5. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless the runtime regression set shows measured recall gaps that require them
+6. Keep setup hardening moving:
    - maintain the checked-in `requirements.txt`
    - maintain the checked-in `.env.example`
    - keep the clearer cross-platform setup docs aligned with the actual script/runtime behavior as setup changes land
-6. Keep table-context coverage improvements narrow and metadata-linked so more returned table chunks carry caption/prose context without positional heuristics or new retrieval stages
-7. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-8. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
-9. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
-10. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding
+7. Keep table-context coverage improvements narrow and metadata-linked so more returned table chunks carry caption/prose context without positional heuristics or new retrieval stages
+8. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+9. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
+10. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
+11. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding
