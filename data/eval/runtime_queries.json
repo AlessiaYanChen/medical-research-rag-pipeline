@@ -42,5 +42,71 @@
     "expected_headers": ["Introduction", "Document Metadata/Abstract", "Methods"],
     "labels": ["runtime", "title_query", "review", "endocarditis", "cross_doc"],
     "notes": "Real user query. Primary goal is selecting the correct paper; adjacent opening sections are acceptable."
+  },
+  {
+    "id": "R06",
+    "query": "Which indexed paper investigates detection of bacterial pathogens in bronchoalveolar lavage by PCR/ESI-MS (IRIDICA)?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion", "Document Metadata/Abstract"],
+    "labels": ["runtime", "title_query", "bal", "iridica", "cross_doc"],
+    "notes": "Study-identification query for the BAL/IRIDICA paper."
+  },
+  {
+    "id": "R07",
+    "query": "Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
+    "expected_docs": [
+      "BAL SM",
+      "RAPID",
+      "Single site RCT",
+      "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Results", "RESULTS", "Discussion", "DISCUSSION", "Conclusion", "Methods"],
+    "labels": ["runtime", "cross_doc", "metric", "diagnostic_accuracy"],
+    "include_tables": true,
+    "notes": "Broad cross-document metric query. Table evidence is acceptable and often desirable."
+  },
+  {
+    "id": "R08",
+    "query": "Across the indexed studies, which papers discuss clinical usefulness or implementation implications of rapid diagnostics?",
+    "expected_docs": ["RAPID", "Single site RCT", "BAL SM"],
+    "expected_headers": ["Discussion", "DISCUSSION", "Conclusion", "Introduction"],
+    "labels": ["runtime", "cross_doc", "usefulness", "implementation"],
+    "notes": "Cross-document implications query. Discussion and conclusion evidence is preferred."
+  },
+  {
+    "id": "R09",
+    "query": "What evidence is presented for RAPID test diagnostic performance in the results?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["RESULTS", "Results", "DISCUSSION"],
+    "labels": ["runtime", "rapid", "performance", "results", "single_doc"],
+    "notes": "Results-focused RAPID query that should keep the paper anchored to performance evidence."
+  },
+  {
+    "id": "R10",
+    "query": "What does the review say about blood culture-negative endocarditis laboratory diagnosis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Methods", "Document Metadata/Abstract"],
+    "labels": ["runtime", "review", "endocarditis", "single_doc"],
+    "notes": "Single-document review query. Opening overview sections are acceptable."
+  },
+  {
+    "id": "R11",
+    "query": "Which documents discuss diagnostic stewardship for blood cultures?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "labels": ["runtime", "stewardship", "blood_cultures", "cross_doc"],
+    "notes": "Cross-document document-selection query for the stewardship review."
+  },
+  {
+    "id": "R12",
+    "query": "What arguments are made for optimizing blood culture use in the hospital setting?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Summary"],
+    "labels": ["runtime", "stewardship", "optimization", "single_doc"],
+    "notes": "Single-document stewardship query focused on rationale and arguments."
   }
 ]
