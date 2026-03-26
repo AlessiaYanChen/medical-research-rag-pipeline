@@ -2110,6 +2110,131 @@ def test_retrieval_service_prefers_results_for_confirmation_rate_queries_without
     assert [chunk.source for chunk in result] == ["Results", "Discussion"]
 
 
+def test_retrieval_service_prefers_bal_overall_detection_summary_for_overall_comparison_queries() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:P00010:C01",
+            content=(
+                "S. pneumoniae was detected in 17 BAL samples by PCR/ESI-MS. The presence of"
+                " S. pneumoniae was however confirmed in only 6/17 (35%) samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00010",
+                    "parent_content": (
+                        "S. pneumoniae was detected in 17 BAL samples by PCR/ESI-MS. The presence of"
+                        " S. pneumoniae was however confirmed in only 6/17 (35%) samples."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="BAL-SM:P00011:C01",
+            content=(
+                "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                " demonstrated an overall higher sensitivity compared to routine culture-based"
+                " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                " culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00011",
+                    "parent_content": (
+                        "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                        " demonstrated an overall higher sensitivity compared to routine culture-based"
+                        " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                        " culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What did the BAL IRIDICA study find for overall detection versus routine culture?",
+        doc_id="BAL SM",
+        limit=2,
+    )
+
+    assert [chunk.source for chunk in result] == ["Discussion", "Results"]
+
+
+def test_retrieval_service_prefers_resistance_marker_presence_evidence() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:P00012:C01",
+            content=(
+                "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%)"
+                " BAL samples. Semi-quantitative PCR/ESI-MS levels were low in three culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00012",
+                    "parent_content": (
+                        "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%)"
+                        " BAL samples. Semi-quantitative PCR/ESI-MS levels were low in three culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="BAL-SM:P00013:C01",
+            content=(
+                "The IRIDICA BAC LRT Assay panel also includes selected major resistance determinants,"
+                " i.e. mecA, vanA, vanB, and blaKPC. The only gene detected in the samples investigated"
+                " here was mecA."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00013",
+                    "parent_content": (
+                        "The IRIDICA BAC LRT Assay panel also includes selected major resistance determinants,"
+                        " i.e. mecA, vanA, vanB, and blaKPC. The only gene detected in the samples investigated"
+                        " here was mecA."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What resistance markers were actually found in the BAL samples?",
+        doc_id="BAL SM",
+        limit=2,
+    )
+
+    assert [chunk.source for chunk in result] == ["Discussion", "Results"]
+    assert "mecA" in result[0].content
+
+
 def test_retrieval_service_requires_table_chunks_for_explicit_table_queries() -> None:
     chunks = [
         Chunk(

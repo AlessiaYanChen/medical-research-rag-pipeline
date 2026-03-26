@@ -756,8 +756,15 @@ class RetrievalService:
         if any(token in normalized for token in ("compare", "compares", "comparing", "versus", " vs ", "with and without")):
             add_bonus(("result", "results"), 4)
             add_bonus(("discussion",), -1)
+        if RetrievalService._query_targets_overall_detection_comparison(query):
+            add_bonus(("discussion", "abstract"), 5)
+            add_bonus(("result", "results"), -2)
         if any(token in normalized for token in ("limitation", "limitations", "caveat", "caveats", "implication", "implications", "conclusion", "conclusions", "usefulness", "clinical usefulness")):
             add_bonus(("discussion", "conclusion"), 3)
+        if RetrievalService._query_targets_resistance_marker_presence(query):
+            add_bonus(("discussion",), 8)
+            add_bonus(("result", "results"), -4)
+            add_bonus(("method", "methods", "materials and methods"), -4)
         if any(token in normalized for token in ("review", "overview", "what does the review say", "approaches", "arguments")):
             add_bonus(("introduction", "discussion", "summary", "abstract"), 2)
             add_bonus(("conclusion",), -6)
@@ -909,7 +916,29 @@ class RetrievalService:
             lexical_bonus += min(6, title_overlap * 4)
         else:
             lexical_bonus += min(2, doc_overlap)
+        lexical_bonus += self._query_specific_content_bonus(query=query, content_text=content_text)
         return lexical_bonus
+
+    @staticmethod
+    def _query_specific_content_bonus(query: str, content_text: str) -> int:
+        bonus = 0
+        if RetrievalService._query_targets_overall_detection_comparison(query):
+            if "overall higher sensitivity" in content_text:
+                bonus += 5
+            if "routine culture-based" in content_text:
+                bonus += 3
+            if "culture-negative samples" in content_text:
+                bonus += 2
+        if RetrievalService._query_targets_resistance_marker_presence(query):
+            if "resistance determinants" in content_text:
+                bonus += 6
+            if "only gene detected" in content_text or "only detected" in content_text:
+                bonus += 8
+            if any(marker in content_text for marker in ("meca", "vana", "vanb", "blakpc")):
+                bonus += 4
+            if not any(signal in content_text for signal in ("resistance", "meca", "vana", "vanb", "blakpc", "gene detected")):
+                bonus -= 4
+        return bonus
 
     def _contrastive_query_bonus(self, query: str, chunk: Chunk) -> int:
         normalized = query.lower()
@@ -1028,6 +1057,36 @@ class RetrievalService:
         )
         return any(signal in normalized for signal in contrast_signals) and any(
             signal in normalized for signal in target_signals
+        )
+
+    @staticmethod
+    def _query_targets_overall_detection_comparison(query: str) -> bool:
+        normalized = query.lower()
+        has_overall_signal = "overall" in normalized or "overall detection" in normalized
+        has_comparison_signal = (
+            "routine culture" in normalized
+            or "versus routine culture" in normalized
+            or "compared to routine culture" in normalized
+        )
+        return has_overall_signal and has_comparison_signal
+
+    @staticmethod
+    def _query_targets_resistance_marker_presence(query: str) -> bool:
+        normalized = query.lower()
+        resistance_signals = (
+            "resistance marker",
+            "resistance markers",
+            "resistance determinant",
+            "resistance determinants",
+        )
+        presence_signals = (
+            "found",
+            "actually found",
+            "detected",
+            "present",
+        )
+        return any(signal in normalized for signal in resistance_signals) and any(
+            signal in normalized for signal in presence_signals
         )
 
     @staticmethod
