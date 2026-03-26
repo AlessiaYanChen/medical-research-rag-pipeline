@@ -152,5 +152,61 @@
     "expected_headers": ["Abstract", "Introduction", "Conclusion", "Discussion"],
     "labels": ["runtime", "cross_doc", "specimen_types", "culture_free"],
     "notes": "Cross-paper runtime query intended to surface bronchoalveolar lavage and urine as direct-detection specimen types."
+  },
+  {
+    "id": "R18",
+    "query": "What did the BAL IRIDICA study find for overall detection versus routine culture?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Abstract", "Results"],
+    "labels": ["runtime", "metric", "rate", "bal", "iridica", "single_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path includes overall detection of 118/121 (98%) by PCR/ESI-MS versus 104/121 (86%) by routine culture."
+  },
+  {
+    "id": "R19",
+    "query": "What resistance markers were actually found in the BAL samples?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Resistance determinants mecA, vanA and vanB and blaKPC"],
+    "labels": ["runtime", "resistance", "bal", "iridica", "single_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should make clear that mecA was the only detected resistance marker in the BAL samples."
+  },
+  {
+    "id": "R20",
+    "query": "Did the FLAT paper report any polymicrobial detections?",
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "labels": ["runtime", "flat", "polymicrobial", "cross_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path includes that FLAT identified polymicrobial samples, including one case with E. coli and P. aeruginosa. Current active collection appears to contain the same paper under two document identities, so either document id is acceptable for this runtime regression."
+  },
+  {
+    "id": "R21",
+    "query": "Which paper would I use for rapid blood-culture organism ID and AST turnaround gains?",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["DISCUSSION", "RESULTS", "Structured Abstract"],
+    "labels": ["runtime", "rapid", "turnaround", "cross_doc", "doc_selection"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should identify the RAPID paper as the study for faster organism ID and AST turnaround gains."
+  },
+  {
+    "id": "R22",
+    "query": "Which paper is the blood-culture stewardship review rather than a diagnostic platform study?",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Summary", "Discussion"],
+    "labels": ["runtime", "stewardship", "contrastive", "cross_doc", "doc_selection"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path should identify the Fabre diagnostic stewardship review rather than RAPID or the single-site diagnostic platform trial."
+  },
+  {
+    "id": "R23",
+    "query": "How much did lysozyme improve gram-positive detection in the FLAT workflow?",
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["runtime", "flat", "lysozyme", "metric", "cross_doc"],
+    "notes": "Real UI query from manual Streamlit testing. Expected answer path includes the quantitative gram-positive detection improvement reported in prose, including the 8% to 51% improvement span surfaced in the current active collection. Current active collection appears to contain the FLAT paper under two document identities, so either document id is acceptable for this runtime regression."
   }
 ]
