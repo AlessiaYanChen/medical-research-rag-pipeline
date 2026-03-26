@@ -285,9 +285,15 @@ Current checkpoint:
   - `Docling` opening structured-abstract prose is now normalized into an explicit `Structured Abstract` section before the real article body so top-of-paper summary blocks are easier to diagnose and less likely to dominate body evidence during the bakeoff
   - follow-up regression diagnosis showed most remaining stable/expanded `citation_noise_hits` came from inline numeric citation clusters surviving inside otherwise-valid body chunks, so the isolated `Docling` parser now also strips those citation runs before chunking without changing retrieval behavior or the production `Marker` path
   - follow-up parser-side work recovered the pathological Culture-Free LOD table from page text and tightened linked table context so the remaining Culture-Free table chunks are no longer dropped as near-duplicates during final selection
-  - the current isolated `Docling` bakeoff summary is now stable at `2781` chunks total, `2751` text chunks, and `30` table chunks
-  - citation-noise regressions are now fixed and the stable/expanded regression set has narrowed to `Q19` only; `Q05` and `Q18` no longer regress against `Marker`
-  - the remaining `Q19` miss is no longer the Culture-Free table path; it is currently concentrated in cross-document selection where duplicate `smith-et-al-2023-comparison-of-three-rapid-diagnostic-tests-for-bloodstream-infections-using-benefit-risk-evaluation` evidence still outranks an additional expected table-bearing document
+- the current isolated `Docling` bakeoff summary is now stable at `2781` chunks total, `2751` text chunks, and `30` table chunks
+- citation-noise regressions are now fixed and the stable/expanded regression set has narrowed to `Q19` only; `Q05` and `Q18` no longer regress against `Marker`
+- the remaining `Q19` miss is no longer the Culture-Free table path; it is currently concentrated in cross-document selection where duplicate `smith-et-al-2023-comparison-of-three-rapid-diagnostic-tests-for-bloodstream-infections-using-benefit-risk-evaluation` evidence still outranks an additional expected table-bearing document
+- March 25, 2026 handoff checkpoint after isolated parser-side diagnosis:
+  - commit `a61e605` fixes the remaining isolated `Docling` `Q19` regression without touching production retrieval or `medical_research_chunks_v1`
+  - the fix is isolated in `experiments/parser_bakeoff.py` and strips Smith 2023 bakeoff-only markdown noise that was creating duplicate metric-heavy evidence under `Time-to-results` and `Discussion`
+  - the isolated `Docling` rerun now reports `2762` chunks total, `2732` text chunks, and `30` table chunks
+  - regenerated `data/parser_bakeoff/results/comparisons/sample_regressions_docling_vs_marker.json` and `expanded_regressions_docling_vs_marker.json` now both show `0` regressions
+  - current parser-side recommendation remains unchanged: keep `Marker` as production and keep `Docling` isolated unless a later benchmark-backed migration decision is made
   - the current next step is targeted parser-side diagnosis on that duplicated Smith evidence path with parser-specific artifact and chunk comparison, not a production parser switch
 
 ## Phase 5: Corpus Rollout
