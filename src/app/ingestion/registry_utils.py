@@ -74,6 +74,7 @@ def sync_collection_from_manifest(
                 "chunking_version": str(
                     item.get("chunking_version", manifest_payload.get("chunking_version", ""))
                 ).strip(),
+                "parser": str(item.get("parser", manifest_payload.get("parser", ""))).strip(),
             }
 
     collection_entry["docs"] = docs
@@ -82,6 +83,7 @@ def sync_collection_from_manifest(
     collection_entry["chunk_count"] = sum(item["chunks"] for item in docs.values())
     collection_entry["ingestion_version"] = str(manifest_payload.get("ingestion_version", "")).strip()
     collection_entry["chunking_version"] = str(manifest_payload.get("chunking_version", "")).strip()
+    collection_entry["parser"] = str(manifest_payload.get("parser", "")).strip()
     return collection_entry
 
 
@@ -118,6 +120,7 @@ def upsert_collection_doc(
         "table_chunks": int(summary.get("table_chunks", 0)),
         "ingestion_version": str(summary.get("ingestion_version", "")).strip(),
         "chunking_version": str(summary.get("chunking_version", "")).strip(),
+        "parser": str(summary.get("parser", "")).strip(),
     }
 
     effective_manifest_path = Path(manifest_path) if manifest_path is not None else default_manifest_path_for_collection(collection_name)
@@ -128,6 +131,7 @@ def upsert_collection_doc(
     collection_entry["chunk_count"] = sum(int(item.get("chunks", 0)) for item in docs.values())
     collection_entry["ingestion_version"] = str(summary.get("ingestion_version", collection_entry.get("ingestion_version", ""))).strip()
     collection_entry["chunking_version"] = str(summary.get("chunking_version", collection_entry.get("chunking_version", ""))).strip()
+    collection_entry["parser"] = str(summary.get("parser", collection_entry.get("parser", ""))).strip()
     return collection_entry
 
 
@@ -165,6 +169,7 @@ def _normalize_collection_entry(collection_entry: dict[str, Any]) -> None:
         "chunk_count",
         "ingestion_version",
         "chunking_version",
+        "parser",
     }
     docs = collection_entry.get("docs")
     if not isinstance(docs, dict):

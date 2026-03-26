@@ -18,12 +18,12 @@ _ensure_project_root_on_path()
 
 from qdrant_client import QdrantClient  # noqa: E402
 
-from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.dedup_utils import build_doc_identity, validate_unique_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, write_rebuild_manifest  # noqa: E402
+from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 from src.app.ingestion.registry_utils import default_manifest_path_for_collection  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from scripts.test_e2e_flow import ensure_collection, normalize_tables  # noqa: E402
@@ -42,6 +42,12 @@ def parse_args() -> argparse.Namespace:
         "--collection",
         default="medical_research_chunks_v1",
         help="Qdrant collection name.",
+    )
+    parser.add_argument(
+        "--parser",
+        choices=PARSER_CHOICES,
+        default=DEFAULT_PARSER_NAME,
+        help="Parser used during ingestion.",
     )
     parser.add_argument(
         "--qdrant-url",
@@ -208,7 +214,7 @@ def main() -> int:
         azure_api_version=args.embedding_azure_api_version or None,
         dimensions=None if args.embedding_dimensions == 0 else args.embedding_dimensions,
     )
-    parser = MarkerParser()
+    document_parser = build_parser(args.parser)
     chunker = UnifiedChunker(max_chars=args.max_chars, overlap_paragraphs=args.overlap_paragraphs)
     client = QdrantClient(url=args.qdrant_url)
     repository: QdrantRepository | None = None
@@ -221,7 +227,7 @@ def main() -> int:
         print(f"[{index + 1}/{len(pdf_paths)}] Parsing {pdf_path}")
         doc_id: str | None = None
         try:
-            parsed = parser.parse(pdf_path)
+            parsed = document_parser.parse(pdf_path)
             normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
             doc_id = doc_id_from_path(pdf_path)
             chunks = chunker.chunk_document(
@@ -258,6 +264,7 @@ def main() -> int:
                     chunks=chunks,
                     ingestion_version=UnifiedChunker.INGESTION_VERSION,
                     chunking_version=UnifiedChunker.CHUNKING_VERSION,
+                    parser_name=args.parser,
                 )
             )
         except Exception as exc:  # noqa: BLE001
@@ -302,9 +309,11 @@ def main() -> int:
         docs=manifest_docs,
         ingestion_version=UnifiedChunker.INGESTION_VERSION,
         chunking_version=UnifiedChunker.CHUNKING_VERSION,
+        parser_name=args.parser,
     )
 
     print(f"Collection rebuilt: {args.collection}")
+    print(f"Parser: {args.parser}")
     print(f"Documents ingested: {len(manifest_docs)}")
     print(f"Chunks stored: {total_chunks}")
     print(f"Manifest: {manifest_path}")

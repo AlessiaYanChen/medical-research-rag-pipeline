@@ -44,6 +44,7 @@ def test_build_manifest_doc_entry_counts_text_and_table_chunks() -> None:
         chunks=_build_chunks(),
         ingestion_version="ingestion_v2",
         chunking_version="chunking_v2",
+        parser_name="docling",
     )
 
     assert entry["doc_id"] == "DOC-1"
@@ -52,6 +53,7 @@ def test_build_manifest_doc_entry_counts_text_and_table_chunks() -> None:
     assert entry["table_chunk_count"] == 1
     assert entry["ingestion_version"] == "ingestion_v2"
     assert entry["chunking_version"] == "chunking_v2"
+    assert entry["parser"] == "docling"
 
 
 def test_write_rebuild_manifest_writes_consistent_totals(tmp_path: Path) -> None:
@@ -64,6 +66,7 @@ def test_write_rebuild_manifest_writes_consistent_totals(tmp_path: Path) -> None
             chunks=_build_chunks(),
             ingestion_version="ingestion_v2",
             chunking_version="chunking_v2",
+            parser_name="docling",
         )
     ]
 
@@ -75,13 +78,16 @@ def test_write_rebuild_manifest_writes_consistent_totals(tmp_path: Path) -> None
         docs=docs,
         ingestion_version="ingestion_v2",
         chunking_version="chunking_v2",
+        parser_name="docling",
     )
 
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert payload["collection"] == "medical_research_chunks_v1"
     assert payload["doc_count"] == 1
     assert payload["chunk_count"] == 2
+    assert payload["parser"] == "docling"
     assert payload["docs"][0]["doc_id"] == "DOC-1"
+    assert payload["docs"][0]["parser"] == "docling"
 
 
 def test_upsert_manifest_doc_entry_replaces_existing_doc_and_recalculates_totals(tmp_path: Path) -> None:
@@ -113,16 +119,20 @@ def test_upsert_manifest_doc_entry_replaces_existing_doc_and_recalculates_totals
             chunks=_build_chunks(),
             ingestion_version="ingestion_v2",
             chunking_version="chunking_v2",
+            parser_name="docling",
         ),
         ingestion_version="ingestion_v2",
         chunking_version="chunking_v2",
+        parser_name="docling",
     )
 
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert payload["doc_count"] == 1
     assert payload["chunk_count"] == 2
+    assert payload["parser"] == "docling"
     assert payload["docs"][0]["doc_id"] == "DOC-1"
     assert payload["docs"][0]["text_chunk_count"] == 1
+    assert payload["docs"][0]["parser"] == "docling"
 
 
 def test_upsert_manifest_doc_entry_appends_new_doc_and_sorts(tmp_path: Path) -> None:
@@ -149,9 +159,11 @@ def test_upsert_manifest_doc_entry_appends_new_doc_and_sorts(tmp_path: Path) -> 
             chunks=_build_chunks(),
             ingestion_version="ingestion_v2",
             chunking_version="chunking_v2",
+            parser_name="docling",
         ),
         ingestion_version="ingestion_v2",
         chunking_version="chunking_v2",
+        parser_name="docling",
     )
 
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -177,6 +189,7 @@ def test_write_rebuild_manifest_rejects_duplicate_source_file_entries(tmp_path: 
                     chunks=_build_chunks(),
                     ingestion_version="ingestion_v2",
                     chunking_version="chunking_v2",
+                    parser_name="docling",
                 ),
                 build_manifest_doc_entry(
                     doc_id="DOC-2",
@@ -185,8 +198,10 @@ def test_write_rebuild_manifest_rejects_duplicate_source_file_entries(tmp_path: 
                     chunks=_build_chunks(),
                     ingestion_version="ingestion_v2",
                     chunking_version="chunking_v2",
+                    parser_name="docling",
                 ),
             ],
             ingestion_version="ingestion_v2",
             chunking_version="chunking_v2",
+            parser_name="docling",
         )

@@ -19,12 +19,12 @@ _ensure_project_root_on_path()
 from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import FieldCondition, Filter, MatchValue  # noqa: E402
 
-from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import normalize_doc_id  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, upsert_manifest_doc_entry  # noqa: E402
+from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from src.app.ingestion.versioning_utils import validate_manifest_compatibility  # noqa: E402
 from scripts.test_e2e_flow import normalize_tables  # noqa: E402
@@ -40,6 +40,12 @@ def parse_args() -> argparse.Namespace:
         "--collection",
         default="medical_research_chunks_v1",
         help="Qdrant collection name.",
+    )
+    parser.add_argument(
+        "--parser",
+        choices=PARSER_CHOICES,
+        default=DEFAULT_PARSER_NAME,
+        help="Parser used during reingestion.",
     )
     parser.add_argument(
         "--qdrant-url",
@@ -308,12 +314,12 @@ def main() -> int:
             manifest_path=args.manifest,
         )
 
-    parser = MarkerParser()
+    document_parser = build_parser(args.parser)
     chunker = UnifiedChunker(max_chars=args.max_chars, overlap_paragraphs=args.overlap_paragraphs)
 
     print(f"Parsing: {pdf_path}")
     try:
-        parsed = parser.parse(pdf_path)
+        parsed = document_parser.parse(pdf_path)
     except Exception as exc:  # noqa: BLE001
         return report_failure(
             pdf_path=pdf_path,
@@ -412,6 +418,7 @@ def main() -> int:
                 chunks=chunks,
                 ingestion_version=UnifiedChunker.INGESTION_VERSION,
                 chunking_version=UnifiedChunker.CHUNKING_VERSION,
+                parser_name=args.parser,
             )
             upsert_manifest_doc_entry(
                 manifest_path=args.manifest,
@@ -419,6 +426,7 @@ def main() -> int:
                 doc_entry=manifest_entry,
                 ingestion_version=UnifiedChunker.INGESTION_VERSION,
                 chunking_version=UnifiedChunker.CHUNKING_VERSION,
+                parser_name=args.parser,
             )
         except Exception as exc:  # noqa: BLE001
             return report_failure(
@@ -432,6 +440,7 @@ def main() -> int:
             )
 
     print(f"Reingested doc_id: {normalized_doc_id}")
+    print(f"Parser: {args.parser}")
     print(f"Collection: {args.collection}")
     print(f"Chunks: {len(chunks)}")
     print(f"Text chunks: {text_chunks}")

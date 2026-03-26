@@ -16,14 +16,20 @@ def _ensure_project_root_on_path() -> None:
 
 _ensure_project_root_on_path()
 
-from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
+from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Parse one PDF with MarkerParser and export text/tables."
+        description="Parse one PDF with the selected parser and export text/tables."
     )
     parser.add_argument("--pdf", required=True, help="Path to the input PDF file.")
+    parser.add_argument(
+        "--parser",
+        choices=PARSER_CHOICES,
+        default=DEFAULT_PARSER_NAME,
+        help="Parser used for the debug export.",
+    )
     parser.add_argument(
         "--out-dir",
         default="data/parsed_debug",
@@ -41,11 +47,11 @@ def main() -> int:
         print(f"ERROR: PDF file not found: {pdf_path}")
         return 1
 
-    parser = MarkerParser()
+    document_parser = build_parser(args.parser)
     start_time = time.time()
-    print(f"Starting parse: {pdf_path}")
+    print(f"Starting parse: {pdf_path} (parser={args.parser})")
     try:
-        parsed = parser.parse(pdf_path)
+        parsed = document_parser.parse(pdf_path)
     except Exception as exc:  # noqa: BLE001
         print(f"ERROR: Failed to parse PDF: {exc}")
         print(traceback.format_exc())

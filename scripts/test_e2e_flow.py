@@ -20,9 +20,9 @@ _ensure_project_root_on_path()
 from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
-from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path, normalize_doc_id  # noqa: E402
+from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.services.retrieval_service import RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
@@ -37,6 +37,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pdf", required=True, help="Path to the input PDF.")
     parser.add_argument("--query", required=True, help="Retrieval query to execute after ingestion.")
     parser.add_argument("--doc-id", help="Document ID. Defaults to the PDF stem.")
+    parser.add_argument(
+        "--parser",
+        choices=PARSER_CHOICES,
+        default=DEFAULT_PARSER_NAME,
+        help="Parser used during ingestion.",
+    )
     parser.add_argument(
         "--collection",
         default="medical_research_chunks",
@@ -213,8 +219,8 @@ def main() -> int:
         return 1
 
     try:
-        parser = MarkerParser()
-        parsed_document = parser.parse(pdf_path)
+        document_parser = build_parser(args.parser)
+        parsed_document = document_parser.parse(pdf_path)
     except Exception as exc:  # noqa: BLE001
         print(f"ERROR: parsing failed: {exc}")
         return 1
@@ -276,6 +282,7 @@ def main() -> int:
 
     print(f"PDF: {pdf_path}")
     print(f"Document ID: {doc_id}")
+    print(f"Parser: {args.parser}")
     print(f"Collection: {args.collection}")
     print(f"Chunks generated: {len(chunks)}")
     print(f"Text chunks: {text_chunk_count}")

@@ -28,10 +28,10 @@ except ImportError as exc:  # pragma: no cover
 from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
-from src.adapters.parsing.marker_parser import MarkerParser  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
+from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 from src.app.ingestion.registry_utils import (  # noqa: E402
     get_collection_docs as registry_collection_docs,
     load_registry as load_registry_file,
@@ -142,6 +142,7 @@ def ingest_pdf(
     pdf_path: Path,
     doc_id: str,
     collection_name: str,
+    parser_name: str,
     qdrant_url: str,
     max_chars: int,
     overlap_paragraphs: int,
@@ -171,8 +172,8 @@ def ingest_pdf(
     except ValueError as exc:
         raise RuntimeError(str(exc)) from exc
 
-    parser = MarkerParser()
-    parsed_document = parser.parse(pdf_path)
+    document_parser = build_parser(parser_name)
+    parsed_document = document_parser.parse(pdf_path)
     normalized_tables = normalize_tables(parsed_document.tables, file_name=pdf_path.name)
 
     chunker = UnifiedChunker(max_chars=max_chars, overlap_paragraphs=overlap_paragraphs)
@@ -207,6 +208,8 @@ def ingest_pdf(
         "table_chunks": table_chunk_count,
         "ingestion_version": UnifiedChunker.INGESTION_VERSION,
         "chunking_version": UnifiedChunker.CHUNKING_VERSION,
+        "parser": parser_name,
+        "source_file": pdf_path.name,
     }
 
 
@@ -546,6 +549,12 @@ def main() -> None:
         st.header("Runtime")
         qdrant_url = st.text_input("Qdrant URL", value="http://localhost:6333")
         collection_name = st.text_input("Collection", value="medical_research_chunks")
+        parser_name = st.selectbox(
+            "Parser",
+            options=list(PARSER_CHOICES),
+            index=list(PARSER_CHOICES).index(DEFAULT_PARSER_NAME),
+            help="Only affects newly ingested documents.",
+        )
         max_chars = st.number_input("Max chars", min_value=200, max_value=4000, value=1800, step=100)
         overlap_paragraphs = st.number_input("Overlap paragraphs", min_value=0, max_value=5, value=1, step=1)
         retrieval_limit = st.number_input("Retrieval limit", min_value=1, max_value=20, value=5, step=1)
@@ -628,7 +637,8 @@ def main() -> None:
             for doc_id, summary in st.session_state.ingested_docs.items():
                 st.caption(
                     f"{doc_id}: {summary['chunks']} chunks "
-                    f"({summary['text_chunks']} text / {summary['table_chunks']} table)"
+                    f"({summary['text_chunks']} text / {summary['table_chunks']} table) "
+                    f"[parser={summary.get('parser', '') or 'unknown'}]"
                 )
         else:
             st.caption("No documents ingested in this session.")
@@ -680,6 +690,7 @@ def main() -> None:
                                 pdf_path=pdf_path,
                                 doc_id=doc_id,
                                 collection_name=collection_name,
+                                parser_name=parser_name,
                                 qdrant_url=qdrant_url,
                                 max_chars=int(max_chars),
                                 overlap_paragraphs=int(overlap_paragraphs),

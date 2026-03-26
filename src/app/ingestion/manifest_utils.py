@@ -16,6 +16,7 @@ def build_manifest_doc_entry(
     chunks: list[Chunk],
     ingestion_version: str,
     chunking_version: str,
+    parser_name: str = "",
 ) -> dict[str, Any]:
     text_chunks = sum(chunk.metadata.chunk_type == "text" for chunk in chunks)
     table_chunks = sum(chunk.metadata.chunk_type == "table" for chunk in chunks)
@@ -28,6 +29,7 @@ def build_manifest_doc_entry(
         "table_chunk_count": table_chunks,
         "ingestion_version": ingestion_version,
         "chunking_version": chunking_version,
+        "parser": str(parser_name).strip(),
     }
 
 
@@ -40,6 +42,7 @@ def write_rebuild_manifest(
     docs: list[dict[str, Any]],
     ingestion_version: str,
     chunking_version: str,
+    parser_name: str = "",
 ) -> None:
     validate_unique_doc_identities(docs, context="Rebuild manifest")
     path = Path(manifest_path)
@@ -52,6 +55,7 @@ def write_rebuild_manifest(
         "chunk_count": sum(int(doc["chunk_count"]) for doc in docs),
         "ingestion_version": ingestion_version,
         "chunking_version": chunking_version,
+        "parser": str(parser_name).strip(),
         "docs": docs,
     }
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -64,6 +68,7 @@ def upsert_manifest_doc_entry(
     doc_entry: dict[str, Any],
     ingestion_version: str,
     chunking_version: str,
+    parser_name: str = "",
 ) -> None:
     path = Path(manifest_path)
     payload: dict[str, Any]
@@ -76,6 +81,7 @@ def upsert_manifest_doc_entry(
     payload["collection"] = collection
     payload["ingestion_version"] = ingestion_version
     payload["chunking_version"] = chunking_version
+    payload["parser"] = str(parser_name).strip()
 
     docs = payload.get("docs")
     if not isinstance(docs, list):

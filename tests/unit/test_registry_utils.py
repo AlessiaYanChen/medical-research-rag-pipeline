@@ -27,6 +27,7 @@ def test_sync_collection_from_manifest_hydrates_registry_docs(tmp_path: Path) ->
                 "collection": "medical_research_chunks_v1",
                 "ingestion_version": "ingestion_v2",
                 "chunking_version": "chunking_v2",
+                "parser": "docling",
                 "docs": [
                     {
                         "doc_id": "DOC-1",
@@ -52,8 +53,10 @@ def test_sync_collection_from_manifest_hydrates_registry_docs(tmp_path: Path) ->
     docs = get_collection_docs(registry, "medical_research_chunks_v1")
     assert docs["DOC-1"]["pdf_path"] == "C:/docs/doc1.pdf"
     assert docs["DOC-1"]["chunks"] == 4
+    assert docs["DOC-1"]["parser"] == "docling"
     assert registry["collections"]["medical_research_chunks_v1"]["doc_count"] == 1
     assert registry["collections"]["medical_research_chunks_v1"]["chunk_count"] == 4
+    assert registry["collections"]["medical_research_chunks_v1"]["parser"] == "docling"
 
 
 def test_upsert_collection_doc_recalculates_collection_totals() -> None:
@@ -70,6 +73,7 @@ def test_upsert_collection_doc_recalculates_collection_totals() -> None:
             "table_chunks": 1,
             "ingestion_version": "ingestion_v2",
             "chunking_version": "chunking_v2",
+            "parser": "docling",
         },
     )
     upsert_collection_doc(
@@ -83,12 +87,14 @@ def test_upsert_collection_doc_recalculates_collection_totals() -> None:
             "table_chunks": 0,
             "ingestion_version": "ingestion_v2",
             "chunking_version": "chunking_v2",
+            "parser": "docling",
         },
     )
 
     collection_entry = registry["collections"]["medical_research_chunks_v1"]
     assert collection_entry["doc_count"] == 2
     assert collection_entry["chunk_count"] == 10
+    assert collection_entry["parser"] == "docling"
     assert collection_entry["docs"]["DOC-2"]["pdf_path"] == "C:/docs/doc2.pdf"
 
 
@@ -100,6 +106,7 @@ def test_sync_collection_from_manifest_replaces_legacy_flat_doc_entries(tmp_path
                 "collection": "medical_research_chunks_v1",
                 "ingestion_version": "ingestion_v2",
                 "chunking_version": "chunking_v2",
+                "parser": "docling",
                 "docs": [
                     {
                         "doc_id": "DOC-1",
@@ -154,6 +161,7 @@ def test_upsert_collection_doc_rejects_duplicate_pdf_path_for_other_doc() -> Non
             "table_chunks": 1,
             "ingestion_version": "ingestion_v2",
             "chunking_version": "chunking_v2",
+            "parser": "docling",
         },
     )
 
@@ -170,5 +178,6 @@ def test_upsert_collection_doc_rejects_duplicate_pdf_path_for_other_doc() -> Non
                 "table_chunks": 1,
                 "ingestion_version": "ingestion_v2",
                 "chunking_version": "chunking_v2",
+                "parser": "docling",
             },
         )
