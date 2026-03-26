@@ -220,6 +220,8 @@ def _dataset_output_stem(dataset_path: Path) -> str:
         return "retrieval_eval_expanded"
     if dataset_name == "ood_adversarial_queries.json":
         return "ood_retrieval_eval"
+    if dataset_name == "known_gap_queries.json":
+        return "known_gap_retrieval_eval"
     return f"retrieval_eval_{dataset_path.stem}"
 
 

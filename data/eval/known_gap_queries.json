@@ -1,0 +1,106 @@
+[
+  {
+    "id": "K01",
+    "query": "What was the detection rate for gram-positive bacteria before and after lysozyme treatment in the FLAT study?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "include_tables": true,
+    "labels": ["known_gap", "table_dependent", "flat", "metric", "runtime_candidate"],
+    "notes": "Known-gap tracking query. This likely depends on exact table or figure-backed values rather than a stable prose span."
+  },
+  {
+    "id": "K02",
+    "query": "What was the LOD for E. faecalis with 100 ug lysozyme at 60 minutes?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["known_gap", "table_dependent", "flat", "lod", "species_specific"],
+    "notes": "Known-gap tracking query. Expected answer is likely locked in a species-specific table cell rather than prose."
+  },
+  {
+    "id": "K03",
+    "query": "How many Enterococcus faecalis samples were correctly identified by FLAT?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["known_gap", "table_dependent", "flat", "count", "species_specific"],
+    "notes": "Known-gap tracking query for exact species-level count extraction from the FLAT clinical-validation table."
+  },
+  {
+    "id": "K04",
+    "query": "Which gram-positive species had 100% agreement between culture and FLAT?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["known_gap", "table_dependent", "flat", "agreement", "species_list"],
+    "notes": "Known-gap tracking query. This requires exact row-level agreement extraction rather than broad document retrieval."
+  },
+  {
+    "id": "K05",
+    "query": "What was the PCR/ESI-MS semi-quantitative level for Haemophilus influenzae in the patient with heavy Klebsiella pneumoniae growth?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["known_gap", "table_dependent", "bal", "semi_quantitative", "case_specific"],
+    "notes": "Known-gap tracking query. The relevant evidence is a narrow case-specific value tied to table context."
+  },
+  {
+    "id": "K06",
+    "query": "What cardiolipin m/z values identify S. aureus in the FLAT assay?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Materials and Methods"],
+    "labels": ["known_gap", "figure_dependent", "flat", "mz_values", "species_specific"],
+    "notes": "Known-gap tracking query. This is primarily figure-derived and is not expected to be answered reliably from current text chunks alone."
+  },
+  {
+    "id": "K07",
+    "query": "What does the distribution of species per BAL sample look like in Figure 1?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Abstract"],
+    "labels": ["known_gap", "figure_dependent", "bal", "distribution", "visual_summary"],
+    "notes": "Known-gap tracking query. The answer depends on visual interpretation of Figure 1 rather than ordinary prose retrieval."
+  },
+  {
+    "id": "K08",
+    "query": "How do PCR/ESI-MS levels correlate with CFU counts for H. influenzae?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion"],
+    "include_tables": true,
+    "labels": ["known_gap", "figure_dependent", "bal", "correlation", "quantitative"],
+    "notes": "Known-gap tracking query. The correlation signal appears to rely on figure/table context rather than a single stable prose chunk."
+  },
+  {
+    "id": "K09",
+    "query": "For which gram-positive species did the FLAT assay fail to detect despite adequate bacterial load?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Discussion", "Results"],
+    "include_tables": true,
+    "labels": ["known_gap", "failure_mode", "flat", "species_specific", "negation"],
+    "notes": "Known-gap tracking query. Some evidence exists in prose, but the exact species set is brittle and partly anchored to false-negative case discussion."
+  },
+  {
+    "id": "K10",
+    "query": "Which paper focuses on respiratory infections rather than urinary tract infections?",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Abstract", "Introduction", "Discussion"],
+    "labels": ["known_gap", "contrastive", "cross_doc", "domain_disambiguation"],
+    "notes": "Known-gap tracking query for contrastive document selection between the BAL and FLAT papers."
+  },
+  {
+    "id": "K11",
+    "query": "Which paper uses MALDI-based detection instead of ESI-based detection?",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Introduction", "Materials and Methods", "Results"],
+    "labels": ["known_gap", "contrastive", "cross_doc", "platform_disambiguation"],
+    "notes": "Known-gap tracking query for contrastive platform disambiguation between MALDI-based FLAT and ESI-based IRIDICA."
+  }
+]
