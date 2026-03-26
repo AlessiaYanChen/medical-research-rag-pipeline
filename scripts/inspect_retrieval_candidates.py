@@ -25,6 +25,19 @@ from src.app.evaluation.retrieval_eval import load_evaluation_queries  # noqa: E
 from src.app.services.retrieval_service import RetrievalService  # noqa: E402
 
 
+def _console_safe_text(text: str) -> str:
+    encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        text.encode(encoding)
+    except UnicodeEncodeError:
+        return text.encode(encoding, errors="replace").decode(encoding)
+    return text
+
+
+def _emit(text: str) -> None:
+    print(_console_safe_text(text))
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Inspect retrieval candidates for a single query across retrieval stages."
@@ -146,15 +159,15 @@ def summarize_chunk(index: int, chunk, query: str, service: RetrievalService) ->
 
 
 def print_stage(name: str, chunks: list, query: str, service: RetrievalService, stage_limit: int) -> None:
-    print(f"\n{name} ({len(chunks)} chunks)")
+    _emit(f"\n{name} ({len(chunks)} chunks)")
     for index, chunk in enumerate(chunks[:stage_limit], start=1):
-        print(summarize_chunk(index=index, chunk=chunk, query=query, service=service))
+        _emit(summarize_chunk(index=index, chunk=chunk, query=query, service=service))
 
 
 def main() -> int:
     args = parse_args()
     if not args.embedding_api_key:
-        print("ERROR: embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.")
+        _emit("ERROR: embedding API key is required. Provide --embedding-api-key or set EMBEDDING_API_KEY.")
         return 1
 
     query, doc_id = resolve_query(args)
@@ -187,21 +200,21 @@ def main() -> int:
     ranked_chunks = service._rank_chunks(query=query, chunks=candidate_chunks)
     final_chunks = service.retrieve(query=query, doc_id=doc_id, limit=args.limit)
 
-    print(f"Query: {query}")
-    print(f"Doc filter: {doc_id or '<none>'}")
-    print(f"Collection: {args.collection}")
-    print(f"Initial limit: {initial_limit}")
-    print(f"Candidate limit: {candidate_limit}")
-    print(f"Filters: {filters}")
+    _emit(f"Query: {query}")
+    _emit(f"Doc filter: {doc_id or '<none>'}")
+    _emit(f"Collection: {args.collection}")
+    _emit(f"Initial limit: {initial_limit}")
+    _emit(f"Candidate limit: {candidate_limit}")
+    _emit(f"Filters: {filters}")
 
     print_stage("Initial Search", initial_chunks, query, service, args.stage_limit)
     print_stage("Post Filter", filtered_chunks, query, service, args.stage_limit)
     print_stage("Ranked Candidates", ranked_chunks, query, service, args.stage_limit)
 
-    print(f"\nFinal Returned Chunks ({len(final_chunks)} chunks)")
+    _emit(f"\nFinal Returned Chunks ({len(final_chunks)} chunks)")
     for index, chunk in enumerate(final_chunks, start=1):
         preview = chunk.content.replace("\n", " ")[:160]
-        print(
+        _emit(
             f"{index:02d}. doc={chunk.doc_id} | header={chunk.source} | role={chunk.content_role}"
             f" | chunk_type={chunk.chunk_type} | preview={preview}"
         )
