@@ -273,7 +273,7 @@ Why the nested metadata shape matters:
 ### Services
 
 - Qdrant running locally or remotely
-- Marker installed for PDF parsing
+- Marker or Docling available for PDF parsing
 - OpenAI or Azure OpenAI credentials for embeddings
 - Optional OpenAI or Azure OpenAI credentials for answer synthesis
 
@@ -282,9 +282,8 @@ Why the nested metadata shape matters:
 The checked-in `requirements.txt` and `.env.example` are the base setup surface for this repo.
 
 Important runtime note:
-- the repo does not auto-load `.env`
-- copying `.env.example` to `.env` is useful as a template, but the values only apply if your shell/session loads them or if you pass the equivalent CLI flags
-- the CLI scripts and the Streamlit UI read environment variables via `os.getenv(...)`; they do not call `python-dotenv`
+- the main CLI testing scripts and the Streamlit UI now auto-load `.env` via `python-dotenv`
+- copying `.env.example` to `.env` is the intended local setup path for collection, Qdrant, and embedding defaults
 - keep concrete values in `.env`; do not rely on `${OTHER_VAR}` interpolation unless your own shell loader expands it before Python starts
 
 Create a virtual environment and upgrade `pip`:
@@ -321,25 +320,6 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Load `.env` into your shell if you want the scripts to pick those values up automatically.
-
-PowerShell example:
-
-```powershell
-Get-Content .env | Where-Object { $_ -and -not $_.StartsWith('#') } | ForEach-Object {
-    $name, $value = $_ -split '=', 2
-    Set-Item -Path "Env:$name" -Value $value
-}
-```
-
-Bash example:
-
-```bash
-set -a
-source .env
-set +a
-```
-
 ### Required Environment Variables
 
 For embeddings:
@@ -364,9 +344,9 @@ For Qdrant:
 - `QDRANT_COLLECTION`: documented default collection name for this repo
 
 Current behavior note:
-- the scripts still take Qdrant settings from CLI flags and built-in defaults rather than automatically consuming `QDRANT_URL` or `QDRANT_COLLECTION`
-- `scripts/test_e2e_flow.py` and `scripts/ui_app.py` default to `medical_research_chunks`
-- the preserved benchmark baseline is on `medical_research_chunks_v1`, so set that collection explicitly when you want to work against the clean retrieval baseline
+- the UI and main CLI testing scripts auto-read `QDRANT_URL` and `QDRANT_COLLECTION` from `.env`
+- the active default collection is now `medical_research_chunks_docling_v1`
+- the preserved rollback collection remains `medical_research_chunks_v1`, so set that collection explicitly only when you intentionally want the old baseline
 
 For optional answer synthesis:
 
@@ -403,8 +383,9 @@ python -m streamlit run scripts/ui_app.py
 
 Before using the UI:
 - start Qdrant first
-- provide embedding credentials in the sidebar
-- if you want to use the preserved benchmark collection, change the sidebar collection from `medical_research_chunks` to `medical_research_chunks_v1`
+- keep your local `.env` populated so collection and embedding defaults preload automatically
+- provide or adjust any credentials in the sidebar only when you want to override `.env`
+- if you want to use the preserved rollback collection, change the sidebar collection from `medical_research_chunks_docling_v1` to `medical_research_chunks_v1`
 
 The UI supports:
 - PDF upload and ingestion
@@ -447,7 +428,11 @@ Run an end-to-end ingestion and retrieval flow:
 python scripts/test_e2e_flow.py --pdf "data/raw_pdfs/your_file.pdf" --query "What does the paper say about lipid biomarkers?" --recreate-collection
 ```
 
-`scripts/test_e2e_flow.py` defaults to the `medical_research_chunks` collection. Pass `--collection medical_research_chunks_v1` only if you intentionally want to point it at the preserved benchmark collection.
+`scripts/test_e2e_flow.py` now defaults to `QDRANT_COLLECTION` from `.env` and falls back to `medical_research_chunks_docling_v1`. Pass `--collection medical_research_chunks_v1` only if you intentionally want to point it at the preserved rollback collection.
+
+Runtime-focused evaluation sets now include:
+- `data/eval/runtime_queries.json` for real app usage regressions
+- `data/eval/known_gap_queries.json` for figure/table/contrastive gap tracking that should stay separate from the runtime baseline
 
 Run the retrieval evaluation harness against an indexed collection:
 
