@@ -305,5 +305,16 @@
     "expected_headers": ["Conclusion", "Discussion"],
     "labels": ["runtime", "contrastive", "fabre", "nartey", "limitations", "cross_doc"],
     "notes": "Real UI query from manual Streamlit testing. Final retrieval included Fabre conclusion material plus noisy Nartey/Culture-Free chunks, but it missed the more specific Nartey discussion prose that urine dipstick analysis for blood, nitrites, and leukocyte esterase can be prone to positive interferences leading to unnecessary urine culture investigations. This case mixes a Nartey-side candidate-recall weakness with noisy final selection, not a figure/table known gap."
+  },
+  {
+    "id": "R35",
+    "query": "What is the reported turnaround time of the FLAT lipidomics assay for direct urine pathogen detection?",
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Introduction", "Document Metadata/Abstract"],
+    "labels": ["runtime", "flat", "urine", "turnaround", "cross_doc"],
+    "notes": "Real UI query from manual Streamlit testing after the March 27 checkpoint. Retrieved context showed a Nartey discussion chunk about batch analysis under 1 hour plus a Culture-Free discussion chunk about an optimized roughly 2-hour protocol, but it did not surface the cleaner opening-body evidence that FLAT results can be ready within an hour from sample receipt. This currently looks like ranking/selection noise rather than a measured candidate-recall gap."
   }
 ]

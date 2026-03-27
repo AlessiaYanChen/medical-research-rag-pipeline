@@ -354,6 +354,11 @@ Current checkpoint:
     - interpretation of that tradeoff:
       - `R34` now returns only the two target docs and places the Nartey limitation evidence first, eliminating the prior `Culture-Free` runtime noise and fixing the measured candidate-recall gap
       - `R34` top-1 header becomes `Document Metadata/Abstract` rather than `Discussion` because the answer-bearing Nartey opening-body chunk is still section-labeled as metadata in the indexed corpus, so the remaining weakness is header labeling rather than retrieval recall
+  - an additional manual UI question has now been captured as `R35`:
+    - query: `What is the reported turnaround time of the FLAT lipidomics assay for direct urine pathogen detection?`
+    - current behavior returns a Nartey discussion chunk about batch analysis under 1 hour plus a Culture-Free discussion chunk about an optimized roughly 2-hour protocol
+    - expected answer path should instead foreground the cleaner opening-body/intro evidence that FLAT results can be ready within an hour from sample receipt, with the optimized ~2-hour workflow treated as secondary context if mentioned at all
+    - current diagnosis: ranking/selection noise, not a measured candidate-recall weakness
 
 ## Phase 5: Corpus Rollout
 
