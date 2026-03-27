@@ -154,6 +154,7 @@ src/
 │  └─ parser_port.py
 ├─ adapters/
 │  └─ parsing/
+│     ├─ docling_parser.py
 │     └─ marker_parser.py
 └─ app/
    ├─ adapters/
@@ -188,8 +189,14 @@ scripts/
 
 ### Parsing
 
-- [marker_parser.py](C:\repos\github\medical-research-rag-pipeline\src\adapters\parsing\marker_parser.py)
-- [parser_port.py](C:\repos\github\medical-research-rag-pipeline\src\ports\parser_port.py)
+- [docling_parser.py](src/adapters/parsing/docling_parser.py)
+- [marker_parser.py](src/adapters/parsing/marker_parser.py)
+- [parser_port.py](src/ports/parser_port.py)
+
+The repo supports both parser adapters behind the same parser contract:
+- `Docling` is the active parser for new ingestion
+- `Marker` is preserved as the rollback parser
+- parser choice is selected at ingestion time through the parser factory and ingestion entry points
 
 The active parser path converts a PDF into:
 - `markdown_text`
@@ -199,8 +206,8 @@ Tables are separated from the main text instead of being flattened into plain na
 
 ### Table Processing
 
-- [table_normalizer.py](C:\repos\github\medical-research-rag-pipeline\src\app\tables\table_normalizer.py)
-- [table_chunker.py](C:\repos\github\medical-research-rag-pipeline\src\app\tables\table_chunker.py)
+- [table_normalizer.py](src/app/tables/table_normalizer.py)
+- [table_chunker.py](src/app/tables/table_chunker.py)
 
 `TableNormalizer` trims metadata/title rows from the top of extracted tables and preserves trimmed metadata as an artifact when available.
 
@@ -213,11 +220,11 @@ Tables are separated from the main text instead of being flattened into plain na
 
 ### Retrieval and Re-Ranking
 
-- [retrieval_service.py](C:\repos\github\medical-research-rag-pipeline\src\app\services\retrieval_service.py)
-- [vector_repository.py](C:\repos\github\medical-research-rag-pipeline\src\app\ports\repositories\vector_repository.py)
-- [qdrant_repository.py](C:\repos\github\medical-research-rag-pipeline\src\app\adapters\vectorstores\qdrant_repository.py)
-- [re_ranker_port.py](C:\repos\github\medical-research-rag-pipeline\src\app\ports\re_ranker_port.py)
-- [transformers_reranker.py](C:\repos\github\medical-research-rag-pipeline\src\app\adapters\rerankers\transformers_reranker.py)
+- [retrieval_service.py](src/app/services/retrieval_service.py)
+- [vector_repository.py](src/app/ports/repositories/vector_repository.py)
+- [qdrant_repository.py](src/app/adapters/vectorstores/qdrant_repository.py)
+- [re_ranker_port.py](src/app/ports/re_ranker_port.py)
+- [transformers_reranker.py](src/app/adapters/rerankers/transformers_reranker.py)
 
 Retrieval is two-stage:
 1. vector search in Qdrant
@@ -232,9 +239,9 @@ Retrieval policy is split as follows:
 
 ### Reasoning
 
-- [reasoning_service.py](C:\repos\github\medical-research-rag-pipeline\src\app\services\reasoning_service.py)
-- [research_prompt.py](C:\repos\github\medical-research-rag-pipeline\src\app\prompts\research_prompt.py)
-- [openai_llm_adapter.py](C:\repos\github\medical-research-rag-pipeline\src\app\adapters\llm\openai_llm_adapter.py)
+- [reasoning_service.py](src/app/services/reasoning_service.py)
+- [research_prompt.py](src/app/prompts/research_prompt.py)
+- [openai_llm_adapter.py](src/app/adapters/llm/openai_llm_adapter.py)
 
 `ReasoningService` builds on retrieved evidence and uses an LLM to synthesize a research answer. The current UI supports both OpenAI and Azure OpenAI.
 
@@ -307,6 +314,9 @@ Install the base dependencies:
 ```powershell
 python -m pip install -r requirements.txt
 ```
+
+If you want to use the active `Docling` parser path for ingestion, install `Docling` separately after the base requirements.
+The checked-in `requirements.txt` remains the minimum supported setup surface, but it does not currently include the `Docling` package itself.
 
 ```bash
 python -m pip install -r requirements.txt
@@ -436,14 +446,14 @@ Runtime-focused evaluation sets now include:
 - `data/eval/runtime_queries.json` for real app usage regressions
 - `data/eval/known_gap_queries.json` for figure/table/contrastive gap tracking that should stay separate from the runtime baseline
 
-Run the retrieval evaluation harness against an indexed collection:
+Run the retrieval evaluation harness against the active `Docling` collection:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_docling_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 ```bash
-python scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+python scripts/evaluate_retrieval.py --collection medical_research_chunks_docling_v1 --dataset data/eval/sample_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 When `--json-out` and `--csv-out` are omitted, the stable baseline now writes to `data/eval/results/retrieval_eval_sample.json` and `data/eval/results/retrieval_eval_sample.csv` by default so it does not overwrite broader benchmark runs.
@@ -451,11 +461,11 @@ When `--json-out` and `--csv-out` are omitted, the stable baseline now writes to
 Run the expanded benchmark without changing the stable baseline dataset:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_docling_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 ```bash
-python scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+python scripts/evaluate_retrieval.py --collection medical_research_chunks_docling_v1 --dataset data/eval/expanded_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 The expanded benchmark now defaults to `data/eval/results/retrieval_eval_expanded.json` and `data/eval/results/retrieval_eval_expanded.csv`, keeping the stable and expanded records separate unless you explicitly override the paths.
@@ -463,33 +473,33 @@ The expanded benchmark now defaults to `data/eval/results/retrieval_eval_expande
 Run the separate OOD/adversarial phrasing track with its own result files:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
+.\.venv\Scripts\python.exe scripts/evaluate_retrieval.py --collection medical_research_chunks_docling_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
 ```
 
 ```bash
-python scripts/evaluate_retrieval.py --collection medical_research_chunks_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
+python scripts/evaluate_retrieval.py --collection medical_research_chunks_docling_v1 --dataset data/eval/ood_adversarial_queries.json --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --json-out data/eval/results/ood_retrieval_eval.json --csv-out data/eval/results/ood_retrieval_eval.csv
 ```
 
 Inspect one OOD query across retrieval stages before changing ranking logic:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+.\.venv\Scripts\python.exe scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_docling_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 ```bash
-python scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+python scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_docling_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
-Deterministically rebuild a collection from the uploaded benchmark PDFs:
+Deterministically rebuild the active `Docling` collection from the uploaded benchmark PDFs:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 If you want a medium-scale batch rebuild to continue past per-file failures while still recording them for follow-up:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_v1.json
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_docling_v1.json
 ```
 
 If `--manifest-out` is omitted, rebuilds now default to `data/ingestion_manifests/<collection>_rebuild_manifest.json`, which keeps the rebuild output aligned with the default audit and reingest workflow for the same collection. With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/rebuild_failures_<collection>.json`.
@@ -497,13 +507,13 @@ If `--manifest-out` is omitted, rebuilds now default to `data/ingestion_manifest
 Reparse and replace a single document in an existing collection, optionally syncing the rebuild manifest entry at the same time:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_docling_v1_rebuild_manifest.json
 ```
 
 If you want a structured failure record for a repair attempt:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json --failure-report-out data/eval/results/reingest_failure_your_doc_id.json
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_docling_v1_rebuild_manifest.json --failure-report-out data/eval/results/reingest_failure_your_doc_id.json
 ```
 
 The single-document repair flow now writes stage-specific failure context, covering malformed manifest JSON and other manifest-validation failures, embedding preflight, parse, chunk, delete, upsert, and manifest-update failures. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
@@ -511,29 +521,32 @@ The single-document repair flow now writes stage-specific failure context, cover
 Export stored chunks from Qdrant for validation:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/export_qdrant_chunks.py --collection medical_research_chunks_v1 --csv-out data/exports/current_chunks_v1.csv
+.\.venv\Scripts\python.exe scripts/export_qdrant_chunks.py --collection medical_research_chunks_docling_v1 --csv-out data/exports/current_chunks_docling_v1.csv
 ```
 
 Audit one collection across Qdrant, the rebuild manifest, and the local registry, and optionally sync the registry from the manifest before reporting:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_v1.json
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json
 ```
 
 Write a non-destructive duplicate cleanup plan from the same audit metadata without changing the collection:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_v1 --cleanup-plan-out data/eval/results/collection_cleanup_plan.json
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json
 ```
 
 Use the audit as an explicit rollout gate for Phase 5 or any medium-scale ingest batch:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan.json --fail-on-issues
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json --fail-on-issues
 ```
 
 Manifest-aware repair paths now enforce collection and ingestion/chunking version compatibility before updating local records, so a stale or mismatched manifest fails fast instead of being silently reused.
 The audit path now also fails fast on malformed manifest JSON instead of crashing during load, and it surfaces duplicate `doc_id`, `source_file`, and `local_file` conflicts explicitly; if the cleanup plan is empty, Qdrant, manifest, and registry agree on document identity at the metadata level. With `--fail-on-issues`, the command returns exit code `1` for any manifest version issue, reconciliation issue, or cleanup-plan step.
+
+Rollback note:
+- if you intentionally want to operate on the preserved `Marker` baseline instead, swap `medical_research_chunks_docling_v1` for `medical_research_chunks_v1` in the commands above and omit `--parser docling`
 
 ## Recommended Batch Workflow
 
@@ -542,15 +555,15 @@ For medium-scale ingestion work, the current operator path is:
 1. Rebuild the collection with manifest output:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error
 ```
 
-2. Review any rebuild failures written to `data/eval/results/rebuild_failures_medical_research_chunks_v1.json`.
+2. Review any rebuild failures written to `data/eval/results/rebuild_failures_medical_research_chunks_docling_v1.json`.
 
 3. Repair individual documents as needed:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_v1_rebuild_manifest.json
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_docling_v1_rebuild_manifest.json
 ```
 
 4. Review any single-document repair failures under `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
@@ -558,7 +571,7 @@ For medium-scale ingestion work, the current operator path is:
 5. Run the audit gate before treating the collection as rollout-ready:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan.json --fail-on-issues
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json --fail-on-issues
 ```
 
 This keeps the current operational loop explicit: rebuild, inspect failures, repair specific documents, then run the audit gate before larger rollout work.
@@ -609,7 +622,7 @@ Isolated parser bakeoff tooling now exists:
 - parser artifacts are written under `data/parser_bakeoff/artifacts/<parser>/...`
 - parser summaries and comparison output are written under `data/parser_bakeoff/results/...`
 - bakeoff ingestion uses separate parser-specific collection names and does not touch `medical_research_chunks_v1`
-- `Docling` remains an optional experiment-only dependency; the checked-in `requirements.txt` is still the base production setup surface for this repo
+- the checked-in `requirements.txt` remains the base setup surface, but active `Docling` ingestion currently requires an additional `Docling` install because the package is not pinned there yet
 
 Parse-only example for initial artifact inspection:
 
@@ -707,4 +720,4 @@ Use the same comparison helper on the stable and expanded result files as needed
 
 ## Roadmap
 
-See [ROADMAP.md](C:\github\medical-research-rag-pipeline\ROADMAP.md) for the planned path from current single-document validation to a few-hundred-document corpus, starting with roughly 300 PDFs.
+See [ROADMAP.md](ROADMAP.md) for the planned path from current single-document validation to a few-hundred-document corpus, starting with roughly 300 PDFs.
