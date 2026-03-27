@@ -318,8 +318,16 @@ python -m pip install -r requirements.txt
 If you want to use the active `Docling` parser path for ingestion, install `Docling` separately after the base requirements.
 The checked-in `requirements.txt` remains the minimum supported setup surface, but it does not currently include the `Docling` package itself.
 
+```powershell
+python -m pip install docling
+```
+
 ```bash
 python -m pip install -r requirements.txt
+```
+
+```bash
+python -m pip install docling
 ```
 
 Create a local env file from the checked-in template:
@@ -684,7 +692,7 @@ Recommended next development step after cutover:
 - keep the current retrieval architecture stable
 - continue collecting real user questions from runtime usage into `data/eval/runtime_queries.json`
 - the runtime regression set is now established and should remain the main gate for retrieval changes on `medical_research_chunks_docling_v1`
-- the current checked-in runtime set includes 28 real UI-derived queries spanning BAL/IRIDICA metric phrasing, FLAT urine workflow phrasing, and contrastive stewardship-vs-turnaround document selection
+- the current checked-in runtime set includes 38 real UI-derived queries spanning BAL/IRIDICA metric phrasing, FLAT urine workflow phrasing, synthesis questions, study-design classification, and contrastive stewardship-vs-turnaround document selection
 - include both successful and failing queries, especially:
   - exact metric/rate questions
   - study-identification queries
@@ -712,7 +720,8 @@ Use the same comparison helper on the stable and expanded result files as needed
 
 - retrieval quality still needs broader evaluation across multiple papers and query types
 - benchmark quality still depends on manual expectation refinement as cross-document and table-oriented cases are added
-- Marker output quality depends on the document layout and OCR quality
+- parser output quality still depends on document layout, OCR quality, and section-label normalization; this applies to the active `Docling` path as well as the preserved `Marker` rollback path
+- the active `Docling` parser path currently requires a separate install because `docling` is not yet pinned in `requirements.txt`
 - re-ranking uses a local model and may incur first-run download cost
 - the persistent knowledge-base registry is still a local file and can drift from Qdrant if data is changed externally, although manifest sync, duplicate guards, and the collection audit/cleanup-plan workflow now make that drift explicit and reviewable
 - evaluation is still based on a curated benchmark, not a broad corpus-wide test set
