@@ -374,6 +374,23 @@ Current checkpoint:
     - current behavior surfaces the two randomized blood-culture studies and some supporting review/observational chunks, but it does not clearly organize the full corpus into randomized controlled trials versus observational or review papers
     - expected answer path should explicitly classify `Single site RCT` and `RAPID` as the RCTs and place the remaining indexed papers into observational diagnostic-study or review buckets
     - current diagnosis: ranking/selection noise, not a measured candidate-recall gap
+  - March 27 follow-up candidate inspection on `R35` through `R38` sharpened that diagnosis before any new retrieval change:
+    - `R35` remains ranking/selection only:
+      - the answer-bearing Nartey opening-body chunk stating that FLAT results can be ready within an hour of sample receipt already appears at initial vector rank `4` / post-filter rank `4`
+      - final returned chunks still prefer later discussion material about batch analysis under 1 hour and an optimized roughly 2-hour workflow, so this is not a candidate-recall problem
+    - `R36` now shows a measured candidate-window weakness rather than only final-selection noise:
+      - the key Single site RCT hard-outcome prose (`no differences in clinical or microbiologic outcomes`) is present in initial/post-filter search but only around rank `29`, outside the ordinary candidate window
+      - Fabre stewardship framing does not appear in the first `40` initial candidates for this synthesis query, so the missing complementary theme is not just a final-ranker problem
+      - a follow-up narrow broad-synthesis retrieval attempt was evaluated locally and reverted because it did not preserve the broader runtime benchmark cleanly enough
+    - `R37` remains primarily ranking/selection plus query-shape table eligibility noise:
+      - the relevant Fabre, Nartey, Culture-Free, BAL, and RAPID evidence all appear within the inspected candidate pool
+      - the miss comes from which of those candidates survive ranking/final selection, including RAPID/Fabre table material surfacing ahead of the preferred urine-screening framing, not from missing candidate recall
+    - `R38` now also shows measured document-coverage weakness before final synthesis:
+      - inspection widens the early pool enough to recover review/RCT design-bearing `Methods` chunks, but the live query still does not cleanly cover the full corpus classification path
+      - a narrow study-design/classification retrieval attempt was evaluated locally and reverted because it did not improve the runtime benchmark enough to justify keeping the change
+    - current takeaway after inspection:
+      - keep `R35`, `R37`, and `R38` documented as observed UI misses rather than active code-change targets
+      - treat `R36` as the clearest newly measured candidate-window weakness, but do not keep any fix unless it is benchmark-safe on `runtime_queries.json`
 
 ## Phase 5: Corpus Rollout
 
