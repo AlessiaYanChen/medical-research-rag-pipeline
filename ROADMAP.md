@@ -364,6 +364,16 @@ Current checkpoint:
     - current behavior returns Banerjee trial process-improvement evidence, including faster antibiotic modification and more stewardship action, but it does not sufficiently cover the complementary “hard outcomes do not move as reliably” side of the synthesis
     - expected answer path should combine process-improvement chunks from `Single site RCT` and `RAPID` with supporting stewardship/workflow framing from the Fabre review rather than stopping at antibiotic-timing benefits alone
     - current diagnosis: ranking/selection noise, not a measured candidate-recall weakness
+  - another manual UI synthesis question has now been captured as `R37`:
+    - query: `Based on these papers, when is a rapid culture-free diagnostic most likely to add value over standard culture?`
+    - current behavior surfaces useful urine-screening and faster-decision chunks, but it does not cleanly assemble the broader “when does this add value” framing across the corpus
+    - expected answer path should combine: rapid rule-out / negative-screening value from the urine FLAT papers, faster antimicrobial decision timing from the blood-culture trials, and the complementary framing that non-culture methods add the most value when standard culture is slow, low-yield, or may fail
+    - current diagnosis: ranking/selection noise, not a measured candidate-recall weakness
+  - another manual UI corpus-classification question has now been captured as `R38`:
+    - query: `Which of these studies are randomized controlled trials, and which are observational or review papers?`
+    - current behavior surfaces the two randomized blood-culture studies and some supporting review/observational chunks, but it does not clearly organize the full corpus into randomized controlled trials versus observational or review papers
+    - expected answer path should explicitly classify `Single site RCT` and `RAPID` as the RCTs and place the remaining indexed papers into observational diagnostic-study or review buckets
+    - current diagnosis: ranking/selection noise, not a measured candidate-recall gap
 
 ## Phase 5: Corpus Rollout
 
