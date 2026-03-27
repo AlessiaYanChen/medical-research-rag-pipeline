@@ -635,7 +635,9 @@ Local operational state policy:
 
 Recommended next development step after cutover:
 - keep the current retrieval architecture stable
-- collect real user questions from runtime usage and turn the first 15-25 of them into a separate regression dataset such as `data/eval/runtime_queries.json`
+- continue collecting real user questions from runtime usage into `data/eval/runtime_queries.json`
+- the runtime regression set is now established and should remain the main gate for retrieval changes on `medical_research_chunks_docling_v1`
+- the current checked-in runtime set includes 28 real UI-derived queries spanning BAL/IRIDICA metric phrasing, FLAT urine workflow phrasing, and contrastive stewardship-vs-turnaround document selection
 - include both successful and failing queries, especially:
   - exact metric/rate questions
   - study-identification queries
@@ -643,6 +645,9 @@ Recommended next development step after cutover:
   - abbreviation-heavy or shorthand queries
 - use that runtime-derived set as the main gate for future retrieval changes before reconsidering hybrid retrieval, sparse retrieval, synonym expansion, or HyDE
 - only reopen those broader retrieval options if the runtime regression set shows repeated lexical or abbreviation recall failures that the current metadata-first pipeline cannot cover cleanly
+- recent runtime-driven retrieval fixes were intentionally narrow:
+  - contrastive single-document locking now covers both stewardship-review phrasing and turnaround-vs-stewardship phrasing
+  - BAL IRIDICA single-study wording such as `the BAL IRIDICA study` now stays locked to BAL evidence without requiring an explicit `doc_id`
 
 For deeper `Docling` diagnosis, compare query-level regressions directly before changing parser or retrieval logic:
 
@@ -672,7 +677,7 @@ Use the same comparison helper on the stable and expanded result files as needed
 - the OOD/adversarial dataset is intentionally a separate track; review or correct its expectations manually before using it to justify retrieval changes
 - current OOD debugging has already corrected one expectation-level ambiguity (`O07`), so remaining misses should be treated as retrieval behavior only after candidate inspection confirms the expected document is not already present upstream
 - the current recommended order is: keep the stable and expanded benchmark records separate, diagnose any precision/table regressions, then only add further retrieval behavior if those measured regressions require it; do not add extra retrieval stages such as hybrid search, query expansion, or extra embedding-based routing before that work is complete
-- the next evaluation improvement should come from real runtime queries rather than synthetic architecture changes: build and maintain a small `runtime_queries` regression file from actual user questions before expanding into hybrid retrieval or query expansion work
+- the next evaluation improvement should still come from real runtime queries rather than synthetic architecture changes: maintain and expand `runtime_queries.json` from actual user questions before expanding into hybrid retrieval or query expansion work
 - parser bakeoff tooling is implemented and should remain isolated from the active collection; any parser migration should still be justified by downstream retrieval gains on the benchmark, not just cleaner-looking parsed output
 
 ## Roadmap

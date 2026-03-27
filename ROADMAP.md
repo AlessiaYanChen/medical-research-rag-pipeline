@@ -313,6 +313,13 @@ Current checkpoint:
     - `Docling` is now viable for a controlled cutover to `medical_research_chunks_docling_v1`
     - keep `medical_research_chunks_v1` available as rollback
     - do not commit local generated state such as `data/eval/results/*`, `data/kb_registry.json`, or local collection manifests; document the checkpoint instead
+  - follow-up manual UI testing on the active `Docling` collection has now been folded into `data/eval/runtime_queries.json`, which currently holds 28 real runtime queries
+  - recent runtime-driven retrieval fixes stayed narrow and benchmark-backed:
+    - contrastive document selection now resolves both `turnaround improvements, not stewardship policy` and `optimizing blood culture use rather than reporting rapid test outcomes`
+    - BAL-specific single-study wording such as `the BAL IRIDICA study` is now treated as a single-document target even without an explicit doc filter, preventing unrelated FLAT/stewardship chunks from leaking into that query family
+  - the current runtime benchmark on `medical_research_chunks_docling_v1` is locally clean at the document level:
+    - `runtime_queries.json`: expected doc hit `1.0`, expected header hit `1.0`, top-1 expected doc hit `1.0`
+  - latest unit-test checkpoint after those runtime fixes: `171 passed`
 
 ## Phase 5: Corpus Rollout
 
@@ -344,10 +351,10 @@ Recommended next implementation order:
 
 1. Keep the stable and expanded benchmark records separate and treat the current `1.0` header-precision state as the regression baseline before adding more retrieval logic
 2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
-3. Build a small runtime regression set from real app usage, preferably `data/eval/runtime_queries.json`, before reopening retrieval architecture work:
-   - start with roughly 15-25 real user questions
+3. Keep expanding the runtime regression set from real app usage, preferably `data/eval/runtime_queries.json`, before reopening retrieval architecture work:
+   - the set now exists and should continue to grow from real UI usage rather than synthetic brainstorming
    - include both successes and failures
-   - cover exact metric/rate questions, study-identification prompts, caveat queries, and abbreviation-heavy wording
+   - keep covering exact metric/rate questions, study-identification prompts, caveat queries, and abbreviation-heavy wording
 4. Use `scripts/inspect_retrieval_candidates.py` on any new OOD or runtime-set misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
 5. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless the runtime regression set shows measured recall gaps that require them
 6. Keep setup hardening moving:

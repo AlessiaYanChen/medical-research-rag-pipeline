@@ -890,6 +890,13 @@ class RetrievalService:
         if any(signal in normalized for signal in plural_signals):
             return False
 
+        explicit_single_study_signals = (
+            "the bal iridica study",
+            "bal iridica study",
+        )
+        if any(signal in normalized for signal in explicit_single_study_signals):
+            return True
+
         singular_pattern_signals = (
             r"\bwhich indexed [a-z0-9\s-]{0,60} study\b",
             r"\bwhich indexed [a-z0-9\s-]{0,60} paper\b",

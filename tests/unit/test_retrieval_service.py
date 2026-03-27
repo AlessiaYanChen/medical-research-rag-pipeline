@@ -2287,6 +2287,78 @@ def test_retrieval_service_prefers_bal_overall_detection_summary_for_overall_com
     assert [chunk.source for chunk in result] == ["Discussion", "Results"]
 
 
+def test_retrieval_service_treats_bal_iridica_study_query_as_single_document_target_without_doc_filter() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:P00011:C01",
+            content=(
+                "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                " demonstrated an overall higher sensitivity compared to routine culture-based"
+                " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                " culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00011",
+                    "parent_content": (
+                        "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                        " demonstrated an overall higher sensitivity compared to routine culture-based"
+                        " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                        " culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="FLAT:P00001:C01",
+            content="Overall, the FLAT assay had a sensitivity of 70% and specificity of 99%.",
+            metadata=ChunkMetadata(
+                doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "FLAT:P00001",
+                    "parent_content": "Overall, the FLAT assay had a sensitivity of 70% and specificity of 99%.",
+                },
+            ),
+        ),
+        Chunk(
+            id="STEW:P00001:C01",
+            content="Blood culture utilization improvement efforts should define when cultures are appropriate.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=9,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "STEW:P00001",
+                    "parent_content": "Blood culture utilization improvement efforts should define when cultures are appropriate.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What did the BAL IRIDICA study find for overall detection versus routine culture?",
+        limit=3,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["BAL SM"]
+
+
 def test_retrieval_service_prefers_resistance_marker_presence_evidence() -> None:
     chunks = [
         Chunk(
