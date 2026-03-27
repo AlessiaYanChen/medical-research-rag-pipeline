@@ -2951,6 +2951,70 @@ def test_retrieval_service_prefers_results_for_comparison_queries() -> None:
     assert [chunk.doc_id for chunk in result] == ["Single site RCT"]
 
 
+def test_retrieval_service_prefers_outcome_tables_over_demographics_for_mortality_comparisons() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:T00010",
+            content=(
+                "Source File: RAPID.pdf | Table Index: 1 | Section: RESULTS\n"
+                "Characteristic,Standard of Care,RAPID\n"
+                "Demographics,..."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="table",
+                parent_header="RESULTS",
+                page_number=5,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": (
+                        "Source File: RAPID.pdf | Table Index: 1 | Section: RESULTS\n"
+                        "Characteristic,Standard of Care,RAPID\n"
+                        "Demographics,..."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:T00011",
+            content=(
+                "Source File: RAPID.pdf | Table Index: 4 | Section: DISCUSSION\n"
+                "Outcome,Standard of Care,RAPID,P Value\n"
+                "30 day mortality,12,11,0.85"
+            ),
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="table",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_content": (
+                        "Source File: RAPID.pdf | Table Index: 4 | Section: DISCUSSION\n"
+                        "Outcome,Standard of Care,RAPID,P Value\n"
+                        "30 day mortality,12,11,0.85"
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Compare the clinical impact of the rapid testing platforms evaluated in the two Banerjee et al. trials (2015 vs. 2021). Did either study find a significant difference in mortality rates between the rapid testing and standard-of-care groups?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [("RAPID", "DISCUSSION")]
+
+
 def test_retrieval_service_limits_where_in_indexed_corpus_queries_to_top_document() -> None:
     chunks = [
         Chunk(

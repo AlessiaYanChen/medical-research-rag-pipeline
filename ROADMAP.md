@@ -320,6 +320,27 @@ Current checkpoint:
   - the current runtime benchmark on `medical_research_chunks_docling_v1` is locally clean at the document level:
     - `runtime_queries.json`: expected doc hit `1.0`, expected header hit `1.0`, top-1 expected doc hit `1.0`
   - latest unit-test checkpoint after those runtime fixes: `171 passed`
+- March 27, 2026 runtime-driven retrieval checkpoint after a new manual UI batch on `medical_research_chunks_docling_v1`:
+  - `data/eval/runtime_queries.json` now holds `34` real runtime queries after adding `R29` through `R34`
+  - `data/eval/known_gap_queries.json` now holds `12` queries after adding `K12` for the Fabre low-diagnostic-value scenario-list question, which remains table-dependent and should stay out of the runtime regression set
+  - commit `7303829` tunes retrieval ranking for explanatory and mechanistic prompts without changing retrieval architecture:
+    - fixes the repeated `R31` miss on the Lin review `three main advantages of mNGS` query by lifting answer-bearing `Methods` evidence over generic introduction summaries
+    - materially improves `R33` by surfacing BAL abstract mechanism evidence for the PCR/ESI-MS versus FLAT workflow comparison, while leaving the FLAT side intact
+    - unit tests passed at `173 passed`
+  - a follow-up narrow ranking change for `R32` improves the Banerjee mortality-comparison path by preferring outcome-bearing tables over RAPID demographics/characteristics tables:
+    - the first returned chunk for `R32` is now the single-site RCT outcome table rather than a RAPID demographics table
+    - the RAPID mortality table is still present in ranked candidates but does not yet make the final returned set, so this is a partial improvement rather than a full fix
+    - unit tests pass locally at `174 passed`
+  - the current runtime benchmark after these March 27 changes is:
+    - `runtime_queries.json`: expected doc hit `1.0`, expected header hit `1.0`, top-1 expected doc hit `0.9706`, top-1 expected header hit `0.8529`
+  - current diagnosis of the remaining March 27 runtime misses:
+    - `R32` is a table-selection problem and should be handled separately from prose-ranking fixes
+    - `R34` is not just ranking noise; it includes a Nartey-side candidate-recall weakness for the specific urinalysis-limitation prose about dipstick positive interferences and unnecessary downstream culture
+  - current recommendation:
+    - keep the explanatory-ranking fix
+    - keep the query-set growth from real UI usage
+    - do not attempt broad retrieval tuning
+    - inspect `R34` as the next targeted retrieval problem because it is the first recent runtime case with a measured candidate-recall weakness rather than only final-ranking noise
 
 ## Phase 5: Corpus Rollout
 

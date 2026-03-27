@@ -640,6 +640,7 @@ class RetrievalService:
         header = self._header_for_ranking(chunk).lower()
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
         doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
         header_bonus = 0
         if "document metadata/abstract" in header:
             header_bonus -= 3
@@ -659,6 +660,18 @@ class RetrievalService:
         for section, bonus in query_profile.items():
             if section in header:
                 header_bonus += bonus
+
+        if RetrievalService._query_targets_clinical_outcome_comparison(query) and content_role == "table":
+            if any(
+                signal in content_text
+                for signal in ("outcome,", "30 day mortality", "mortality", "clinical outcome", "p value")
+            ):
+                header_bonus += 12
+            if any(
+                signal in content_text
+                for signal in ("characteristic,", "characteristics,", "demographics", "study site", "race or ethnic group")
+            ):
+                header_bonus -= 12
 
         if self._is_metadata_like_header(header) and doc_key in docs_with_body_sections:
             if RetrievalService._query_targets_explanatory_mechanism(query) and "abstract" in header:
@@ -812,6 +825,9 @@ class RetrievalService:
         if any(token in normalized for token in ("compare", "compares", "comparing", "versus", " vs ", "with and without")):
             add_bonus(("result", "results"), 4)
             add_bonus(("discussion",), -1)
+        if RetrievalService._query_targets_clinical_outcome_comparison(query):
+            add_bonus(("discussion",), 4)
+            add_bonus(("result", "results"), 1)
         if RetrievalService._query_targets_overall_detection_comparison(query):
             add_bonus(("discussion", "abstract"), 5)
             add_bonus(("result", "results"), -2)
@@ -1016,6 +1032,33 @@ class RetrievalService:
                 bonus += 4
             if not any(signal in content_text for signal in ("resistance", "meca", "vana", "vanb", "blakpc", "gene detected")):
                 bonus -= 4
+        if RetrievalService._query_targets_clinical_outcome_comparison(query):
+            if any(
+                signal in content_text
+                for signal in (
+                    "30 day mortality",
+                    "mortality",
+                    "clinical outcome",
+                    "clinical outcomes",
+                    "microbiologic outcomes",
+                    "no differences in clinical or microbiologic outcomes",
+                    "outcome,",
+                    "p value",
+                )
+            ):
+                bonus += 7
+            if any(
+                signal in content_text
+                for signal in (
+                    "characteristic,",
+                    "characteristics,",
+                    "demographics",
+                    "race or ethnic group",
+                    "male, no. (%)",
+                    "study site",
+                )
+            ):
+                bonus -= 14
         return bonus
 
     def _contrastive_query_bonus(self, query: str, chunk: Chunk) -> int:
@@ -1232,6 +1275,28 @@ class RetrievalService:
         )
         return any(signal in normalized for signal in resistance_signals) and any(
             signal in normalized for signal in presence_signals
+        )
+
+    @staticmethod
+    def _query_targets_clinical_outcome_comparison(query: str) -> bool:
+        normalized = query.lower()
+        comparison_signals = (
+            "compare the clinical impact",
+            "clinical impact",
+            "did either study",
+            "difference in mortality",
+            "mortality rates",
+            "standard-of-care groups",
+            "standard of care groups",
+        )
+        outcome_signals = (
+            "mortality",
+            "clinical outcome",
+            "clinical outcomes",
+            "patient outcomes",
+        )
+        return any(signal in normalized for signal in comparison_signals) and any(
+            signal in normalized for signal in outcome_signals
         )
 
     @staticmethod
