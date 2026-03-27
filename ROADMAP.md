@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the medical research RAG pipeline reliable enough to support a corpus of roughly 300 PDFs without collapsing into noisy, redundant, citation-heavy retrieval.
+Make the medical research RAG pipeline reliable enough to support a medium-scale corpus of roughly `100 PDFs` first, then expand toward roughly `300 PDFs` without collapsing into noisy, redundant, citation-heavy retrieval.
 
 ## Current State
 
@@ -72,7 +72,7 @@ Status: Complete
 Objectives:
 
 - Stop tuning retrieval blindly
-- Validate retrieval quality before scaling to the full 300-PDF corpus
+- Validate retrieval quality before scaling to a medium-scale `100`-PDF corpus and any later `300`-PDF expansion
 
 Tasks:
 
@@ -405,14 +405,63 @@ Current checkpoint:
       - use `Docling` for new ingestion
       - keep `Marker` and `medical_research_chunks_v1` as rollback only
       - do not build a permanent mixed-parser production path
-    - the next rollout milestone should be a curated `Docling` batch rehearsal in a new collection such as `medical_research_chunks_docling_v2_batch1`
-    - preferred batch size for the first rehearsal is roughly `15-20` PDFs, chosen to stress operational diversity rather than only topical breadth
-    - required gate before treating that batch as acceptable:
+    - the next rollout milestone should be medium-scale readiness at roughly `100 PDFs`, reached through staged `Docling` rollouts
+    - recommended rollout stages are:
+      - stage 1: `20 PDFs`
+      - stage 2: `50 PDFs`
+      - stage 3: `100 PDFs`
+    - each stage should use a fresh `Docling` collection such as `medical_research_chunks_docling_v2_batch1`
+    - required gate before treating any stage as acceptable:
       - rebuild completes with explicit failure reporting
       - `scripts/audit_collection_state.py --fail-on-issues` passes
       - stable and expanded benchmarks stay acceptably close to the current baseline
       - `runtime_queries.json` shows no material regression
       - a short manual spot-check report is written for real medical questions
+    - medium-scale-specific evaluation should be added before the `100`-PDF milestone is considered complete:
+      - multi-document ambiguity
+      - similar study titles
+      - same-topic papers with conflicting findings
+      - table-heavy queries
+      - review-versus-trial disambiguation
+
+## Phase 5A: Medium-Scale Readiness
+
+Status: Planned
+
+Objectives:
+
+- Prove that the active `Docling` pipeline behaves consistently at roughly `100 PDFs`
+- Treat medium-scale growth as an operational scaling problem rather than a parser or architecture novelty problem
+
+Tasks:
+
+1. Run staged `Docling` batch rollouts at `20`, `50`, and `100` PDFs
+2. Require rebuild, audit, stable/expanded/OOD/runtime evaluation, and manual spot checks at every stage
+3. Expand evaluation coverage for corpus-scale ambiguity:
+   - multi-document ambiguity
+   - similar study titles
+   - same-topic papers with conflicting findings
+   - table-heavy queries
+   - review-versus-trial disambiguation
+4. Treat document identity as mandatory infrastructure:
+   - canonical `doc_id`
+   - `source_file`
+   - `local_file`
+   - parser provenance
+   - ingestion and chunking version
+   - collection manifest
+5. Review structured failure reports and duplicate/cleanup-plan output at each stage
+
+Exit criteria:
+
+- `100 PDFs` are ingested across staged batches
+- `Docling` remains the active parser and `Marker` remains rollback only
+- audit passes cleanly at each stage
+- duplicate-identity and manifest workflow is proven
+- runtime benchmark is expanded and remains stable enough to guide changes
+- medium-scale ambiguity queries are covered explicitly
+- manual medical-QA spot checks are documented
+- rollback collection remains preserved and understandable
 
 ## Phase 5: Corpus Rollout
 
@@ -420,21 +469,14 @@ Status: Planned
 
 Objectives:
 
-- Ingest and serve a few-hundred-document knowledge base without corpus drift, unclear rollback paths, or uncontrolled retrieval regressions
+- Ingest and serve a few-hundred-document knowledge base without corpus drift, unclear rollback paths, or uncontrolled retrieval regressions after medium-scale readiness is proven
 
 Tasks:
 
-1. Freeze the current `Docling` small-corpus baseline and keep `Marker` as rollback only
-2. Run a first curated `Docling` batch rehearsal in a new collection such as `medical_research_chunks_docling_v2_batch1`
-3. Require explicit batch gates:
-   - structured rebuild failure reporting
-   - audit pass with `--fail-on-issues`
-   - stable and expanded benchmark reruns
-   - runtime benchmark rerun
-   - manual spot-check notes
-4. Add collection management and reconciliation with local registry
-5. Validate Qdrant sizing and embedding cost assumptions
-6. Produce a short rollout report:
+1. Finish Phase 5A medium-scale readiness at roughly `100 PDFs`
+2. Add collection management and reconciliation with local registry
+3. Validate Qdrant sizing and embedding cost assumptions
+4. Produce a short rollout report:
    - PDFs attempted
    - PDFs succeeded
    - PDFs failed
@@ -447,7 +489,7 @@ Exit criteria:
 
 - Corpus ingestion is operationally manageable
 - Retrieval remains usable at target corpus size
-- The `Docling` production path has passed at least one moderate batch rehearsal cleanly enough to justify further scale-up
+- The `Docling` production path has passed medium-scale readiness cleanly enough to justify further scale-up beyond `100 PDFs`
 
 Phase gate:
 
@@ -469,10 +511,13 @@ Recommended next implementation order:
    - keep covering exact metric/rate questions, study-identification prompts, caveat queries, and abbreviation-heavy wording
 5. Use `scripts/inspect_retrieval_candidates.py` on any new OOD or runtime-set misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
 6. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless the runtime regression set shows measured recall gaps that require them
-7. Run a first moderate `Docling` batch rehearsal before any large rollout:
-   - target roughly `15-20` PDFs
+7. Run staged `Docling` rollouts before any larger expansion:
+   - stage 1: `20 PDFs`
+   - stage 2: `50 PDFs`
+   - stage 3: `100 PDFs`
    - mix RCTs, observational studies, reviews, table-heavy papers, OCR-weaker PDFs, and abbreviation-heavy assay papers
-   - require rebuild, audit, stable/expanded/runtime eval, and manual spot-check gates before promoting the batch
+   - require rebuild, audit, stable/expanded/OOD/runtime eval, and manual spot-check gates before promoting each stage
+   - add corpus-scale ambiguity cases before treating the `100`-PDF line as stable
 8. Keep setup hardening moving:
    - maintain the checked-in `requirements.txt`
    - maintain the checked-in `.env.example`
@@ -481,4 +526,4 @@ Recommended next implementation order:
 10. Harden corpus metadata and rebuild workflows for medium-scale ingestion
 11. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
 12. Keep parser bakeoff work isolated as an experiment track; do not reopen parser migration unless the active `Docling` line shows a benchmark-backed reason to reconsider
-13. Reconsider document-level retrieval, hybrid retrieval, or query expansion only if benchmark evidence shows the current metadata-first baseline has stopped holding
+13. Reconsider document-level retrieval, hybrid retrieval, or query expansion only if medium-scale benchmark evidence shows the current metadata-first baseline has stopped holding

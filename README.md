@@ -585,15 +585,24 @@ Current recommended operational policy:
 - runtime benchmark is the main retrieval-change gate on the active `Docling` line
 - parser bakeoff and retrieval experiments stay outside the production path until they clear the same gates
 
-The next repo milestone should be a controlled batch-rollout rehearsal rather than another broad retrieval redesign:
-- create a new collection such as `medical_research_chunks_docling_v2_batch1`
-- ingest a curated 15-20 PDF batch that mixes RCTs, observational studies, reviews, table-heavy papers, OCR-weaker PDFs, and abbreviation-heavy assay papers
+The next repo milestone should be medium-scale readiness for roughly `100 PDFs`, reached through staged rollouts rather than another broad retrieval redesign:
+- stage 1: `20 PDFs`
+- stage 2: `50 PDFs`
+- stage 3: `100 PDFs`
+- use a new `Docling` collection for each stage, such as `medical_research_chunks_docling_v2_batch1`
+- in each stage, curate papers that mix RCTs, observational studies, reviews, table-heavy papers, OCR-weaker PDFs, and abbreviation-heavy assay papers
 - require the same operator gate each time:
   - rebuild finishes with explicit failure reporting
   - `scripts/audit_collection_state.py --fail-on-issues` passes
   - stable and expanded benchmarks stay within acceptable tolerance
   - runtime benchmark shows no material regression
   - a small manual medical-question spot-check pass is documented
+- add a corpus-scale evaluation lens before treating `100 PDFs` as stable:
+  - multi-document ambiguity
+  - similar study titles
+  - same-topic papers with conflicting findings
+  - table-heavy queries
+  - review-versus-trial disambiguation
 
 This repo is now closer to controlled productization than early architecture exploration. The main remaining risk is operational scale and corpus drift, not lack of retrieval features.
 
@@ -720,4 +729,4 @@ Use the same comparison helper on the stable and expanded result files as needed
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for the planned path from current single-document validation to a few-hundred-document corpus, starting with roughly 300 PDFs.
+See [ROADMAP.md](ROADMAP.md) for the planned path from the current small-corpus baseline to medium-scale readiness at roughly `100 PDFs`, before any later expansion toward roughly `300 PDFs`.
