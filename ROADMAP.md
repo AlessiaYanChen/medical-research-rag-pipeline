@@ -32,7 +32,15 @@ Current observed issues:
 - Header precision and table-hit behavior should be revalidated explicitly after the latest ingestion/retrieval changes before more retrieval logic is added
 - Hybrid dense+sparse retrieval, including BM25- or Qdrant-sparse-style lexical retrieval, and query expansion options such as synonym expansion or HyDE remain unevaluated roadmap options rather than active work; they should only be prioritized if benchmark evidence exposes recall gaps that metadata-first retrieval cannot cover
 - The current benchmark is still vulnerable to author-style bias; retrieval should also be checked against clinician-style and out-of-distribution phrasing before scaling to the full corpus
-- Parser changes remain unevaluated against downstream retrieval; parser experimentation should be isolated and benchmark-driven rather than folded directly into the active ingestion path
+- The parser decision is now operationally narrowed: `Docling` is the active parser for new ingestion and `Marker` is the rollback path, but larger-batch rollout evidence is still needed before broad corpus expansion
+
+Current operational stance:
+
+- Treat the repo as moving from retrieval experimentation into controlled productization
+- Use `Docling` as the active parser for new ingestion and `medical_research_chunks_docling_v1` as the current active baseline
+- Keep `Marker` and `medical_research_chunks_v1` as rollback only
+- Use `runtime_queries.json` plus manual UI testing as the main retrieval-change gate on the active `Docling` line
+- Keep parser bakeoff and broader retrieval experiments isolated from the production path unless they clear the same gates
 
 ## Phase 1: Retrieval Quality Stabilization
 
@@ -296,7 +304,7 @@ Current checkpoint:
   - current parser-side recommendation remains unchanged: keep `Marker` as production and keep `Docling` isolated unless a later benchmark-backed migration decision is made
   - the current next step is targeted parser-side diagnosis on that duplicated Smith evidence path with parser-specific artifact and chunk comparison, not a production parser switch
 - March 26, 2026 production-readiness checkpoint for a controlled `Docling` migration:
-  - commit `9219af1` adds a selectable ingestion parser with `Marker` still as the default, wiring `Docling` into rebuild, reingest, single-PDF debug, end-to-end test, and UI ingestion entry points without changing retrieval behavior
+  - commit `9219af1` adds a selectable ingestion parser, wiring `Docling` into rebuild, reingest, single-PDF debug, end-to-end test, and UI ingestion entry points without changing retrieval behavior
   - parser provenance is now persisted in collection manifests and the local registry so `Docling`-built collections are explicit operationally
   - a new collection `medical_research_chunks_docling_v1` was rebuilt locally with parser `docling` over the current 7-document uploaded set:
     - `doc_count: 7`
@@ -391,6 +399,20 @@ Current checkpoint:
     - current takeaway after inspection:
       - keep `R35`, `R37`, and `R38` documented as observed UI misses rather than active code-change targets
       - treat `R36` as the clearest newly measured candidate-window weakness, but do not keep any fix unless it is benchmark-safe on `runtime_queries.json`
+  - March 27, 2026 productization checkpoint:
+    - the repo now has enough ingestion, audit, rebuild, repair, parser, and retrieval-eval infrastructure that the next milestone should be controlled corpus rollout rather than broad retrieval architecture changes
+    - operational parser policy is now:
+      - use `Docling` for new ingestion
+      - keep `Marker` and `medical_research_chunks_v1` as rollback only
+      - do not build a permanent mixed-parser production path
+    - the next rollout milestone should be a curated `Docling` batch rehearsal in a new collection such as `medical_research_chunks_docling_v2_batch1`
+    - preferred batch size for the first rehearsal is roughly `15-20` PDFs, chosen to stress operational diversity rather than only topical breadth
+    - required gate before treating that batch as acceptable:
+      - rebuild completes with explicit failure reporting
+      - `scripts/audit_collection_state.py --fail-on-issues` passes
+      - stable and expanded benchmarks stay acceptably close to the current baseline
+      - `runtime_queries.json` shows no material regression
+      - a short manual spot-check report is written for real medical questions
 
 ## Phase 5: Corpus Rollout
 
@@ -398,19 +420,34 @@ Status: Planned
 
 Objectives:
 
-- Ingest and serve a few-hundred-document knowledge base
+- Ingest and serve a few-hundred-document knowledge base without corpus drift, unclear rollback paths, or uncontrolled retrieval regressions
 
 Tasks:
 
-1. Run ingestion in batches
-2. Add failure logging and retry handling
-3. Add collection management and reconciliation with local registry
-4. Validate Qdrant sizing and embedding cost assumptions
+1. Freeze the current `Docling` small-corpus baseline and keep `Marker` as rollback only
+2. Run a first curated `Docling` batch rehearsal in a new collection such as `medical_research_chunks_docling_v2_batch1`
+3. Require explicit batch gates:
+   - structured rebuild failure reporting
+   - audit pass with `--fail-on-issues`
+   - stable and expanded benchmark reruns
+   - runtime benchmark rerun
+   - manual spot-check notes
+4. Add collection management and reconciliation with local registry
+5. Validate Qdrant sizing and embedding cost assumptions
+6. Produce a short rollout report:
+   - PDFs attempted
+   - PDFs succeeded
+   - PDFs failed
+   - failure categories
+   - duplicate/identity issues
+   - retrieval regressions
+   - recommendation before scaling further
 
 Exit criteria:
 
 - Corpus ingestion is operationally manageable
 - Retrieval remains usable at target corpus size
+- The `Docling` production path has passed at least one moderate batch rehearsal cleanly enough to justify further scale-up
 
 Phase gate:
 
@@ -420,20 +457,28 @@ Phase gate:
 
 Recommended next implementation order:
 
-1. Keep the stable and expanded benchmark records separate and treat the current `1.0` header-precision state as the regression baseline before adding more retrieval logic
-2. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
-3. Keep expanding the runtime regression set from real app usage, preferably `data/eval/runtime_queries.json`, before reopening retrieval architecture work:
+1. Freeze the current `Docling` line operationally:
+   - active parser for new ingestion: `Docling`
+   - active collection baseline: `medical_research_chunks_docling_v1`
+   - rollback parser and collection: `Marker` and `medical_research_chunks_v1`
+2. Keep the stable and expanded benchmark records separate and treat the current state as the regression baseline before adding more retrieval logic
+3. Keep the OOD/adversarial phrasing file as a separate evaluation-only track and review its expectations manually before it is used to justify retrieval changes
+4. Keep expanding the runtime regression set from real app usage, preferably `data/eval/runtime_queries.json`, before reopening retrieval architecture work:
    - the set now exists and should continue to grow from real UI usage rather than synthetic brainstorming
    - include both successes and failures
    - keep covering exact metric/rate questions, study-identification prompts, caveat queries, and abbreviation-heavy wording
-4. Use `scripts/inspect_retrieval_candidates.py` on any new OOD or runtime-set misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
-5. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless the runtime regression set shows measured recall gaps that require them
-6. Keep setup hardening moving:
+5. Use `scripts/inspect_retrieval_candidates.py` on any new OOD or runtime-set misses before changing ranking logic so candidate-recall problems are separated from document- or chunk-ranking problems
+6. Keep any future retrieval changes narrow, metadata-first, and benchmark-backed; do not add extra embedding stages, hybrid retrieval, or query expansion unless the runtime regression set shows measured recall gaps that require them
+7. Run a first moderate `Docling` batch rehearsal before any large rollout:
+   - target roughly `15-20` PDFs
+   - mix RCTs, observational studies, reviews, table-heavy papers, OCR-weaker PDFs, and abbreviation-heavy assay papers
+   - require rebuild, audit, stable/expanded/runtime eval, and manual spot-check gates before promoting the batch
+8. Keep setup hardening moving:
    - maintain the checked-in `requirements.txt`
    - maintain the checked-in `.env.example`
    - keep the clearer cross-platform setup docs aligned with the actual script/runtime behavior as setup changes land
-7. Keep table-context coverage improvements narrow and metadata-linked so more returned table chunks carry caption/prose context without positional heuristics or new retrieval stages
-8. Harden corpus metadata and rebuild workflows for medium-scale ingestion
-9. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
-10. Run the isolated parser bakeoff in-repo before Phase 5 corpus rollout work grows expensive to redo
-11. Reconsider document-level retrieval, hybrid retrieval, query expansion, or parser migration only if benchmark evidence shows the current metadata-first baseline has stopped holding
+9. Keep table-context coverage improvements narrow and metadata-linked so more returned table chunks carry caption/prose context without positional heuristics or new retrieval stages
+10. Harden corpus metadata and rebuild workflows for medium-scale ingestion
+11. Keep using `scripts/audit_collection_state.py --fail-on-issues` plus cleanup-plan output as the explicit pre-rollout corpus integrity check before Phase 5 work or any medium-scale ingest batch
+12. Keep parser bakeoff work isolated as an experiment track; do not reopen parser migration unless the active `Docling` line shows a benchmark-backed reason to reconsider
+13. Reconsider document-level retrieval, hybrid retrieval, or query expansion only if benchmark evidence shows the current metadata-first baseline has stopped holding

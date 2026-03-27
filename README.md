@@ -57,11 +57,13 @@ Current benchmark status:
 - the OOD/adversarial track should be run with separate JSON/CSV output paths so its noisier phrasing cases do not overwrite the baseline result artifacts
 - current OOD debugging confirmed the stewardship-review miss was not a candidate-recall problem: the Fabre paper was already present in early candidates, and a narrow document-level disambiguation step was enough to resolve `O03` and `O10` without broader ranking changes
 - before any further retrieval changes, the repo should diagnose and explain any header-precision or table-hit drift on the stable 26-query and expanded 43-query benchmarks before stacking new behavior on top
-- parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by replacing the active ingestion path prematurely
+- parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by destabilizing the active `Docling` ingestion path
+- current operational stance: use `Docling` for new ingestion, keep `medical_research_chunks_docling_v1` as the small-corpus active baseline, and keep `Marker` plus `medical_research_chunks_v1` as rollback only
+- the next major step is a controlled corpus-rollout rehearsal, not a broad retrieval-architecture change
 
 ## What It Does
 
-- Parses PDFs into Markdown and structured tables using Marker
+- Parses PDFs into Markdown and structured tables using the active `Docling` parser, with `Marker` preserved as rollback
 - Normalizes extracted tables before chunking
 - Chunks text and tables differently:
   - text: paragraph-aware sliding windows
@@ -76,7 +78,7 @@ Current benchmark status:
 
 ```mermaid
 flowchart LR
-    A[PDF Upload or Local PDF] --> B[MarkerParser]
+    A[PDF Upload or Local PDF] --> B[DoclingParser]
     B --> C[Markdown Text]
     B --> D[Structured Tables]
     D --> E[TableNormalizer]
@@ -119,7 +121,7 @@ flowchart TD
     end
 
     subgraph Adapters
-        X1[MarkerParser]
+        X1[DoclingParser]
         X2[QdrantRepository]
         X3[TransformersReRanker]
         X4[OpenAILLMAdapter]
@@ -189,7 +191,7 @@ scripts/
 - [marker_parser.py](C:\repos\github\medical-research-rag-pipeline\src\adapters\parsing\marker_parser.py)
 - [parser_port.py](C:\repos\github\medical-research-rag-pipeline\src\ports\parser_port.py)
 
-`MarkerParser` converts a PDF into:
+The active parser path converts a PDF into:
 - `markdown_text`
 - extracted `tables`
 
@@ -273,7 +275,7 @@ Why the nested metadata shape matters:
 ### Services
 
 - Qdrant running locally or remotely
-- Marker or Docling available for PDF parsing
+- `Docling` is the recommended parser for new ingestion; `Marker` remains available as rollback
 - OpenAI or Azure OpenAI credentials for embeddings
 - Optional OpenAI or Azure OpenAI credentials for answer synthesis
 
@@ -346,7 +348,7 @@ For Qdrant:
 Current behavior note:
 - the UI and main CLI testing scripts auto-read `QDRANT_URL` and `QDRANT_COLLECTION` from `.env`
 - the active default collection is now `medical_research_chunks_docling_v1`
-- the preserved rollback collection remains `medical_research_chunks_v1`, so set that collection explicitly only when you intentionally want the old baseline
+- the preserved rollback collection remains `medical_research_chunks_v1`, so set that collection explicitly only when you intentionally want the old `Marker` baseline
 
 For optional answer synthesis:
 
@@ -561,6 +563,27 @@ For medium-scale ingestion work, the current operator path is:
 
 This keeps the current operational loop explicit: rebuild, inspect failures, repair specific documents, then run the audit gate before larger rollout work.
 
+## Production Track
+
+Current recommended operational policy:
+- active parser for new ingestion: `Docling`
+- active collection family: `medical_research_chunks_docling_*`
+- rollback parser and collection: `Marker` and `medical_research_chunks_v1`
+- runtime benchmark is the main retrieval-change gate on the active `Docling` line
+- parser bakeoff and retrieval experiments stay outside the production path until they clear the same gates
+
+The next repo milestone should be a controlled batch-rollout rehearsal rather than another broad retrieval redesign:
+- create a new collection such as `medical_research_chunks_docling_v2_batch1`
+- ingest a curated 15-20 PDF batch that mixes RCTs, observational studies, reviews, table-heavy papers, OCR-weaker PDFs, and abbreviation-heavy assay papers
+- require the same operator gate each time:
+  - rebuild finishes with explicit failure reporting
+  - `scripts/audit_collection_state.py --fail-on-issues` passes
+  - stable and expanded benchmarks stay within acceptable tolerance
+  - runtime benchmark shows no material regression
+  - a small manual medical-question spot-check pass is documented
+
+This repo is now closer to controlled productization than early architecture exploration. The main remaining risk is operational scale and corpus drift, not lack of retrieval features.
+
 ## Parser Bakeoff Guidance
 
 If parser comparison work starts, keep it inside this repo and isolate it from the active ingestion path:
@@ -612,10 +635,10 @@ Current parser bakeoff note from the March 25, 2026 8-PDF subset run:
 - citation-noise regressions are now fixed in the isolated `Docling` path
 - the stable and expanded regression set has narrowed to `Q19` only; `Q05` and `Q18` now match or exceed the `Marker` baseline on table hits
 - the remaining `Q19` miss is no longer the Culture-Free LOD table path; current diagnosis indicates a cross-document selection/ranking issue where duplicate `smith-et-al-2023-comparison-of-three-rapid-diagnostic-tests-for-bloodstream-infections-using-benefit-risk-evaluation` evidence still displaces an additional expected table-bearing document
-- the current recommendation is to keep `Marker` as production and treat `Docling` as an isolated parser experiment until those regressions are explained
+- this historical bakeoff checkpoint is now superseded by the later controlled-cutover decision; keep it here only as parser-comparison history
 
 Follow-up production migration note from March 26, 2026:
-- a production-safe parser selector now exists in the ingestion entry points, with `Marker` remaining the default until you explicitly choose `Docling`
+- a production-safe parser selector now exists in the ingestion entry points
 - local rebuild and validation of `medical_research_chunks_docling_v1` over the current 7-document uploaded set completed successfully
 - checked retrieval eval results for that local `Docling` collection were strong on the stable benchmark sets:
   - `sample_queries.json`: expected doc/header `1.0`, top-1 doc/header `1.0`, average doc precision `0.9923`
@@ -623,9 +646,11 @@ Follow-up production migration note from March 26, 2026:
 - one manual production-style query exposed a real regression in retrieval-stage ranking rather than parser extraction:
   - `What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?`
 - retrieval heuristics were then narrowed to better surface metric/result evidence for confirmation-rate questions without broad retrieval tuning
-- current recommendation is a controlled cutover only:
-  - use `medical_research_chunks_docling_v1` as the active collection only after manual go/no-go spot checks pass
+- current operational recommendation:
+  - use `Docling` as the primary parser for new ingestion
+  - use `medical_research_chunks_docling_v1` as the current active small-corpus baseline
   - keep `medical_research_chunks_v1` intact as rollback
+  - do not build a permanent blended `Marker + Docling` production path
 
 Local operational state policy:
 - keep `data/eval/results/*` local
