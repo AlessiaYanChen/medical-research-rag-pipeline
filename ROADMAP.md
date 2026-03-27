@@ -341,6 +341,19 @@ Current checkpoint:
     - keep the query-set growth from real UI usage
     - do not attempt broad retrieval tuning
     - inspect `R34` as the next targeted retrieval problem because it is the first recent runtime case with a measured candidate-recall weakness rather than only final-ranking noise
+  - follow-up `R34` diagnosis and narrow retrieval adjustment:
+    - the answer-bearing Nartey prose about dipstick positive interferences is present in `medical_research_chunks_docling_v1`, but for the full cross-document runtime query it only appears at initial vector rank `45` / filtered rank `43`, so the previous non-table candidate window of `20` never let it reach ranking
+    - the same Nartey prose is indexed under `Document Metadata/Abstract` even though it behaves like opening body text, so once it is admitted into the candidate pool it still needs a narrow query-shaped ranking allowance to beat unrelated discussion noise
+    - a narrow retrieval-service change now widens only multi-`et al.` contrastive limitation queries enough to admit the missing Nartey chunk and gives that specific body-metadata limitation evidence a ranking lift without reopening hybrid retrieval or broader query expansion
+    - local unit tests now pass at `176 passed`
+    - rerunning `runtime_queries.json` on `medical_research_chunks_docling_v1` after that change gives:
+      - expected doc hit `1.0`
+      - expected header hit `1.0`
+      - top-1 expected doc hit `1.0`
+      - top-1 expected header hit `0.8235`
+    - interpretation of that tradeoff:
+      - `R34` now returns only the two target docs and places the Nartey limitation evidence first, eliminating the prior `Culture-Free` runtime noise and fixing the measured candidate-recall gap
+      - `R34` top-1 header becomes `Document Metadata/Abstract` rather than `Discussion` because the answer-bearing Nartey opening-body chunk is still section-labeled as metadata in the indexed corpus, so the remaining weakness is header labeling rather than retrieval recall
 
 ## Phase 5: Corpus Rollout
 

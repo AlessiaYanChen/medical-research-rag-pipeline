@@ -2060,6 +2060,122 @@ def test_retrieval_service_detects_contrastive_turnaround_queries_against_stewar
     )
 
 
+def test_retrieval_service_expands_search_window_for_cross_document_limitation_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-LIMIT:P00001:C01",
+            content="Single blood cultures are often treated as adequate despite lower sensitivity.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Conclusion",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-LIMIT:P00001",
+                    "parent_content": "Single blood cultures are often treated as adequate despite lower sensitivity.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    service.retrieve(
+        query="Contrast the reasons why single blood cultures are considered inadequate in the Fabre et al. minireview with the diagnostic limitations of urinalysis discussed by Nartey et al.",
+        limit=3,
+    )
+
+    assert repo.last_search_args is not None
+    assert repo.last_search_args[2] == 60
+
+
+def test_retrieval_service_promotes_body_metadata_limitation_evidence_for_cross_document_limitation_queries() -> None:
+    query = (
+        "Contrast the reasons why single blood cultures are considered inadequate in the Fabre et al. "
+        "minireview with the diagnostic limitations of urinalysis discussed by Nartey et al."
+    )
+    noise_chunk = Chunk(
+        id="DOC-NOISE:P00001:C01",
+        content="Urine culture is currently considered the gold standard for UTI diagnosis, but its main drawback is the lengthy turnaround time.",
+        metadata=ChunkMetadata(
+            doc_id="Culture-Free Lipidomics-Based Screening Test",
+            chunk_type="text",
+            parent_header="Discussion",
+            page_number=7,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-NOISE:P00001",
+                "parent_content": "Urine culture is currently considered the gold standard for UTI diagnosis, but its main drawback is the lengthy turnaround time.",
+            },
+        ),
+    )
+    limitation_chunk = Chunk(
+        id="DOC-NARTEY:P00006:C02",
+        content=(
+            "Because of the time-consuming nature of urine culture, many clinical laboratories have instituted reflexive workflows. "
+            "However, urine dipstick analysis for blood, nitrites, and leukocyte esterase can be prone to positive interferences "
+            "leading to unnecessary urine culture investigations."
+        ),
+        metadata=ChunkMetadata(
+            doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+            chunk_type="text",
+            parent_header="Document Metadata/Abstract",
+            page_number=2,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-NARTEY:P00006",
+                "parent_content": (
+                    "Many patients with uncomplicated UTIs present clinically as straightforward cases that may not require additional "
+                    "testing beyond urinalysis. Because of the time-consuming nature of urine culture, many clinical laboratories have "
+                    "instituted reflexive workflows. However, urine dipstick analysis for blood, nitrites, and leukocyte esterase can be "
+                    "prone to positive interferences leading to unnecessary urine culture investigations."
+                ),
+            },
+        ),
+    )
+    nartey_discussion_chunk = Chunk(
+        id="DOC-NARTEY:P00020:C01",
+        content="FLAT analysis identified urine samples without culturable pathogens with high agreement against urine culture.",
+        metadata=ChunkMetadata(
+            doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+            chunk_type="text",
+            parent_header="Discussion",
+            page_number=10,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-NARTEY:P00020",
+                "parent_content": "FLAT analysis identified urine samples without culturable pathogens with high agreement against urine culture.",
+            },
+        ),
+    )
+    fabre_chunk = Chunk(
+        id="DOC-FABRE:P00001:C01",
+        content="Clinicians often justify solitary blood cultures based on comfort and a mistaken belief that one set is enough.",
+        metadata=ChunkMetadata(
+            doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+            chunk_type="text",
+            parent_header="Conclusion",
+            page_number=9,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-FABRE:P00001",
+                "parent_content": "Clinicians often justify solitary blood cultures based on comfort and a mistaken belief that one set is enough.",
+            },
+        ),
+    )
+    service = RetrievalService(repo=FakeVectorRepository([]), embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    ranked = service._rank_chunks(query=query, chunks=[noise_chunk, limitation_chunk, nartey_discussion_chunk, fabre_chunk])
+
+    assert ranked[0].metadata.doc_id == limitation_chunk.metadata.doc_id
+
+
 def test_retrieval_service_locks_turnaround_query_to_rapid_paper_over_stewardship_review() -> None:
     chunks = [
         Chunk(

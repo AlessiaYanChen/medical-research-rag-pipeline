@@ -191,7 +191,7 @@ def main() -> int:
     filtered_chunks = service._filter_chunks(query=query, chunks=initial_chunks)
     if doc_id is not None:
         filtered_chunks = service._suppress_metadata_fallback(query=query, chunks=filtered_chunks)
-    candidate_limit = max(args.limit * 6, 30) if service._query_prefers_tables(query) else max(args.limit * 4, 20)
+    candidate_limit = service._candidate_limit(query=query, limit=args.limit)
     candidate_chunks = service._select_candidate_chunks(
         query=query,
         initial_chunks=filtered_chunks,

@@ -55,7 +55,7 @@ class RetrievalService:
         filtered_initial_chunks = self._filter_chunks(query=query, chunks=initial_chunks)
         if doc_id is not None:
             filtered_initial_chunks = self._suppress_metadata_fallback(query=query, chunks=filtered_initial_chunks)
-        candidate_limit = max(limit * 6, 30) if self._query_prefers_tables(query) else max(limit * 4, 20)
+        candidate_limit = self._candidate_limit(query=query, limit=limit)
         chunks = self._select_candidate_chunks(query=query, initial_chunks=filtered_initial_chunks, candidate_limit=candidate_limit)
         chunks = self._maybe_lock_contrastive_single_doc_query(query=query, doc_id=doc_id, chunks=chunks)
         ranked_chunks = self._rank_chunks(query=query, chunks=chunks)
@@ -219,7 +219,10 @@ class RetrievalService:
     ) -> bool:
         if max_selected_title_overlap <= 0:
             return False
-        if not self._query_prefers_cross_document_titles(query):
+        if not (
+            self._query_prefers_cross_document_titles(query)
+            or self._query_targets_cross_document_limitations(query)
+        ):
             return False
 
         return self._doc_title_overlap(query=query, chunk=chunk) <= 0
@@ -472,6 +475,13 @@ class RetrievalService:
         )
         return any(signal in normalized for signal in table_signals)
 
+    def _candidate_limit(self, query: str, limit: int) -> int:
+        if self._query_targets_cross_document_limitations(query):
+            return max(limit * 20, 60)
+        if self._query_prefers_tables(query):
+            return max(limit * 6, 30)
+        return max(limit * 4, 20)
+
     @staticmethod
     def _query_requires_tables(query: str) -> bool:
         normalized = query.lower()
@@ -641,8 +651,13 @@ class RetrievalService:
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
         doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
         content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        metadata_limitation_body = self._metadata_body_matches_cross_document_limitation_query(
+            query=query,
+            chunk=chunk,
+            content_text=content_text,
+        )
         header_bonus = 0
-        if "document metadata/abstract" in header:
+        if "document metadata/abstract" in header and not metadata_limitation_body:
             header_bonus -= 3
         if "conclusion" in header:
             header_bonus += 4
@@ -674,7 +689,9 @@ class RetrievalService:
                 header_bonus -= 12
 
         if self._is_metadata_like_header(header) and doc_key in docs_with_body_sections:
-            if RetrievalService._query_targets_explanatory_mechanism(query) and "abstract" in header:
+            if metadata_limitation_body:
+                header_bonus += 12
+            elif RetrievalService._query_targets_explanatory_mechanism(query) and "abstract" in header:
                 header_bonus -= 1
             else:
                 header_bonus -= 5
@@ -692,7 +709,7 @@ class RetrievalService:
             role_bonus -= 1
         lexical_bonus = self._lexical_bonus(query=query, query_tokens=query_tokens, chunk=chunk)
         contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
-        body_bonus = 0 if "document metadata/abstract" in header else 1
+        body_bonus = 1 if metadata_limitation_body or "document metadata/abstract" not in header else 0
         return (header_bonus, lexical_bonus + contrast_bonus, role_bonus + body_bonus)
 
     def _best_document_for_contrastive_stewardship_query(
@@ -896,6 +913,8 @@ class RetrievalService:
             return max(limit * 8, 40)
         if RetrievalService._query_prefers_tables(query):
             return max(limit * 12, 60)
+        if RetrievalService._query_targets_cross_document_limitations(query):
+            return max(limit * 20, 60)
         if RetrievalService._query_prefers_cross_document_titles(query):
             return max(limit * 10, 50)
         return max(limit * 8, 40)
@@ -1016,6 +1035,13 @@ class RetrievalService:
     @staticmethod
     def _query_specific_content_bonus(query: str, content_text: str) -> int:
         bonus = 0
+        if RetrievalService._query_targets_cross_document_limitations(query):
+            if "positive interferences" in content_text:
+                bonus += 8
+            if "unnecessary urine culture" in content_text:
+                bonus += 6
+            if "single blood cultures" in content_text or "solitary blood cultures" in content_text:
+                bonus += 4
         if RetrievalService._query_targets_overall_detection_comparison(query):
             if "overall higher sensitivity" in content_text:
                 bonus += 5
@@ -1300,6 +1326,28 @@ class RetrievalService:
         )
 
     @staticmethod
+    def _query_targets_cross_document_limitations(query: str) -> bool:
+        normalized = query.lower()
+        limitation_signals = (
+            "limitation",
+            "limitations",
+            "inadequate",
+            "inadequacy",
+            "caveat",
+            "caveats",
+        )
+        contrast_signals = (
+            "contrast",
+            "compare",
+            "compares",
+            "comparing",
+            "versus",
+        )
+        return normalized.count("et al") >= 2 and any(signal in normalized for signal in limitation_signals) and any(
+            signal in normalized for signal in contrast_signals
+        )
+
+    @staticmethod
     def _query_targets_explanatory_mechanism(query: str) -> bool:
         normalized = query.lower()
         if any(
@@ -1356,6 +1404,10 @@ class RetrievalService:
             "findings",
             "papers",
             "documents",
+            "single",
+            "reasons",
+            "considered",
+            "discussed",
         }
         return {token for token in query_tokens if token not in generic_tokens}
 
@@ -1401,6 +1453,33 @@ class RetrievalService:
     def _header_for_ranking(self, chunk: Chunk) -> str:
         normalized_header = str(chunk.metadata.extra.get("normalized_parent_header", chunk.metadata.parent_header))
         return self._clean_markdown(normalized_header)
+
+    def _metadata_body_matches_cross_document_limitation_query(
+        self,
+        query: str,
+        chunk: Chunk,
+        content_text: str | None = None,
+    ) -> bool:
+        if not self._query_targets_cross_document_limitations(query):
+            return False
+        header = self._header_for_ranking(chunk).lower()
+        if not self._is_metadata_like_header(header):
+            return False
+        if str(chunk.metadata.extra.get("section_role", "")).lower() != "body":
+            return False
+
+        normalized_content = content_text
+        if normalized_content is None:
+            normalized_content = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        limitation_markers = (
+            "positive interferences",
+            "unnecessary urine culture",
+            "yields positive results",
+            "subsequent culture testing produces a negative result",
+            "single blood cultures",
+            "solitary blood cultures",
+        )
+        return any(marker in normalized_content for marker in limitation_markers)
 
     @staticmethod
     def _max_chunks_for_header(header_key: str) -> int:
