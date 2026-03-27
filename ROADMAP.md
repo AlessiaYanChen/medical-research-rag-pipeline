@@ -359,6 +359,11 @@ Current checkpoint:
     - current behavior returns a Nartey discussion chunk about batch analysis under 1 hour plus a Culture-Free discussion chunk about an optimized roughly 2-hour protocol
     - expected answer path should instead foreground the cleaner opening-body/intro evidence that FLAT results can be ready within an hour from sample receipt, with the optimized ~2-hour workflow treated as secondary context if mentioned at all
     - current diagnosis: ranking/selection noise, not a measured candidate-recall weakness
+  - another manual UI synthesis question has now been captured as `R36`:
+    - query: `What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?`
+    - current behavior returns Banerjee trial process-improvement evidence, including faster antibiotic modification and more stewardship action, but it does not sufficiently cover the complementary “hard outcomes do not move as reliably” side of the synthesis
+    - expected answer path should combine process-improvement chunks from `Single site RCT` and `RAPID` with supporting stewardship/workflow framing from the Fabre review rather than stopping at antibiotic-timing benefits alone
+    - current diagnosis: ranking/selection noise, not a measured candidate-recall weakness
 
 ## Phase 5: Corpus Rollout
 

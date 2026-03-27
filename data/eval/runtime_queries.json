@@ -316,5 +316,17 @@
     "expected_headers": ["Introduction", "Document Metadata/Abstract"],
     "labels": ["runtime", "flat", "urine", "turnaround", "cross_doc"],
     "notes": "Real UI query from manual Streamlit testing after the March 27 checkpoint. Retrieved context showed a Nartey discussion chunk about batch analysis under 1 hour plus a Culture-Free discussion chunk about an optimized roughly 2-hour protocol, but it did not surface the cleaner opening-body evidence that FLAT results can be ready within an hour from sample receipt. This currently looks like ranking/selection noise rather than a measured candidate-recall gap."
+  },
+  {
+    "id": "R36",
+    "query": "What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?",
+    "expected_docs": [
+      "Single site RCT",
+      "RAPID",
+      "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+    ],
+    "expected_headers": ["RESULTS", "Results", "DISCUSSION", "Discussion", "Introduction", "Summary"],
+    "labels": ["runtime", "cross_doc", "rapid_diagnostics", "decision_making", "clinical_outcomes", "synthesis"],
+    "notes": "Real UI query from manual Streamlit testing after the March 27 checkpoint. Final retrieval surfaced useful process-improvement evidence from the Banerjee blood-culture trials, including faster antibiotic modification and stewardship activity, but it did not adequately represent the harder-outcome side of the synthesis or the supporting stewardship/workflow theme. This currently looks like ranking/selection noise rather than a measured candidate-recall gap."
   }
 ]
