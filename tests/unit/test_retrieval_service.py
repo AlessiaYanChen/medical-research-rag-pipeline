@@ -1232,6 +1232,67 @@ def test_retrieval_service_keeps_methods_for_methods_oriented_queries_even_after
     assert [chunk.source for chunk in result] == ["Methods", "Results"]
 
 
+def test_retrieval_service_prefers_methods_for_review_advantages_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-14B-ADV:P00001:C01",
+            content=(
+                "Metagenomic next-generation sequencing is a powerful method with high efficiency"
+                " and accuracy in mixed-population pathogen detection."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14B-ADV:P00001",
+                    "parent_content": (
+                        "Metagenomic next-generation sequencing is a powerful method with high"
+                        " efficiency and accuracy in mixed-population pathogen detection."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-14B-ADV:P00002:C01",
+            content=(
+                "Compared with other methods, the mNGS technique has three main advantages."
+                " Firstly, mNGS has unbiased sampling; secondly, it provides accessory genomic"
+                " information; thirdly, it supports independent DNA fragment classification."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-14B-ADV:P00002",
+                    "parent_content": (
+                        "Compared with other methods, the mNGS technique has three main advantages."
+                        " Firstly, mNGS has unbiased sampling; secondly, it provides accessory"
+                        " genomic information; thirdly, it supports independent DNA fragment"
+                        " classification."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What are the three main advantages of metagenomic next-generation sequencing (mNGS) according to the review by Lin et al.",
+        limit=1,
+    )
+
+    assert [chunk.source for chunk in result] == ["Methods"]
+
+
 def test_retrieval_service_keeps_results_for_conclusion_queries_that_explicitly_request_performance() -> None:
     chunks = [
         Chunk(
@@ -2285,6 +2346,94 @@ def test_retrieval_service_prefers_bal_overall_detection_summary_for_overall_com
     )
 
     assert [chunk.source for chunk in result] == ["Discussion", "Results"]
+
+
+def test_retrieval_service_prefers_bal_abstract_for_explanatory_workflow_comparisons() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:P00020:C01",
+            content=(
+                "The clinical demand on rapid microbiological diagnostic is constantly increasing."
+                " PCR coupled to electrospray ionization-mass spectrometry rapidly provides sequence"
+                " information from generated amplicons and enables direct species identification."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00020",
+                    "parent_content": (
+                        "The clinical demand on rapid microbiological diagnostic is constantly"
+                        " increasing. PCR coupled to electrospray ionization-mass spectrometry"
+                        " rapidly provides sequence information from generated amplicons and enables"
+                        " direct species identification."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="BAL-SM:P00021:C01",
+            content=(
+                "When the analytical performance of PCR/ESI-MS in detection of primary or potential"
+                " pathogens was analyzed, the method was not inferior to culture-based methods."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00021",
+                    "parent_content": (
+                        "When the analytical performance of PCR/ESI-MS in detection of primary or"
+                        " potential pathogens was analyzed, the method was not inferior to"
+                        " culture-based methods."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="FLAT:P00010:C01",
+            content=(
+                "The FLAT workflow directly detects microbial membrane lipids from urine without"
+                " ex vivo growth and can return results within an hour."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "FLAT:P00010",
+                    "parent_content": (
+                        "The FLAT workflow directly detects microbial membrane lipids from urine"
+                        " without ex vivo growth and can return results within an hour."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Based on the provided papers, how do PCR/ESI-MS methods and FLAT lipidomics workflows differ in their approach to bypassing traditional culture times?",
+        limit=2,
+    )
+
+    assert ("BAL SM", "Abstract") in [(chunk.doc_id, chunk.source) for chunk in result]
+    assert ("BAL SM", "Discussion") not in [(chunk.doc_id, chunk.source) for chunk in result]
+    assert ("Culture-Free Lipidomics-Based Screening Test", "Introduction") in [
+        (chunk.doc_id, chunk.source) for chunk in result
+    ]
 
 
 def test_retrieval_service_treats_bal_iridica_study_query_as_single_document_target_without_doc_filter() -> None:

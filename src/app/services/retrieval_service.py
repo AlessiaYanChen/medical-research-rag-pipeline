@@ -661,7 +661,10 @@ class RetrievalService:
                 header_bonus += bonus
 
         if self._is_metadata_like_header(header) and doc_key in docs_with_body_sections:
-            header_bonus -= 5
+            if RetrievalService._query_targets_explanatory_mechanism(query) and "abstract" in header:
+                header_bonus -= 1
+            else:
+                header_bonus -= 5
 
         role_bonus = 0
         if content_role == "table":
@@ -802,6 +805,10 @@ class RetrievalService:
             add_bonus(("method", "methods", "materials and methods"), 4)
             add_bonus(("result", "results"), 1)
             add_bonus(("conclusion",), -2)
+        if RetrievalService._query_targets_explanatory_mechanism(query):
+            add_bonus(("method", "methods", "materials and methods"), 6)
+            add_bonus(("introduction", "abstract"), 5)
+            add_bonus(("result", "results", "discussion", "conclusion"), -4)
         if any(token in normalized for token in ("compare", "compares", "comparing", "versus", " vs ", "with and without")):
             add_bonus(("result", "results"), 4)
             add_bonus(("discussion",), -1)
@@ -1226,6 +1233,43 @@ class RetrievalService:
         return any(signal in normalized for signal in resistance_signals) and any(
             signal in normalized for signal in presence_signals
         )
+
+    @staticmethod
+    def _query_targets_explanatory_mechanism(query: str) -> bool:
+        normalized = query.lower()
+        if any(
+            token in normalized
+            for token in (
+                "performance",
+                "sensitivity",
+                "specificity",
+                "outcome",
+                "outcomes",
+                "mortality",
+                "rate",
+                "rates",
+                "confirmed",
+                "confirmation",
+                "table",
+            )
+        ):
+            return False
+
+        explanatory_signals = (
+            "three main advantages",
+            "advantages",
+            "how do",
+            "how does",
+            "differ in their approach",
+            "approach to",
+            "workflow",
+            "workflows",
+            "mechanism",
+            "mechanistic",
+            "bypass traditional culture times",
+            "bypass culture",
+        )
+        return any(signal in normalized for signal in explanatory_signals)
 
     @staticmethod
     def _title_weighted_tokens(query_tokens: set[str]) -> set[str]:

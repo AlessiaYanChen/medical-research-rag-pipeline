@@ -102,5 +102,15 @@
     "expected_headers": ["Introduction", "Materials and Methods", "Results"],
     "labels": ["known_gap", "contrastive", "cross_doc", "platform_disambiguation"],
     "notes": "Known-gap tracking query for contrastive platform disambiguation between MALDI-based FLAT and ESI-based IRIDICA."
+  },
+  {
+    "id": "K12",
+    "query": "According to the Fabre et al. minireview, what are three specific clinical scenarios where initial blood cultures are considered to have 'Low diagnostic value'?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Conclusion"],
+    "include_tables": true,
+    "labels": ["known_gap", "table_dependent", "fabre", "initial_blood_cultures", "scenario_list"],
+    "notes": "Known-gap tracking query. The requested answer is a list of specific low-diagnostic-value clinical scenarios from Fabre table context rather than a stable prose span, so it should stay separate from the runtime regression set."
   }
 ]
