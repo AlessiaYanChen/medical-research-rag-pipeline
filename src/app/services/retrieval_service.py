@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 import logging
 import re
+import time
 
 from src.app.ports.re_ranker_port import ReRankerPort
 from src.app.ports.repositories.vector_repository import (
@@ -26,6 +27,13 @@ class RetrievedChunk:
     content_role: str
     page_number: int | None = None
     local_file: str = ""
+
+
+@dataclass(frozen=True)
+class RetrievalResult:
+    chunks: list[RetrievedChunk]
+    latency_ms: float
+    initial_candidate_count: int
 
 
 class RetrievalService:
@@ -150,6 +158,22 @@ class RetrievalService:
             if len(retrieved_chunks) >= limit:
                 break
         return retrieved_chunks[:limit]
+
+    def retrieve_with_diagnostics(
+        self,
+        query: str,
+        doc_id: str | None = None,
+        limit: int = 5,
+    ) -> RetrievalResult:
+        initial_candidate_count = self._count_initial_candidates(query=query, doc_id=doc_id, limit=limit)
+        started_at = time.perf_counter()
+        chunks = self.retrieve(query=query, doc_id=doc_id, limit=limit)
+        latency_ms = (time.perf_counter() - started_at) * 1000
+        return RetrievalResult(
+            chunks=chunks,
+            latency_ms=latency_ms,
+            initial_candidate_count=initial_candidate_count,
+        )
 
     @staticmethod
     def serialize_for_prompt(chunks: list[RetrievedChunk]) -> str:
@@ -419,6 +443,17 @@ class RetrievalService:
             should=tuple(should),
             minimum_should_match=1,
         )
+
+    def _count_initial_candidates(self, query: str, doc_id: str | None, limit: int) -> int:
+        query_vector = self._embedding_fn([query])[0]
+        initial_limit = self._initial_search_limit(query=query, doc_filter=doc_id, limit=limit)
+        initial_chunks = self._repo.search(
+            query_vector,
+            doc_id=doc_id,
+            limit=initial_limit,
+            filters=self._build_search_filters(query=query, doc_id=doc_id),
+        )
+        return len(initial_chunks)
 
     def _suppress_metadata_fallback(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
         if self._query_prefers_metadata(query):
