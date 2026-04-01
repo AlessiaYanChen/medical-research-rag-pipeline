@@ -433,16 +433,16 @@ Current checkpoint:
     - candidate inspection on the main stage-1 misses (`O11`, `Q18`, `R37`) pointed to ranking/selection drift rather than a new architecture-level recall gap
     - do not begin the `50`-PDF stage from this checkpoint; any follow-up should stay narrow and start with `O11` and `Q18`
   - April 1, 2026 narrow stage-1 follow-up checkpoint:
-    - local follow-up artifacts now show the earlier OOD blocker `O11` resolved
-    - stage 1 is still not promotion-ready because broad cross-document precision remains below the rollout gate
-    - the current blocking regression set is now concentrated in:
-      - stable / expanded: `Q15`, `Q16`, `Q19`
-      - runtime: `R07`, `R38`
-    - candidate inspection shows the remaining failures are narrow query-family issues rather than a new architecture-level recall gap:
-      - broad diagnostic-metric prompts admit unrelated metric-heavy papers outside the intended infectious-diagnostics corpus slice
-      - study-design classification prompts admit unrelated non-corpus papers with generic `study` / `results` language
-    - the current retrieval follow-up adds query-family guards plus regression tests for those two failure families without reopening hybrid retrieval or broader architecture work
-    - the next required gate is a fresh rerun of stable, expanded, and runtime evaluation plus one regenerated rollout report for `medical_research_chunks_docling_v2_batch1`
+    - local follow-up artifacts resolved the earlier OOD blocker `O11`, but stage 1 still remained blocked on broad cross-document precision plus missing manual spot checks
+  - April 1, 2026 promoted stage-1 checkpoint:
+    - two narrow retrieval fixes closed the remaining stage-1 regression families without reopening broader architecture work:
+      - broad diagnostic-metric prompts now require token-aware `uti` matching, so unrelated words such as `utilization` do not qualify as infectious-diagnostics evidence
+      - study-design classification prompts now use a stricter in-domain matcher, preventing unrelated retrospective papers from entering final returned results through generic design language alone
+    - regression tests now cover both failure shapes in `RetrievalService`
+    - rerunning stable, expanded, OOD, and runtime evaluation on `medical_research_chunks_docling_v2_batch1` now matches the current small-corpus baselines on all rollout-gated summary metrics
+    - manual spot checks are now recorded and passing in `data/eval/results/manual_spot_checks_stage1.json`
+    - the regenerated rollout report for `medical_research_chunks_docling_v2_batch1` now ends in `pass`
+    - treat this collection as the approved stage-1 `20`-PDF checkpoint; any stage-2 work should proceed as a new rollout step rather than by reusing the earlier failed checkpoint narrative
 
 ## Phase 5A: Medium-Scale Readiness
 
@@ -475,11 +475,10 @@ Tasks:
 
 Current checkpoint:
 
-- March 31, 2026 stage 1 (`20 PDFs`) was executed and recorded as a failed checkpoint rather than a promotion-ready stage
-- `medical_research_chunks_docling_v2_batch1` should be treated as the stage-1 no-promote artifact
-- rebuild/audit infrastructure is validated by that run, but retrieval quality at stage scale is not yet promotion-clean
-- April 1, 2026 follow-up work narrows the remaining stage-1 debt to cross-document precision on `Q15`, `Q16`, `Q19`, `R07`, and `R38`; the next decision point must come from rerun eval artifacts and a regenerated rollout report rather than from the older failed report alone
-- do not advance to stage 2 until the stage-1 regression story is resolved or a new stage-1 corpus attempt is planned deliberately
+- April 1, 2026 stage 1 (`20 PDFs`) is now promotion-ready and recorded as a passing checkpoint
+- `medical_research_chunks_docling_v2_batch1` is the current approved stage-1 artifact
+- rebuild, audit, stable/expanded/OOD/runtime evaluation, and manual spot checks are all passing for that collection
+- the remaining work is planning and executing the separate stage-2 rollout, not recovering stage 1
 
 Exit criteria:
 

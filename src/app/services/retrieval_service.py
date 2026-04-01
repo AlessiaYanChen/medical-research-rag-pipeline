@@ -1659,7 +1659,7 @@ class RetrievalService:
             normalized_doc_text = RetrievalService._doc_text_for_ranking(chunk)
 
         combined = f"{normalized_doc_text} {normalized_content}"
-        domain_signals = (
+        phrase_signals = (
             "bal",
             "bronchoalveolar lavage",
             "blood culture",
@@ -1674,12 +1674,18 @@ class RetrievalService:
             "stewardship",
             "endocarditis",
             "urine",
-            "uti",
             "lipidomics",
             "flat assay",
             "phenotypic ast",
         )
-        return any(signal in combined for signal in domain_signals)
+        if any(signal in combined for signal in phrase_signals):
+            return True
+
+        token_signals = {
+            "uti",
+        }
+        combined_tokens = RetrievalService._tokenize(combined)
+        return any(signal in combined_tokens for signal in token_signals)
 
     @staticmethod
     def _study_design_query_bonus(
@@ -1691,8 +1697,7 @@ class RetrievalService:
     ) -> int:
         combined = f"{doc_text} {header_text} {content_text}"
         bonus = 0
-        domain_match = RetrievalService._chunk_matches_infectious_diagnostic_domain(
-            chunk=chunk,
+        domain_match = RetrievalService._chunk_matches_study_design_domain(
             content_text=content_text,
             doc_text=doc_text,
         )
@@ -1721,7 +1726,7 @@ class RetrievalService:
         if domain_match:
             bonus += 6
         else:
-            bonus -= 10
+            bonus -= 20
         if design_match:
             bonus += 10
         else:
@@ -1733,6 +1738,35 @@ class RetrievalService:
         if any(signal in combined for signal in review_signals):
             bonus += 4
         return bonus
+
+    @staticmethod
+    def _chunk_matches_study_design_domain(*, content_text: str, doc_text: str) -> bool:
+        combined = f"{doc_text} {content_text}"
+        phrase_signals = (
+            "bal",
+            "bronchoalveolar lavage",
+            "blood culture",
+            "bacteremia",
+            "rapid",
+            "iridica",
+            "pathogen",
+            "pathogens",
+            "antimicrobial",
+            "stewardship",
+            "endocarditis",
+            "urine culture",
+            "lipidomics",
+            "flat assay",
+            "phenotypic ast",
+        )
+        if any(signal in combined for signal in phrase_signals):
+            return True
+
+        token_signals = {
+            "uti",
+        }
+        combined_tokens = RetrievalService._tokenize(combined)
+        return any(signal in combined_tokens for signal in token_signals)
 
     @staticmethod
     def _title_weighted_tokens(query_tokens: set[str]) -> set[str]:

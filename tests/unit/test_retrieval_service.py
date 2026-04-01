@@ -3425,6 +3425,52 @@ def test_retrieval_service_filters_non_infectious_accuracy_docs_for_broad_metric
     assert [chunk.doc_id for chunk in result] == ["BAL SM"]
 
 
+def test_retrieval_service_does_not_treat_utilization_as_uti_for_broad_metric_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="The presence of S. pneumoniae was confirmed in only 6/17 samples, supporting BAL diagnostic accuracy reporting.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "The presence of S. pneumoniae was confirmed in only 6/17 samples, supporting BAL diagnostic accuracy reporting.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-UTIL:P00001:C01",
+            content="This utilization study reports sensitivity and specificity for a non-infectious screening workflow.",
+            metadata=ChunkMetadata(
+                doc_id="Noninfectious utilization study",
+                chunk_type="text",
+                parent_header="Abstract",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-UTIL:P00001",
+                    "parent_content": "This utilization study reports sensitivity and specificity for a non-infectious screening workflow.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Across the indexed studies, which papers report diagnostic performance outcomes for rapid testing?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["BAL SM"]
+
+
 def test_retrieval_service_prefers_study_design_chunks_for_classification_queries() -> None:
     chunks = [
         Chunk(
@@ -3485,6 +3531,88 @@ def test_retrieval_service_prefers_study_design_chunks_for_classification_querie
     )
 
     assert [chunk.doc_id for chunk in result] == [
+        "Single site RCT",
+        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    ]
+
+
+def test_retrieval_service_excludes_non_domain_retrospective_noise_for_classification_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Strengths of this study include its pragmatic trial design and incorporation of baseline activities of AS programs.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Strengths of this study include its pragmatic trial design and incorporation of baseline activities of AS programs.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-REVIEW:P00001:C01",
+            content="In total, 18 studies were reviewed in full while evaluating blood culture negative endocarditis tools.",
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-REVIEW:P00001",
+                    "parent_content": "In total, 18 studies were reviewed in full while evaluating blood culture negative endocarditis tools.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-NOISE:P00001:C01",
+            content="This retrospective cross-sectional study cannot establish causality for ferritin and renal insufficiency associations.",
+            metadata=ChunkMetadata(
+                doc_id="jmsacl",
+                chunk_type="text",
+                parent_header="4. Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-NOISE:P00001",
+                    "parent_content": "This retrospective cross-sectional study cannot establish causality for ferritin and renal insufficiency associations.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=4,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "RAPID",
         "Single site RCT",
         "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
     ]

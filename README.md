@@ -648,16 +648,16 @@ The next repo milestone should be medium-scale readiness for roughly `100 PDFs`,
   - the resulting rollout-stage artifact is a deliberate no-promote checkpoint, not a collection to build stage 2 on top of
   - do not start the `50`-PDF stage from this state
   - April 1, 2026 narrow follow-up checkpoint:
-    - local follow-up artifacts now show the earlier stage-1 OOD blocker `O11` resolved
-    - promotion is still blocked, but the remaining debt is now concentrated in broad cross-document precision rather than single-document retrieval
-    - the measured remaining regression set is:
-      - stable / expanded: `Q15`, `Q16`, `Q19`
-      - runtime: `R07`, `R38`
-    - candidate inspection now shows two narrow failure families:
-      - broad diagnostic-metric prompts admit unrelated metric-heavy papers outside the intended infectious-diagnostics corpus slice
-      - study-design classification prompts admit unrelated non-corpus papers with generic `study` / `results` language
-    - the current retrieval follow-up adds query-family guards for those two cases in `RetrievalService`, with regression tests covering the same stage-1 failure shape
-    - the next operational step is to rerun the stable, expanded, and runtime evaluations on `medical_research_chunks_docling_v2_batch1`, then compile one fresh rollout report before deciding whether stage 1 can be promoted
+    - local follow-up artifacts resolved the earlier OOD blocker `O11`, but stage 1 still remained blocked on broad cross-document precision and missing manual spot checks
+  - April 1, 2026 promoted stage-1 checkpoint:
+    - two narrow retrieval fixes cleared the remaining stage-1 regression families:
+      - broad diagnostic-metric prompts no longer treat the substring `uti` inside unrelated words like `utilization` as an infectious-domain hit
+      - study-design classification prompts now use a stricter in-domain matcher so unrelated retrospective papers do not leak into final results through generic `study` / `results` language
+    - targeted regression tests now cover both failure shapes in `RetrievalService`
+    - rerunning `sample_queries.json`, `expanded_queries.json`, `runtime_queries.json`, and `ood_adversarial_queries.json` on `medical_research_chunks_docling_v2_batch1` now matches the small-corpus baselines on rollout-gated summary metrics
+    - a fresh manual spot-check artifact is recorded at `data/eval/results/manual_spot_checks_stage1.json`
+    - the regenerated rollout report at `data/eval/results/rollout_report_medical_research_chunks_docling_v2_batch1.json` now ends in `pass`
+    - `medical_research_chunks_docling_v2_batch1` should now be treated as the current approved stage-1 baseline for planning, but stage 2 should still begin as a separate deliberate rollout step
 
 This repo is now closer to controlled productization than early architecture exploration. The main remaining risk is operational scale and corpus drift, not lack of retrieval features.
 

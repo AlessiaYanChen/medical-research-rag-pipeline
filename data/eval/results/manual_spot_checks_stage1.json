@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "query": "Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
+      "status": "pass",
+      "observed": "Returned RAPID discussion evidence first as a single final chunk, with the turnaround-focused 24.8-hour antibiotic-modification finding ahead of stewardship-review material.",
+      "expected": "Turnaround-focused RAPID evidence should stay ahead of stewardship-review chunks.",
+      "repeated": true
+    },
+    {
+      "query": "What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?",
+      "status": "pass",
+      "observed": "Returned BAL SM results evidence, including the Table 1 chunk plus supporting BAL results/discussion text. The top evidence path surfaces the Staphylococcus aureus confirmation row in the IRIDICA results context.",
+      "expected": "BAL SM results evidence should surface the Staphylococcus aureus confirmation rate cleanly.",
+      "repeated": true
+    },
+    {
+      "query": "What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?",
+      "status": "pass",
+      "observed": "Returned cross-document evidence from Single site RCT and RAPID. The Single site RCT chunk highlights stewardship recommendations and acceptance within 24 hours, while the RAPID chunk emphasizes faster antibiotic modification and de-escalation support.",
+      "expected": "Cross-document retrieval should surface the randomized blood-culture trials plus supporting observational/review material for synthesis.",
+      "repeated": true
+    },
+    {
+      "query": "Which of these studies are randomized controlled trials, and which are observational or review papers?",
+      "status": "pass",
+      "observed": "Returned in-domain study-design evidence only: Single site RCT and RAPID first, with the endocarditis review available next. The earlier non-domain retrospective paper no longer appears in the final returned set.",
+      "expected": "Retrieval should surface the two randomized trial papers first and keep review/observational papers available for classification.",
+      "repeated": true
+    }
+  ]
+}
