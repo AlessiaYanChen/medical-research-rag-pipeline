@@ -442,7 +442,16 @@ Current checkpoint:
     - rerunning stable, expanded, OOD, and runtime evaluation on `medical_research_chunks_docling_v2_batch1` now matches the current small-corpus baselines on all rollout-gated summary metrics
     - manual spot checks are now recorded and passing in `data/eval/results/manual_spot_checks_stage1.json`
     - the regenerated rollout report for `medical_research_chunks_docling_v2_batch1` now ends in `pass`
-    - treat this collection as the approved stage-1 `20`-PDF checkpoint; any stage-2 work should proceed as a new rollout step rather than by reusing the earlier failed checkpoint narrative
+    - coverage caveat: the current stable, expanded, runtime, OOD, and known-gap datasets still only cover the original `7` baseline papers, not the full `20`-PDF stage corpus
+    - therefore this pass should be treated as a valid gate pass and non-regression checkpoint, but not as full retrieval validation for all `13` newly added papers
+    - before stage 2, extend evaluation coverage with:
+      - at least one single-document factual query per newly added paper
+      - cross-document queries mixing baseline and newly added papers
+      - explicit same-topic ambiguity queries for the hepcidin cluster
+      - additional manual UI spot checks weighted toward newly added papers
+      - spot-check audits for selected zero-table-chunk papers, with confirmed misses tracked separately as known gaps
+    - keep `runtime_queries.json` limited to real user/runtime questions; put synthetic corpus-coverage probes into a separate evaluation dataset
+    - treat this collection as the approved stage-1 `20`-PDF checkpoint for planning only after acknowledging that remaining coverage work, and keep any stage-2 work as a separate rollout step rather than a continuation of the earlier failed checkpoint narrative
 
 ## Phase 5A: Medium-Scale Readiness
 
@@ -478,7 +487,18 @@ Current checkpoint:
 - April 1, 2026 stage 1 (`20 PDFs`) is now promotion-ready and recorded as a passing checkpoint
 - `medical_research_chunks_docling_v2_batch1` is the current approved stage-1 artifact
 - rebuild, audit, stable/expanded/OOD/runtime evaluation, and manual spot checks are all passing for that collection
-- the remaining work is planning and executing the separate stage-2 rollout, not recovering stage 1
+- current formal risk is no longer stage-1 regression against the original `7`-paper baseline
+- current substantive risk is incomplete coverage of the `13` newly added papers, especially same-topic ambiguity inside the hepcidin cluster and any parser gaps hidden by zero-table-chunk documents
+- the remaining work before a confident stage-2 rollout is targeted stage-coverage evaluation, not more recovery on the old stage-1 blocker set
+- once that coverage work is complete, the next implementation priorities should be:
+  - pin dependencies so parser and reranker behavior does not drift silently between rollout checkpoints
+  - harden the medical research prompt with stronger guidance on study design, effect sizes, uncertainty, and limitations
+  - move toward structured answer output with chunk-level citations instead of relying on free-form citation text only
+  - add a typed abstention or confidence signal rather than relying only on prompt wording
+  - add a small answer-quality evaluation layer distinct from retrieval evaluation
+  - improve the UI collection-selection and rollback workflow for rollout-time comparison
+  - add basic observability for latency and retrieved-chunk inspection
+- continue to defer hybrid or sparse retrieval until benchmark evidence shows real lexical recall gaps, and defer multi-turn conversation support until answer grounding is stronger
 
 Exit criteria:
 
@@ -547,6 +567,15 @@ Recommended next implementation order:
    - require rebuild, audit, stable/expanded/OOD/runtime eval, and manual spot-check gates before promoting each stage
    - compile one stage report from those artifacts so promotion decisions are based on one auditable checkpoint rather than scattered local files
    - treat the March 31, 2026 `medical_research_chunks_docling_v2_batch1` report as the current stage-1 failed checkpoint; do not roll directly into stage 2 from it
+8. Before committing to stage 2 from the passing stage-1 checkpoint, close the coverage gap on newly added papers with a separate synthetic corpus-coverage dataset rather than by expanding `runtime_queries.json`
+9. After stage-coverage evaluation is in place, prioritize answer reliability and operations hardening:
+   - dependency pinning
+   - structured answer grounding with chunk citations
+   - abstention or confidence signaling
+   - answer-quality evaluation
+   - better rollout-time collection comparison in the UI
+   - latency and retrieval observability
+10. Revisit hybrid retrieval, sparse retrieval, or multi-turn conversation support only after the simpler grounding and evaluation work above is in place and benchmark evidence still shows a need
    - add corpus-scale ambiguity cases before treating the `100`-PDF line as stable
 8. Keep setup hardening moving:
    - maintain the checked-in `requirements.txt`

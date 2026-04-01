@@ -657,7 +657,25 @@ The next repo milestone should be medium-scale readiness for roughly `100 PDFs`,
     - rerunning `sample_queries.json`, `expanded_queries.json`, `runtime_queries.json`, and `ood_adversarial_queries.json` on `medical_research_chunks_docling_v2_batch1` now matches the small-corpus baselines on rollout-gated summary metrics
     - a fresh manual spot-check artifact is recorded at `data/eval/results/manual_spot_checks_stage1.json`
     - the regenerated rollout report at `data/eval/results/rollout_report_medical_research_chunks_docling_v2_batch1.json` now ends in `pass`
-    - `medical_research_chunks_docling_v2_batch1` should now be treated as the current approved stage-1 baseline for planning, but stage 2 should still begin as a separate deliberate rollout step
+    - important coverage caveat: the current stable, expanded, runtime, OOD, and known-gap datasets still only exercise the original `7` baseline papers, not the full `20`-PDF stage corpus
+    - this means the stage-1 pass is a valid non-regression checkpoint against the documented gate, but it is not yet strong evidence that all `13` newly added papers retrieve correctly
+    - before treating the `20`-PDF stage as fully de-risked for stage 2, add explicit corpus-coverage evaluation for the new papers:
+      - at least one single-document factual retrieval query per newly added paper
+      - cross-document ambiguity queries that mix baseline and newly added papers
+      - hepcidin-cluster disambiguation queries, since those same-topic papers are the clearest early medium-scale ambiguity risk
+      - additional manual UI spot checks biased toward the newly added papers
+      - spot-check audits on selected zero-table-chunk papers to confirm whether missing tables are real or parser gaps
+    - keep `runtime_queries.json` for real app/runtime questions; put synthetic stage-coverage probes into a separate evaluation dataset rather than mixing them into the runtime baseline
+    - `medical_research_chunks_docling_v2_batch1` should now be treated as the current approved stage-1 baseline for planning, but stage 2 should still begin only after that extra coverage work or with the stage-2 risk accepted explicitly
+    - after the stage-coverage gap is closed, the next highest-value product hardening work should be:
+      - pin dependencies so parser and reranker upgrades cannot silently drift behavior between checkpoints
+      - strengthen medical answer synthesis with stricter prompt instructions around study design, effect sizes, uncertainty, and limitations
+      - move from free-form answer text toward structured answer output with explicit chunk-level citations
+      - add a programmatic abstention or confidence signal rather than relying only on prompt wording such as `Insufficient evidence`
+      - add a small answer-quality evaluation layer so final synthesis quality is measured separately from retrieval quality
+      - improve the UI collection-selection workflow for safer rollback and A/B comparison during rollout
+      - add basic observability for query latency and retrieved-chunk inspection during larger-batch testing
+    - still defer hybrid or sparse retrieval until benchmark evidence shows clear lexical recall gaps, and defer multi-turn conversation support until grounding and answer reliability are stronger
 
 This repo is now closer to controlled productization than early architecture exploration. The main remaining risk is operational scale and corpus drift, not lack of retrieval features.
 
