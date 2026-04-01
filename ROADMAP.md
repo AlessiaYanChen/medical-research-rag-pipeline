@@ -34,6 +34,14 @@ Current retrieval gate policy:
 
 - Comparison is baseline-relative, not absolute-score based.
 - The rollout report currently uses a `0.02` maximum allowed drop per gated summary metric when a baseline evaluation is provided.
+- The gated summary metrics are:
+  - `expected_doc_hit_rate`
+  - `expected_header_hit_rate`
+  - `top1_expected_doc_hit_rate`
+  - `top1_expected_header_hit_rate`
+  - `average_doc_precision`
+  - `average_header_precision`
+  - `cross_document_average_doc_precision`
 
 ## Active Risks
 
@@ -86,6 +94,7 @@ Outcome:
 - `Docling` is selected for new ingestion
 - `Marker` is rollback only
 - detailed parser-bakeoff notes now live in `docs/checkpoints.md`
+- parser comparison artifacts remain under `data/parser_bakeoff/results/`
 
 ### Phase 5A: Medium-Scale Readiness
 
@@ -105,7 +114,7 @@ Stage-1 coverage completion tasks:
 3. Add cross-document queries that mix baseline and newly added papers.
 4. Add hepcidin-cluster disambiguation queries explicitly.
 5. Run `8-10` additional manual UI spot checks focused on newly added papers.
-6. Spot-check selected zero-table-chunk papers against the source PDFs.
+6. Spot-check selected zero-table-chunk papers against the source PDFs, starting with `1-s2.0-S0009912024000250-main` and `hepcidin diagnostic tool`.
 7. Add confirmed new-paper misses to `known_gap_queries.json` rather than mixing them into the runtime baseline.
 
 Stage-2 readiness rule:
@@ -126,15 +135,18 @@ Phase gate:
 
 ## Next Priorities
 
-Order of work after the stage-1 coverage gap is closed:
+Immediate stabilization work:
 
 1. Pin dependencies to reduce parser and reranker drift risk.
-2. Harden the medical research prompt for study design, effect sizes, uncertainty, and limitations.
-3. Move toward structured answer output with chunk-level citations.
-4. Add a typed abstention or confidence signal.
-5. Add a small answer-quality evaluation layer separate from retrieval evaluation.
-6. Improve the UI collection-selection and rollback workflow.
-7. Add basic observability for latency and retrieved-chunk inspection.
+
+Order of work after the stage-1 coverage gap is closed:
+
+1. Harden the medical research prompt for study design, effect sizes, uncertainty, and limitations.
+2. Move toward structured answer output with chunk-level citations.
+3. Add a typed abstention or confidence signal.
+4. Add a small answer-quality evaluation layer separate from retrieval evaluation.
+5. Improve the UI collection-selection and rollback workflow.
+6. Add basic observability for latency and retrieved-chunk inspection.
 
 ## Future Considerations
 
