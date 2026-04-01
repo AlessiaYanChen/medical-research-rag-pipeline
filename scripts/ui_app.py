@@ -338,7 +338,6 @@ def update_collection_docs(collection_name: str, doc_id: str, summary: dict[str,
 
 def init_state() -> None:
     st.session_state.setdefault("ingested_docs", None)
-    st.session_state.setdefault("last_answer", [])
     st.session_state.setdefault("last_retrieval_result", None)
     st.session_state.setdefault("last_research_answer", None)
     st.session_state.setdefault("last_research_latency_ms", None)
@@ -756,7 +755,6 @@ def main() -> None:
                         include_tables=include_tables,
                     )
                     st.session_state.last_retrieval_result = result
-                    st.session_state.last_answer = result.chunks
                 except Exception as exc:  # noqa: BLE001
                     st.error(str(exc))
 
@@ -804,8 +802,9 @@ def main() -> None:
             f"{len(retrieval_result.chunks)} chunks in {retrieval_result.latency_ms:.0f} ms "
             f"({retrieval_result.initial_candidate_count} candidates before filtering)"
         )
+    retrieved_chunks = retrieval_result.chunks if retrieval_result is not None else []
     render_retrieved_context(
-        st.session_state.last_answer,
+        retrieved_chunks,
         st.session_state.ingested_docs or {},
     )
 

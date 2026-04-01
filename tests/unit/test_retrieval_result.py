@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from src.app.ports.repositories.vector_repository import MetadataFilter, VectorSearchFilters
+from src.app.services import retrieval_service as retrieval_service_module
 from src.app.services.retrieval_service import RetrievalResult, RetrievalService
 from src.domain.models.chunk import Chunk, ChunkMetadata
 
@@ -85,7 +88,12 @@ def test_retrieve_with_diagnostics_returns_wrapper_with_latency_and_candidate_co
         ),
     )
     repo = FakeQdrantRepository([retained_chunk, filtered_chunk])
-    embedding_fn = lambda texts: [[0.1, 0.2, 0.3] for _ in texts]
+    embedding_calls: list[list[str]] = []
+
+    def embedding_fn(texts: list[str]) -> list[list[float]]:
+        embedding_calls.append(texts)
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
     service = RetrievalService(repo=repo, embedding_fn=embedding_fn)
 
     result = service.retrieve_with_diagnostics(query="retained evidence", doc_id="DOC-1", limit=2)
@@ -97,6 +105,27 @@ def test_retrieve_with_diagnostics_returns_wrapper_with_latency_and_candidate_co
     assert result.latency_ms >= 0
     assert result.initial_candidate_count >= len(result.chunks)
     assert result.initial_candidate_count == 2
+    assert len(embedding_calls) == 1
+    assert len(repo.search_calls) == 1
+
+
+def test_retrieve_with_diagnostics_times_full_retrieve_call() -> None:
+    chunk = Chunk(
+        id="DOC-3:00001",
+        content="This retained evidence chunk contains enough detail to survive retrieval filtering.",
+        metadata=ChunkMetadata(
+            doc_id="DOC-3",
+            chunk_type="text",
+            parent_header="Results",
+        ),
+    )
+    repo = FakeQdrantRepository([chunk])
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    with patch.object(retrieval_service_module.time, "perf_counter", side_effect=[100.0, 100.25]):
+        result = service.retrieve_with_diagnostics(query="retained evidence", doc_id="DOC-3", limit=1)
+
+    assert result.latency_ms == 250.0
 
 
 def test_retrieve_still_returns_retrieved_chunks_for_backward_compatibility() -> None:
