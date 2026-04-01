@@ -410,23 +410,32 @@ Current checkpoint:
       - stage 1: `20 PDFs`
       - stage 2: `50 PDFs`
       - stage 3: `100 PDFs`
-    - each stage should use a fresh `Docling` collection such as `medical_research_chunks_docling_v2_batch1`
-    - required gate before treating any stage as acceptable:
+  - each stage should use a fresh `Docling` collection such as `medical_research_chunks_docling_v2_batch1`
+  - required gate before treating any stage as acceptable:
       - rebuild completes with explicit failure reporting
       - `scripts/audit_collection_state.py --fail-on-issues` passes
       - stable and expanded benchmarks stay acceptably close to the current baseline
       - `runtime_queries.json` shows no material regression
       - a short manual spot-check report is written for real medical questions
-    - medium-scale-specific evaluation should be added before the `100`-PDF milestone is considered complete:
+  - medium-scale-specific evaluation should be added before the `100`-PDF milestone is considered complete:
       - multi-document ambiguity
       - similar study titles
       - same-topic papers with conflicting findings
       - table-heavy queries
       - review-versus-trial disambiguation
+  - March 31, 2026 stage-1 rollout checkpoint:
+    - collection: `medical_research_chunks_docling_v2_batch1`
+    - rebuild and audit passed cleanly for the `20`-PDF stage corpus
+    - the compiled rollout report ended in `fail`, so this collection is a recorded no-promote checkpoint rather than the base for stage 2
+    - stable and expanded benchmarks regressed beyond the current `0.02` rollout tolerance, with the strongest stable drift in cross-document average doc precision
+    - OOD regressed materially, driven by the measured `O11` miss
+    - runtime remained weaker than the small-corpus line and did not justify promotion
+    - candidate inspection on the main stage-1 misses (`O11`, `Q18`, `R37`) pointed to ranking/selection drift rather than a new architecture-level recall gap
+    - do not begin the `50`-PDF stage from this checkpoint; any follow-up should stay narrow and start with `O11` and `Q18`
 
 ## Phase 5A: Medium-Scale Readiness
 
-Status: Planned
+Status: In Progress
 
 Objectives:
 
@@ -451,6 +460,14 @@ Tasks:
    - ingestion and chunking version
    - collection manifest
 5. Review structured failure reports and duplicate/cleanup-plan output at each stage
+6. Compile a short rollout report from manifest, failure, audit, evaluation, and manual spot-check artifacts before promoting a stage
+
+Current checkpoint:
+
+- March 31, 2026 stage 1 (`20 PDFs`) was executed and recorded as a failed checkpoint rather than a promotion-ready stage
+- `medical_research_chunks_docling_v2_batch1` should be treated as the stage-1 no-promote artifact
+- rebuild/audit infrastructure is validated by that run, but retrieval quality at stage scale is not yet promotion-clean
+- do not advance to stage 2 until the stage-1 regression story is resolved or a new stage-1 corpus attempt is planned deliberately
 
 Exit criteria:
 
@@ -517,6 +534,8 @@ Recommended next implementation order:
    - stage 3: `100 PDFs`
    - mix RCTs, observational studies, reviews, table-heavy papers, OCR-weaker PDFs, and abbreviation-heavy assay papers
    - require rebuild, audit, stable/expanded/OOD/runtime eval, and manual spot-check gates before promoting each stage
+   - compile one stage report from those artifacts so promotion decisions are based on one auditable checkpoint rather than scattered local files
+   - treat the March 31, 2026 `medical_research_chunks_docling_v2_batch1` report as the current stage-1 failed checkpoint; do not roll directly into stage 2 from it
    - add corpus-scale ambiguity cases before treating the `100`-PDF line as stable
 8. Keep setup hardening moving:
    - maintain the checked-in `requirements.txt`

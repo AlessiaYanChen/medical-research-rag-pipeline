@@ -101,8 +101,16 @@ class DoclingParser(ParserPort):
 
     @classmethod
     def _extract_tables(cls, rendered: Any, *, pdf_path: Path | None = None) -> list[ParsedTable]:
+        document = cls._extract_document_object(rendered)
         raw_tables = cls._extract_raw_tables(rendered)
-        normalized_tables = [cls._normalize_table(table, pdf_path=pdf_path) for table in raw_tables]
+        normalized_tables = [
+            cls._normalize_table(
+                table,
+                pdf_path=pdf_path,
+                document=document,
+            )
+            for table in raw_tables
+        ]
         return [table for table in normalized_tables if cls._table_has_meaningful_content(table)]
 
     @classmethod
@@ -214,13 +222,19 @@ class DoclingParser(ParserPort):
         return getattr(rendered, "document", None)
 
     @classmethod
-    def _normalize_table(cls, raw_table: Any, *, pdf_path: Path | None = None) -> ParsedTable:
+    def _normalize_table(
+        cls,
+        raw_table: Any,
+        *,
+        pdf_path: Path | None = None,
+        document: Any | None = None,
+    ) -> ParsedTable:
         if isinstance(raw_table, ParsedTable):
             return raw_table
 
         dataframe_export = getattr(raw_table, "export_to_dataframe", None)
         if callable(dataframe_export):
-            table = cls._normalize_dataframe_table(raw_table)
+            table = cls._normalize_dataframe_table(raw_table, document=document)
             if pdf_path is not None and cls._table_needs_page_text_recovery(raw_table=raw_table, table=table):
                 recovered = cls._recover_table_from_page_text(pdf_path=pdf_path, raw_table=raw_table)
                 if recovered is not None:
@@ -241,25 +255,45 @@ class DoclingParser(ParserPort):
         return ParsedTable(headers=headers, rows=rows, csv=csv_text)
 
     @classmethod
-    def _normalize_dataframe_table(cls, raw_table: Any) -> ParsedTable:
+    def _normalize_dataframe_table(cls, raw_table: Any, *, document: Any | None = None) -> ParsedTable:
         try:
-            dataframe = raw_table.export_to_dataframe()
+            if document is not None:
+                try:
+                    dataframe = raw_table.export_to_dataframe(doc=document)
+                except TypeError:
+                    dataframe = raw_table.export_to_dataframe()
+            else:
+                dataframe = raw_table.export_to_dataframe()
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(f"Failed to export Docling table to dataframe: {exc}") from exc
 
         columns = list(dataframe.columns)
-        headers = [str(column).strip() for column in columns]
+        headers = cls._make_unique_headers([str(column).strip() for column in columns])
         rows: list[dict[str, str]] = []
-        for record in dataframe.fillna("").to_dict(orient="records"):
+        for values in dataframe.fillna("").itertuples(index=False, name=None):
             rows.append(
                 {
-                    header: str(record.get(column, "")).strip()
-                    for header, column in zip(headers, columns)
+                    header: str(value).strip()
+                    for header, value in zip(headers, values)
                 }
             )
 
         csv_text = cls._build_csv(headers=headers, rows=rows)
         return ParsedTable(headers=headers, rows=rows, csv=csv_text)
+
+    @staticmethod
+    def _make_unique_headers(headers: list[str]) -> list[str]:
+        seen: dict[str, int] = {}
+        unique_headers: list[str] = []
+        for index, raw_header in enumerate(headers, start=1):
+            base_header = raw_header or f"column_{index}"
+            count = seen.get(base_header, 0) + 1
+            seen[base_header] = count
+            if count == 1:
+                unique_headers.append(base_header)
+                continue
+            unique_headers.append(f"{base_header} ({count})")
+        return unique_headers
 
     @staticmethod
     def _table_payload(raw_table: Any) -> dict[str, Any]:

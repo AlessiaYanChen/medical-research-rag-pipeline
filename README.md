@@ -550,6 +550,26 @@ Use the audit as an explicit rollout gate for Phase 5 or any medium-scale ingest
 .\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json --fail-on-issues
 ```
 
+Compile the stage gate into one rollout report after rebuild, audit, benchmark reruns, and manual spot checks:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/build_rollout_report.py --collection medical_research_chunks_docling_v2_batch1 --stage-label stage-1-20-pdfs --target-pdf-count 20 --audit-json data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch1.json --stable-eval-json data/eval/results/retrieval_eval_sample_stage1.json --expanded-eval-json data/eval/results/retrieval_eval_expanded_stage1.json --ood-eval-json data/eval/results/ood_retrieval_eval_stage1.json --runtime-eval-json data/eval/results/retrieval_eval_runtime_stage1.json --baseline-stable-eval-json data/eval/results/retrieval_eval_sample.json --baseline-expanded-eval-json data/eval/results/retrieval_eval_expanded.json --baseline-ood-eval-json data/eval/results/ood_retrieval_eval.json --baseline-runtime-eval-json data/eval/results/retrieval_eval_runtime_queries.json --manual-spot-checks data/eval/results/manual_spot_checks_stage1.json
+```
+
+The manual spot-check file can be a JSON array, or an object with `checks`, using records like:
+
+```json
+[
+  {
+    "query": "Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
+    "status": "pass",
+    "observed": "Returned the RAPID turnaround evidence first.",
+    "expected": "Keep turnaround-focused RAPID evidence ahead of stewardship-review chunks.",
+    "repeated": true
+  }
+]
+```
+
 Manifest-aware repair paths now enforce collection and ingestion/chunking version compatibility before updating local records, so a stale or mismatched manifest fails fast instead of being silently reused.
 The audit path now also fails fast on malformed manifest JSON instead of crashing during load, and it surfaces duplicate `doc_id`, `source_file`, and `local_file` conflicts explicitly; if the cleanup plan is empty, Qdrant, manifest, and registry agree on document identity at the metadata level. With `--fail-on-issues`, the command returns exit code `1` for any manifest version issue, reconciliation issue, or cleanup-plan step.
 
@@ -582,7 +602,13 @@ For medium-scale ingestion work, the current operator path is:
 .\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json --fail-on-issues
 ```
 
-This keeps the current operational loop explicit: rebuild, inspect failures, repair specific documents, then run the audit gate before larger rollout work.
+6. Compile the rollout-stage report after benchmark reruns and manual spot checks:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/build_rollout_report.py --collection medical_research_chunks_docling_v2_batch1 --stage-label stage-1-20-pdfs --target-pdf-count 20 --audit-json data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch1.json --stable-eval-json data/eval/results/retrieval_eval_sample_stage1.json --expanded-eval-json data/eval/results/retrieval_eval_expanded_stage1.json --ood-eval-json data/eval/results/ood_retrieval_eval_stage1.json --runtime-eval-json data/eval/results/retrieval_eval_runtime_stage1.json --baseline-stable-eval-json data/eval/results/retrieval_eval_sample.json --baseline-expanded-eval-json data/eval/results/retrieval_eval_expanded.json --baseline-ood-eval-json data/eval/results/ood_retrieval_eval.json --baseline-runtime-eval-json data/eval/results/retrieval_eval_runtime_queries.json --manual-spot-checks data/eval/results/manual_spot_checks_stage1.json
+```
+
+This keeps the current operational loop explicit: rebuild, inspect failures, repair specific documents, run the audit gate, rerun the evaluation sets, document manual spot checks, then compile one rollout-stage report before larger rollout work.
 
 ## Production Track
 
@@ -611,6 +637,17 @@ The next repo milestone should be medium-scale readiness for roughly `100 PDFs`,
   - same-topic papers with conflicting findings
   - table-heavy queries
   - review-versus-trial disambiguation
+- latest rollout checkpoint from March 31, 2026:
+  - `medical_research_chunks_docling_v2_batch1` is now the recorded stage-1 `20`-PDF rollout checkpoint
+  - rebuild and audit passed cleanly on that collection
+  - promotion did not pass:
+    - stable benchmark regressed beyond the current rollout tolerance, especially cross-document average doc precision
+    - expanded benchmark regressed beyond tolerance
+    - OOD benchmark regressed materially, with `O11` as the measured blocker
+    - runtime remained weaker than the small-corpus line and did not justify promotion
+  - the resulting rollout-stage artifact is a deliberate no-promote checkpoint, not a collection to build stage 2 on top of
+  - do not start the `50`-PDF stage from this state
+  - if follow-up work resumes before any new rollout attempt, keep it narrow and inspect the measured stage-1 regressions first, especially `O11` and `Q18`
 
 This repo is now closer to controlled productization than early architecture exploration. The main remaining risk is operational scale and corpus drift, not lack of retrieval features.
 

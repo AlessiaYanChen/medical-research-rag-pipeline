@@ -97,6 +97,102 @@ def test_docling_parser_normalizes_dataframe_export_table(tmp_path: Path) -> Non
     ]
 
 
+def test_docling_parser_passes_document_to_dataframe_export_when_available(tmp_path: Path) -> None:
+    import pandas as pd
+
+    observed_doc: dict[str, object] = {}
+
+    class FakeDoclingTable:
+        def export_to_dataframe(self, *, doc):
+            observed_doc["value"] = doc
+            return pd.DataFrame(
+                [
+                    {"Metric": "Response Rate", "Group A": "81%", "Group B": "67%"},
+                ]
+            )
+
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+    fake_document = {
+        "markdown_text": "# Results\n\nTable below.",
+        "tables": [FakeDoclingTable()],
+    }
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "document": fake_document,
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 1
+    assert observed_doc["value"] is fake_document
+
+
+def test_docling_parser_falls_back_when_dataframe_export_does_not_accept_doc(tmp_path: Path) -> None:
+    import pandas as pd
+
+    class FakeDoclingTable:
+        def export_to_dataframe(self):
+            return pd.DataFrame(
+                [
+                    {"Metric": "Response Rate", "Group A": "81%", "Group B": "67%"},
+                ]
+            )
+
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "document": {
+                "markdown_text": "# Results\n\nTable below.",
+                "tables": [FakeDoclingTable()],
+            }
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 1
+    assert parsed.tables[0].headers == ["Metric", "Group A", "Group B"]
+
+
+def test_docling_parser_preserves_duplicate_dataframe_columns(tmp_path: Path) -> None:
+    import pandas as pd
+
+    class FakeDoclingTable:
+        def export_to_dataframe(self):
+            return pd.DataFrame(
+                [
+                    ["Sensitivity", "94%", "95%"],
+                    ["Specificity", "91%", "92%"],
+                ],
+                columns=["Metric", "Value", "Value"],
+            )
+
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
+
+    parser = DoclingParser(
+        document_converter=lambda _: {
+            "markdown": "# Results\n\nTable below.",
+            "tables": [FakeDoclingTable()],
+        }
+    )
+
+    parsed = parser.parse(dummy_pdf)
+
+    assert len(parsed.tables) == 1
+    table = parsed.tables[0]
+    assert table.headers == ["Metric", "Value", "Value (2)"]
+    assert table.rows == [
+        {"Metric": "Sensitivity", "Value": "94%", "Value (2)": "95%"},
+        {"Metric": "Specificity", "Value": "91%", "Value (2)": "92%"},
+    ]
+
+
 def test_docling_parser_rejects_unsupported_table_format(tmp_path: Path) -> None:
     dummy_pdf = tmp_path / "dummy.pdf"
     dummy_pdf.write_bytes(b"%PDF-1.4\n% Dummy test PDF\n")
