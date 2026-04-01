@@ -150,10 +150,28 @@ Only keep a code change if it is narrow and benchmark-safe on `runtime_queries.j
 
 ## Benchmark Query Files
 
-| File | Queries | Purpose |
-|------|---------|---------|
-| `data/eval/sample_queries.json` | 26 | Stable baseline (100% precision target) |
-| `data/eval/expanded_queries.json` | 43 | Extended coverage (stewardship, table-oriented, title queries) |
-| `data/eval/ood_adversarial_queries.json` | 32 | Out-of-distribution / adversarial phrasing |
-| `data/eval/runtime_queries.json` | varies | Real user queries (regression tracking) |
-| `data/eval/known_gap_queries.json` | varies | Documented expected misses |
+| File | Queries | Purpose | Runner |
+|------|---------|---------|--------|
+| `data/eval/sample_queries.json` | 26 | Stable retrieval baseline (100% precision target) | `scripts/evaluate_retrieval.py` |
+| `data/eval/expanded_queries.json` | 43 | Extended retrieval coverage | `scripts/evaluate_retrieval.py` |
+| `data/eval/ood_adversarial_queries.json` | 32 | Out-of-distribution / adversarial phrasing | `scripts/evaluate_retrieval.py` |
+| `data/eval/runtime_queries.json` | varies | Real user queries (regression tracking) | `scripts/evaluate_retrieval.py` |
+| `data/eval/known_gap_queries.json` | varies | Documented expected misses | `scripts/evaluate_retrieval.py` |
+| `data/eval/answer_quality_queries.json` | varies | Answer quality: abstention, confidence, doc-ID coverage | `scripts/evaluate_answer_quality.py` |
+
+### Answer Quality Query Format (`answer_quality_queries.json`)
+
+```json
+[
+  {
+    "id": "AQ01",
+    "query": "What is the organism detection rate in BAL samples?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["iridica-bal"],
+    "notes": "stable baseline — should always retrieve"
+  }
+]
+```
+
+Fields: `id` (string), `query` (required), `expected_abstain` (bool, default false), `expected_confidence_min` (HIGH/MEDIUM/LOW/INSUFFICIENT, optional), `expected_doc_ids` (array, checked against `evidence_basis` text), `notes` (string).

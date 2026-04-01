@@ -144,7 +144,7 @@ Order of work (stage-1 coverage gap is now closed):
 1. ~~Harden the medical research prompt for study design, effect sizes, uncertainty, and limitations.~~ Complete — prompt now instructs study design identification, exact effect size reporting, CI/p-value inclusion, and limitation noting.
 2. ~~Move toward structured answer output with chunk-level citations.~~ Complete — `ReasoningService.research()` now returns `ResearchAnswer` (insight, evidence_basis, citations). Citations are the actual retrieved chunks, not LLM-generated text. UI renders them as collapsible expanders.
 3. ~~Add a typed abstention or confidence signal.~~ Complete — `ConfidenceLevel` enum (HIGH/MEDIUM/LOW/INSUFFICIENT) derived from retrieval signals (chunk count, distinct docs, "Insufficient evidence" in insight). UI shows a coloured banner per level.
-4. Add a small answer-quality evaluation layer separate from retrieval evaluation.
+4. ~~Add a small answer-quality evaluation layer separate from retrieval evaluation.~~ Complete — `src/app/evaluation/answer_quality_eval.py` evaluates abstention accuracy, confidence thresholds, and doc-ID coverage in evidence basis. Runner at `scripts/evaluate_answer_quality.py`. Query format: `data/eval/answer_quality_queries.json`.
 5. Improve the UI collection-selection and rollback workflow.
 6. Add basic observability for latency and retrieved-chunk inspection.
 

@@ -52,7 +52,7 @@ It is a record of how the repo moved from small-corpus retrieval tuning into sta
 - No confirmed retrieval failures were added to `known_gap_queries.json`; newly-added-paper checks passed.
 - Stage-1 is fully de-risked. Stage-2 planning may begin.
 
-## April 1, 2026 (answer quality hardening)
+## April 1, 2026 (answer quality hardening — session 2)
 
 - Dependencies pinned in `requirements.txt`; `docling==2.81.0` added (was missing from the file).
 - Research prompt hardened: instructions now cover study design identification, exact effect size reporting, CI/p-value inclusion, and key limitations.
@@ -65,4 +65,4 @@ It is a record of how the repo moved from small-corpus retrieval tuning into sta
 - The formal stage-1 rollout gate is passing and stage-1 is fully de-risked.
 - The stage-1 coverage gap is closed.
 - The remaining watch item is the hepcidin cluster top-1 ambiguity; it has not produced confirmed retrieval failures.
-- Next work: answer-quality evaluation layer, then UI collection-selection and observability improvements.
+- Next work: UI collection-selection and rollback workflow, then basic observability for latency and retrieved-chunk inspection.
