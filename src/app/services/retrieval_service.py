@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 import logging
 import re
+import time
 
 from src.app.ports.re_ranker_port import ReRankerPort
 from src.app.ports.repositories.vector_repository import (
@@ -28,6 +29,13 @@ class RetrievedChunk:
     local_file: str = ""
 
 
+@dataclass(frozen=True)
+class RetrievalResult:
+    chunks: list[RetrievedChunk]
+    latency_ms: float
+    initial_candidate_count: int
+
+
 class RetrievalService:
     """Application service for semantic retrieval over the active knowledge base."""
 
@@ -44,6 +52,30 @@ class RetrievalService:
         self._include_tables = include_tables
 
     def retrieve(self, query: str, doc_id: str | None = None, limit: int = 5) -> list[RetrievedChunk]:
+        retrieved_chunks, _ = self._retrieve(query=query, doc_id=doc_id, limit=limit)
+        return retrieved_chunks
+
+    def retrieve_with_diagnostics(
+        self,
+        query: str,
+        doc_id: str | None = None,
+        limit: int = 5,
+    ) -> RetrievalResult:
+        started_at = time.perf_counter()
+        chunks, initial_candidate_count = self._retrieve(query=query, doc_id=doc_id, limit=limit)
+        latency_ms = (time.perf_counter() - started_at) * 1000
+        return RetrievalResult(
+            chunks=chunks,
+            latency_ms=latency_ms,
+            initial_candidate_count=initial_candidate_count,
+        )
+
+    def _retrieve(
+        self,
+        query: str,
+        doc_id: str | None = None,
+        limit: int = 5,
+    ) -> tuple[list[RetrievedChunk], int]:
         query_vector = self._embedding_fn([query])[0]
         initial_limit = self._initial_search_limit(query=query, doc_filter=doc_id, limit=limit)
         initial_chunks = self._repo.search(
@@ -52,6 +84,7 @@ class RetrievalService:
             limit=initial_limit,
             filters=self._build_search_filters(query=query, doc_id=doc_id),
         )
+        initial_candidate_count = len(initial_chunks)
         filtered_initial_chunks = self._filter_chunks(query=query, chunks=initial_chunks)
         if doc_id is not None:
             filtered_initial_chunks = self._suppress_metadata_fallback(query=query, chunks=filtered_initial_chunks)
@@ -149,7 +182,7 @@ class RetrievalService:
             )
             if len(retrieved_chunks) >= limit:
                 break
-        return retrieved_chunks[:limit]
+        return retrieved_chunks[:limit], initial_candidate_count
 
     @staticmethod
     def serialize_for_prompt(chunks: list[RetrievedChunk]) -> str:
