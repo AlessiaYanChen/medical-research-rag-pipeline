@@ -1,0 +1,67 @@
+{
+  "checks": [
+    {
+      "query": "What is the reported relationship between serum hepcidin levels and renal function or GFR in CKD patients?",
+      "status": "mixed",
+      "observed": "Default UI run and Include table chunks run ranked hepcidin diagnostic tool above the target hepcidin ckd paper, though the second chunk did surface the intended GFR relationship. Enable re-ranking improved the evidence mix by surfacing more hepcidin ckd discussion, but the top result still did not cleanly stay on the target paper.",
+      "expected": "Return the CKD hepcidin paper and surface the reported relationship between serum hepcidin and renal function or GFR rather than drifting to broader CKD hepcidin reviews.",
+      "repeated": true
+    },
+    {
+      "query": "What role does hepcidin play in the anemia of chronic disease according to this paper?",
+      "status": "fail",
+      "observed": "Default UI run and Include table chunks run were led by RCM publication rather than the target hep anemia paper. Enable re-ranking still kept other hepcidin papers above hep anemia, which appeared only lower in the list. The returned evidence stayed broadly on-topic, but the intended paper and answer path were not surfaced cleanly.",
+      "expected": "Return the anemia-focused hepcidin paper and surface the mechanism-level role of hepcidin in anemia of chronic disease.",
+      "repeated": true
+    },
+    {
+      "query": "What diagnostic value does the paper assign to hepcidin measurement for distinguishing iron deficiency anemia from anemia of chronic disease?",
+      "status": "fail",
+      "observed": "Default UI run and Include table chunks run were dominated by RCM publication and other off-target hepcidin items instead of the target hep in diagnosis of iron disorders 2016 paper. Enable re-ranking drifted further, with the target paper still appearing only lower in the list. The intended diagnostic-differentiation answer path was not surfaced cleanly.",
+      "expected": "Return the 2016 diagnostic review and surface the paper's stated diagnostic value of hepcidin for differentiating iron deficiency anemia from anemia of chronic disease.",
+      "repeated": true
+    },
+    {
+      "query": "What analytical platform or method is described in this paper, and what clinical application does it target?",
+      "status": "fail",
+      "observed": "Default UI run and Include table chunks run were dominated by RCM publication and unrelated glycoproteomics papers instead of the target jmsacl paper. Enable re-ranking drifted further away, and the jmsacl paper did not surface in the returned set. The intended method-plus-clinical-application answer path was not surfaced.",
+      "expected": "Return the JMSACL paper and surface both the analytical platform or method and the intended clinical application.",
+      "repeated": true
+    },
+    {
+      "query": "What is the main finding or method presented in this study?",
+      "status": "fail",
+      "observed": "Default UI run and Include table chunks run were headed by unrelated papers instead of the target RCM publication, and Enable re-ranking still left RCM publication below the top result. Relevant RCM method text appeared lower in the list, but the intended paper and its main finding or method were not surfaced cleanly.",
+      "expected": "Return the RCM publication and surface the study's main method or headline finding rather than only supporting technical details.",
+      "repeated": true
+    },
+    {
+      "query": "What negative predictive value did the lipidomics-based method achieve for ruling out positive urine cultures?",
+      "status": "mixed",
+      "observed": "Default UI run and Include table chunks run returned the correct nartey-et-al-2024 paper first and surfaced the answer-bearing table value showing a negative predictive value of 92%. Enable re-ranking weakened the run by putting Culture-Free Lipidomics-Based Screening Test first, though the target paper and the NPV evidence still remained visible just below.",
+      "expected": "Return the Nartey lipidomics paper and surface the negative predictive value result clearly.",
+      "repeated": true
+    },
+    {
+      "query": "What was the overall diagnostic accuracy of the FLAT assay across both gram-positive and gram-negative organisms?",
+      "status": "mixed",
+      "observed": "Across all three runs, the answer-bearing FLAT accuracy evidence was present, but the wrong paper dominated: nartey-et-al-2024 ranked first while the intended Culture-Free Lipidomics-Based Screening Test paper remained second. The target paper still surfaced relevant FLAT accuracy results, so the answer path improved versus a full miss, but retrieval did not stay cleanly on the intended paper.",
+      "expected": "Return the culture-free lipidomics screening paper and surface the overall FLAT assay accuracy across organism classes.",
+      "repeated": true
+    },
+    {
+      "query": "What specific blood culture ordering practices does the review identify as low-value or inappropriate?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the fabre-et-al diagnostic-stewardship review first and surfaced answer-bearing discussion of low-value ordering practices. The returned evidence consistently highlighted inappropriate initial cultures in patients with alternative noninfectious processes and repeat cultures after prior negatives without new signs of infection.",
+      "expected": "Return the Fabre diagnostic-stewardship review and surface the concrete low-value or inappropriate blood-culture ordering practices.",
+      "repeated": true
+    },
+    {
+      "query": "Which non-culture laboratory methods does the review recommend for diagnosing blood-culture-negative endocarditis?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the IJGM-393329 blood-culture-negative endocarditis review first and surfaced the intended non-culture diagnostic path. The returned evidence consistently highlighted molecular methods such as specific PCR, broad-range PCR, RT-PCR, and PCR analysis of valvular biopsies as recommended laboratory approaches.",
+      "expected": "Return the endocarditis review and surface the recommended non-culture laboratory diagnostic methods.",
+      "repeated": true
+    }
+  ]
+}

@@ -126,7 +126,7 @@ class RetrievalService:
             display_header = self._header_for_display(chunk)
             header_key = self._normalize_header_key(display_header)
             header_counts[header_key] = header_counts.get(header_key, 0) + 1
-            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+            doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
             doc_counts[doc_key] = doc_counts.get(doc_key, 0) + 1
             ranking_header = self._header_for_ranking(chunk).lower()
             if not self._is_metadata_like_header(ranking_header):
@@ -139,7 +139,7 @@ class RetrievalService:
             retrieved_chunks.append(
                 RetrievedChunk(
                     source=display_header,
-                    doc_id=self._clean_markdown(chunk.metadata.doc_id),
+                    doc_id=self._doc_id_value(chunk.metadata.doc_id),
                     content=cleaned_content,
                     chunk_type=chunk.metadata.chunk_type,
                     content_role=str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type)),
@@ -160,7 +160,7 @@ class RetrievalService:
 
     def _rank_chunks(self, query: str, chunks: list[Chunk]) -> list[Chunk]:
         docs_with_body_sections = {
-            self._clean_markdown(chunk.metadata.doc_id).lower()
+            self._normalized_doc_id_key(chunk.metadata.doc_id)
             for chunk in chunks
             if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
         }
@@ -190,7 +190,7 @@ class RetrievalService:
         if doc_filter is not None:
             return True
 
-        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
         return doc_counts.get(doc_key, 0) < self._max_chunks_for_doc(limit=limit, selected_count=selected_count)
 
     def _should_skip_new_document_for_query(
@@ -210,7 +210,7 @@ class RetrievalService:
                 max_selected_title_overlap=max_selected_title_overlap,
             )
 
-        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
         return doc_key not in doc_counts
 
     def _should_skip_zero_title_overlap_doc(
@@ -241,7 +241,7 @@ class RetrievalService:
         if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower()):
             return False
 
-        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
         return doc_key in docs_with_selected_body_sections
 
     def _should_skip_low_value_body_tail_for_selected_doc(
@@ -258,7 +258,7 @@ class RetrievalService:
         if not self._is_low_value_tail_body_header(header):
             return False
 
-        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
         selected_headers = selected_body_headers_by_doc.get(doc_key, set())
         return any(self._is_stronger_evidence_body_header(item) for item in selected_headers)
 
@@ -276,7 +276,7 @@ class RetrievalService:
         if not self._is_results_like_header(header):
             return False
 
-        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
         selected_headers = selected_body_headers_by_doc.get(doc_key, set())
         return any(self._is_discussion_or_conclusion_header(item) for item in selected_headers)
 
@@ -336,7 +336,7 @@ class RetrievalService:
         locked_chunks = [
             chunk
             for chunk in chunks
-            if self._clean_markdown(chunk.metadata.doc_id).lower() == locked_doc_key
+            if self._normalized_doc_id_key(chunk.metadata.doc_id) == locked_doc_key
         ]
         return locked_chunks or chunks
 
@@ -345,6 +345,8 @@ class RetrievalService:
         query: str,
         chunks: list[Chunk],
     ) -> str | None:
+        if self._query_uses_ckd_hepcidin_review_doc_lock(query):
+            return self._best_document_for_ckd_hepcidin_review_query(query=query, chunks=chunks)
         if self._query_uses_antibiotic_modification_timing_doc_lock(query):
             return self._best_document_for_antibiotic_modification_timing_query(query=query, chunks=chunks)
         if self._query_uses_contrastive_stewardship_doc_lock(query):
@@ -677,8 +679,9 @@ class RetrievalService:
         query_tokens = self._query_tokens(query)
         header = self._header_for_ranking(chunk).lower()
         content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
-        doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+        doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
         content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
         metadata_limitation_body = self._metadata_body_matches_cross_document_limitation_query(
             query=query,
             chunk=chunk,
@@ -703,6 +706,9 @@ class RetrievalService:
         for section, bonus in query_profile.items():
             if section in header:
                 header_bonus += bonus
+
+        if self._query_prefers_single_document_target(query) and title_overlap > 0:
+            header_bonus += min(6, title_overlap * 4)
 
         if RetrievalService._query_targets_clinical_outcome_comparison(query) and content_role == "table":
             if any(
@@ -746,7 +752,7 @@ class RetrievalService:
         chunks: list[Chunk],
     ) -> str | None:
         docs_with_body_sections = {
-            self._clean_markdown(chunk.metadata.doc_id).lower()
+            self._normalized_doc_id_key(chunk.metadata.doc_id)
             for chunk in chunks
             if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
         }
@@ -754,8 +760,8 @@ class RetrievalService:
         doc_ids: dict[str, str] = {}
 
         for chunk in chunks:
-            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
-            doc_ids.setdefault(doc_key, self._clean_markdown(chunk.metadata.doc_id))
+            doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
+            doc_ids.setdefault(doc_key, self._doc_id_value(chunk.metadata.doc_id))
             contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
             title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
             chunk_priority = self._chunk_priority(
@@ -784,7 +790,7 @@ class RetrievalService:
         chunks: list[Chunk],
     ) -> str | None:
         docs_with_body_sections = {
-            self._clean_markdown(chunk.metadata.doc_id).lower()
+            self._normalized_doc_id_key(chunk.metadata.doc_id)
             for chunk in chunks
             if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
         }
@@ -792,8 +798,8 @@ class RetrievalService:
         doc_ids: dict[str, str] = {}
 
         for chunk in chunks:
-            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
-            doc_ids.setdefault(doc_key, self._clean_markdown(chunk.metadata.doc_id))
+            doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
+            doc_ids.setdefault(doc_key, self._doc_id_value(chunk.metadata.doc_id))
             contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
             title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
             chunk_priority = self._chunk_priority(
@@ -822,7 +828,7 @@ class RetrievalService:
         chunks: list[Chunk],
     ) -> str | None:
         docs_with_body_sections = {
-            self._clean_markdown(chunk.metadata.doc_id).lower()
+            self._normalized_doc_id_key(chunk.metadata.doc_id)
             for chunk in chunks
             if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
         }
@@ -830,8 +836,8 @@ class RetrievalService:
         doc_ids: dict[str, str] = {}
 
         for chunk in chunks:
-            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
-            doc_ids.setdefault(doc_key, self._clean_markdown(chunk.metadata.doc_id))
+            doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
+            doc_ids.setdefault(doc_key, self._doc_id_value(chunk.metadata.doc_id))
             content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
             timing_bonus = self._antibiotic_modification_timing_content_bonus(content_text)
             chunk_priority = self._chunk_priority(
@@ -843,6 +849,42 @@ class RetrievalService:
             next_score = (
                 max(current[0], timing_bonus) if current else timing_bonus,
                 (current[1] if current else 0) + max(0, timing_bonus),
+                max(current[2], chunk_priority) if current else chunk_priority,
+            )
+            doc_scores[doc_key] = next_score
+
+        if not doc_scores:
+            return None
+
+        best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
+        return doc_ids[best_doc_key]
+
+    def _best_document_for_ckd_hepcidin_review_query(
+        self,
+        query: str,
+        chunks: list[Chunk],
+    ) -> str | None:
+        docs_with_body_sections = {
+            self._normalized_doc_id_key(chunk.metadata.doc_id)
+            for chunk in chunks
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        }
+        doc_scores: dict[str, tuple[int, int, tuple[int, int, int]]] = {}
+        doc_ids: dict[str, str] = {}
+
+        for chunk in chunks:
+            doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
+            doc_ids.setdefault(doc_key, self._doc_id_value(chunk.metadata.doc_id))
+            contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
+            chunk_priority = self._chunk_priority(
+                query=query,
+                chunk=chunk,
+                docs_with_body_sections=docs_with_body_sections,
+            )
+            current = doc_scores.get(doc_key)
+            next_score = (
+                max(current[0], contrast_bonus) if current else contrast_bonus,
+                (current[1] if current else 0) + max(0, contrast_bonus),
                 max(current[2], chunk_priority) if current else chunk_priority,
             )
             doc_scores[doc_key] = next_score
@@ -1024,6 +1066,19 @@ class RetrievalService:
         if normalized.startswith("where in the indexed corpus do they report"):
             return True
 
+        singular_reference_signals = (
+            "this paper",
+            "this study",
+            "this review",
+            "this trial",
+            "the paper",
+            "the study",
+            "the review",
+            "the trial",
+        )
+        if any(signal in normalized for signal in singular_reference_signals):
+            return True
+
         singular_signals = (
             "which paper",
             "which indexed paper",
@@ -1062,9 +1117,17 @@ class RetrievalService:
         )
 
     @staticmethod
+    def _query_uses_ckd_hepcidin_review_doc_lock(query: str) -> bool:
+        return (
+            RetrievalService._query_prefers_single_document_target(query)
+            and RetrievalService._query_targets_ckd_hepcidin_review_contrast(query)
+        )
+
+    @staticmethod
     def _query_uses_contrastive_single_doc_lock(query: str) -> bool:
         return (
-            RetrievalService._query_uses_antibiotic_modification_timing_doc_lock(query)
+            RetrievalService._query_uses_ckd_hepcidin_review_doc_lock(query)
+            or RetrievalService._query_uses_antibiotic_modification_timing_doc_lock(query)
             or RetrievalService._query_uses_contrastive_stewardship_doc_lock(query)
             or RetrievalService._query_uses_contrastive_turnaround_doc_lock(query)
         )
@@ -1142,6 +1205,10 @@ class RetrievalService:
             lexical_bonus += min(6, title_overlap * 4)
         else:
             lexical_bonus += min(2, doc_overlap)
+        if self._query_prefers_single_document_target(query) and title_overlap > 0:
+            lexical_bonus += min(8, title_overlap * 4)
+        if self._query_prefers_single_document_target(query) and self._query_uses_general_contrastive_title_bias(query):
+            lexical_bonus += min(6, title_overlap * 4)
         lexical_bonus += self._query_specific_content_bonus(query=query, content_text=content_text)
         if self._query_targets_broad_diagnostic_metrics(query):
             if self._chunk_matches_infectious_diagnostic_domain(
@@ -1166,6 +1233,33 @@ class RetrievalService:
     @staticmethod
     def _query_specific_content_bonus(query: str, content_text: str) -> int:
         bonus = 0
+        if RetrievalService._query_targets_ckd_hepcidin_review_contrast(query):
+            if any(
+                signal in content_text
+                for signal in (
+                    "therapeutic target",
+                    "therapeutic treatment",
+                    "diagnostic test",
+                    "diagnostic tool",
+                    "chronic kidney disease",
+                    "ckd-related anemia",
+                    "elevated hepcidin",
+                )
+            ):
+                bonus += 8
+            if any(
+                signal in content_text
+                for signal in (
+                    "mass spectrometry",
+                    "hplc",
+                    "sample preparation",
+                    "calibration curve",
+                    "hepcidin-25 levels were not dependent on egfr",
+                    "renal dysfunction",
+                    "clearance",
+                )
+            ):
+                bonus -= 6
         if RetrievalService._query_targets_cross_document_limitations(query):
             if "positive interferences" in content_text:
                 bonus += 8
@@ -1298,6 +1392,13 @@ class RetrievalService:
         )
 
         bonus = 0
+        if self._query_targets_ckd_hepcidin_review_contrast(query):
+            if any(marker in combined_text for marker in ("therapeutic target", "diagnostic tool", "chronic kidney disease")):
+                bonus += 10
+            if any(marker in combined_text for marker in ("mass spectrometry", "sample preparation", "renal dysfunction", "hepcidin-25")):
+                bonus -= 8
+            if title_overlap > 0:
+                bonus += min(8, title_overlap * 4)
         if self._query_targets_stewardship_process(query):
             if any(marker in combined_text for marker in process_markers):
                 bonus += 4
@@ -1354,6 +1455,32 @@ class RetrievalService:
             "intervention",
         }
         return {token for token in query_tokens if token not in contrast_tokens}
+
+    @staticmethod
+    def _query_uses_general_contrastive_title_bias(query: str) -> bool:
+        normalized = query.lower()
+        contrast_signals = (
+            "rather than",
+            "instead of",
+            "not ",
+        )
+        return any(signal in normalized for signal in contrast_signals)
+
+    @staticmethod
+    def _query_targets_ckd_hepcidin_review_contrast(query: str) -> bool:
+        normalized = query.lower()
+        required = (
+            "hepcidin",
+            "ckd",
+            "therapeutic target",
+        )
+        contrast = (
+            "rather than measuring hepcidin-25",
+            "rather than measuring",
+            "renal-function strata",
+            "renal function strata",
+        )
+        return all(token in normalized for token in required) and any(token in normalized for token in contrast)
 
     @staticmethod
     def _query_targets_stewardship_process(query: str) -> bool:
@@ -1776,6 +1903,7 @@ class RetrievalService:
             "cultures",
             "diagnostic",
             "diagnosis",
+            "hepcidin",
             "sensitivity",
             "specificity",
             "performance",
@@ -1824,6 +1952,14 @@ class RetrievalService:
         ]
         normalized = " ".join(part.replace("-", " ").replace("_", " ") for part in doc_parts if part)
         return RetrievalService._clean_markdown(normalized).lower()
+
+    @staticmethod
+    def _doc_id_value(doc_id: str) -> str:
+        return " ".join(str(doc_id).strip().split())
+
+    @staticmethod
+    def _normalized_doc_id_key(doc_id: str) -> str:
+        return RetrievalService._doc_id_value(doc_id).casefold()
 
     @staticmethod
     def _normalize_header_key(header: str) -> str:

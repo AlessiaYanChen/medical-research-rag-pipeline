@@ -2060,6 +2060,224 @@ def test_retrieval_service_detects_contrastive_turnaround_queries_against_stewar
     )
 
 
+def test_retrieval_service_prefers_ckd_hepcidin_review_over_assay_method_for_contrastive_single_doc_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCM:P00001:C01",
+            content=(
+                "Quantitative measurement of hepcidin could be a useful clinical tool for the diagnosis,"
+                " monitoring and management of iron metabolism disorders. We developed a simple HPLC/MS/MS"
+                " assay with inexpensive sample preparation."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="RCM publication",
+                chunk_type="text",
+                parent_header="5 | RESULTS AND DISCUSSION",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCM:P00001",
+                    "parent_content": (
+                        "Quantitative measurement of hepcidin could be a useful clinical tool for the diagnosis,"
+                        " monitoring and management of iron metabolism disorders. We developed a simple"
+                        " HPLC/MS/MS assay with inexpensive sample preparation."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/RCM publication.pdf",
+                    "source_file": "RCM publication.pdf",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CKD:P00001:C01",
+            content=(
+                "Hepcidin is the key regulator of iron balance, and high hepcidin levels cause iron blockade"
+                " and anemia in chronic disease. Elevated hepcidin appears to have a major role in the"
+                " development and severity of anemia in CKD."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hepcidin diagnostic tool",
+                chunk_type="text",
+                parent_header="CONCLUSIONS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CKD:P00001",
+                    "parent_content": (
+                        "Hepcidin is the key regulator of iron balance, and high hepcidin levels cause iron blockade"
+                        " and anemia in chronic disease. Elevated hepcidin appears to have a major role in the"
+                        " development and severity of anemia in CKD."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/hepcidin diagnostic tool.pdf",
+                    "source_file": "hepcidin diagnostic tool.pdf",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CKD:P00002:C01",
+            content=(
+                "There is great interest in hepcidin assays as a diagnostic test, and targeting hepcidin as"
+                " a therapeutic treatment for anemia in CKD."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hepcidin diagnostic tool",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CKD:P00002",
+                    "parent_content": (
+                        "There is great interest in hepcidin assays as a diagnostic test, and targeting hepcidin as"
+                        " a therapeutic treatment for anemia in CKD."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/hepcidin diagnostic tool.pdf",
+                    "source_file": "hepcidin diagnostic tool.pdf",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query=(
+            "Which indexed hepcidin paper argues for clinical use as a diagnostic marker and therapeutic"
+            " target in CKD, rather than measuring hepcidin-25 behavior across renal-function strata?"
+        ),
+        limit=1,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["hepcidin diagnostic tool"]
+
+
+def test_retrieval_service_treats_this_paper_queries_as_single_document_targets() -> None:
+    service = RetrievalService(repo=FakeVectorRepository([]), embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    assert service._query_prefers_single_document_target(
+        "What role does hepcidin play in the anemia of chronic disease according to this paper?"
+    ) is True
+
+
+def test_retrieval_service_prefers_doc_title_overlap_for_this_paper_hepcidin_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCM:P00001:C01",
+            content=(
+                "Quantitative measurement of hepcidin could be a useful clinical tool for diagnosis, monitoring,"
+                " and management of iron disorders."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="RCM publication",
+                chunk_type="text",
+                parent_header="5 | RESULTS AND DISCUSSION",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCM:P00001",
+                    "parent_content": (
+                        "Quantitative measurement of hepcidin could be a useful clinical tool for diagnosis,"
+                        " monitoring, and management of iron disorders."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/RCM publication.pdf",
+                    "source_file": "RCM publication.pdf",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CKD:P00001:C01",
+            content=(
+                "Hepcidin is the key regulator of iron balance, and high hepcidin levels cause iron blockade"
+                " and anemia in chronic disease."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hepcidin diagnostic tool",
+                chunk_type="text",
+                parent_header="CONCLUSIONS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CKD:P00001",
+                    "parent_content": (
+                        "Hepcidin is the key regulator of iron balance, and high hepcidin levels cause iron blockade"
+                        " and anemia in chronic disease."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/hepcidin diagnostic tool.pdf",
+                    "source_file": "hepcidin diagnostic tool.pdf",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-ANEMIA:P00001:C01",
+            content=(
+                "Hepcidin has a central role in anemia of chronic disease through hepcidin-ferroportin interaction,"
+                " restricting iron availability and contributing to iron-restricted erythropoiesis."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hep anemia",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ANEMIA:P00001",
+                    "parent_content": (
+                        "Hepcidin has a central role in anemia of chronic disease through hepcidin-ferroportin interaction,"
+                        " restricting iron availability and contributing to iron-restricted erythropoiesis."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/hep anemia.pdf",
+                    "source_file": "hep anemia.pdf",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What role does hepcidin play in the anemia of chronic disease according to this paper?",
+        limit=1,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["hep anemia"]
+
+
+def test_retrieval_service_preserves_underscores_in_returned_doc_ids() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-CHEN:P00001:C01",
+            content="An analytical workflow that coupled affinity purification and stable isotope dilution LC-MS/MS was developed to dissect IgG4 glycosylation profiles for autoimmune pancreatitis.",
+            metadata=ChunkMetadata(
+                doc_id="Chen_Michael_IntJMolSci_2021",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CHEN:P00001",
+                    "parent_content": "An analytical workflow that coupled affinity purification and stable isotope dilution LC-MS/MS was developed to dissect IgG4 glycosylation profiles for autoimmune pancreatitis.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What IgG4 glycosylation profiling approach was used to study autoimmune pancreatitis?",
+        doc_id="Chen_Michael_IntJMolSci_2021",
+        limit=1,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["Chen_Michael_IntJMolSci_2021"]
+
+
 def test_retrieval_service_expands_search_window_for_cross_document_limitation_queries() -> None:
     chunks = [
         Chunk(

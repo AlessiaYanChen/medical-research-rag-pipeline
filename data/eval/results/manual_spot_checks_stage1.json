@@ -3,29 +3,85 @@
     {
       "query": "Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
       "status": "pass",
-      "observed": "Returned RAPID discussion evidence first as a single final chunk, with the turnaround-focused 24.8-hour antibiotic-modification finding ahead of stewardship-review material.",
-      "expected": "Turnaround-focused RAPID evidence should stay ahead of stewardship-review chunks.",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all returned RAPID first. The top chunk consistently surfaced RAPID discussion evidence describing faster antibiotic modifications and blood-culture turnaround benefit relative to standard-of-care testing.",
+      "expected": "RAPID should be the first returned paper for this contrastive single-document query, ahead of stewardship-policy or unrelated review material.",
       "repeated": true
     },
     {
       "query": "What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?",
       "status": "pass",
-      "observed": "Returned BAL SM results evidence, including the Table 1 chunk plus supporting BAL results/discussion text. The top evidence path surfaces the Staphylococcus aureus confirmation row in the IRIDICA results context.",
-      "expected": "BAL SM results evidence should surface the Staphylococcus aureus confirmation rate cleanly.",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all returned BAL SM first. The top result consistently surfaced the answer-bearing BAL results evidence stating that Staphylococcus aureus was verified by culture and/or PCR in 27/33 (82%) PCR/ESI-MS-positive samples.",
+      "expected": "BAL SM should remain the top paper and surface the Staphylococcus aureus confirmation-rate evidence cleanly.",
       "repeated": true
     },
     {
       "query": "What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?",
       "status": "pass",
-      "observed": "Returned cross-document evidence from Single site RCT and RAPID. The Single site RCT chunk highlights stewardship recommendations and acceptance within 24 hours, while the RAPID chunk emphasizes faster antibiotic modification and de-escalation support.",
-      "expected": "Cross-document retrieval should surface the randomized blood-culture trials plus supporting observational/review material for synthesis.",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all surfaced the intended two-paper synthesis path: Single site RCT first and RAPID next. The returned evidence consistently emphasized faster antibiotic modification, stewardship recommendations or acceptance within 24 hours, and process-level decision support more strongly than mortality or other hard clinical-outcome gains.",
+      "expected": "Cross-document retrieval should surface the randomized blood-culture trials and support the theme that rapid diagnostics improve antimicrobial decision-making more clearly than hard clinical outcomes.",
       "repeated": true
     },
     {
       "query": "Which of these studies are randomized controlled trials, and which are observational or review papers?",
       "status": "pass",
       "observed": "Returned in-domain study-design evidence only: Single site RCT and RAPID first, with the endocarditis review available next. The earlier non-domain retrospective paper no longer appears in the final returned set.",
-      "expected": "Retrieval should surface the two randomized trial papers first and keep review/observational papers available for classification.",
+      "expected": "Retrieval should surface the two randomized trial papers first and keep review or observational papers available for classification.",
+      "repeated": true
+    },
+    {
+      "query": "Which manufacturers met or missed the 10% CV benchmark at the female URL in the multicenter high-sensitivity troponin precision study?",
+      "status": "mixed",
+      "observed": "Default UI run and Include table chunks run both returned the correct multicenter hs-cTn precision paper first and surfaced the answer-bearing result that Abbott and Beckman met the 10% CV benchmark while Siemens Atellica had one instrument above 10%. Enable re-ranking weakened retrieval by placing unrelated papers ahead of the target paper, though the correct evidence still appeared lower in the list.",
+      "expected": "Retrieval should keep the multicenter hs-cTn precision study first and clearly surface which manufacturers met or missed the 10% CV benchmark at the female URL.",
+      "repeated": true
+    },
+    {
+      "query": "How much did the high-level calibrator improve inter-assay variability in the hepcidin proficiency-testing study?",
+      "status": "mixed",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the Aune hepcidin standardization paper first, so document targeting was stable. However, the surfaced chunks stayed on methods, precision, and calibration framing rather than cleanly exposing the numeric reduction in inter-assay variability driven by the high-level calibrator.",
+      "expected": "Retrieval should return the Aune proficiency-testing paper first and clearly surface the calibrator-driven reduction in inter-assay CV.",
+      "repeated": true
+    },
+    {
+      "query": "What IgG4 glycosylation profiling approach was used to study autoimmune pancreatitis in the International Journal of Molecular Sciences paper?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the IJMS paper first with the canonical doc id Chen_Michael_IntJMolSci_2021. The surfaced evidence consistently supported the answer-bearing method path, identifying the developed UHPLC-MS/MS workflow for IgG4 glycosylation profiling.",
+      "expected": "Return only the Chen IJMS paper and preserve the canonical doc id with underscores in the UI result path.",
+      "repeated": true
+    },
+    {
+      "query": "What does the Liver International study say about the serum hepcidin:ferritin ratio as a biomarker for cirrhosis?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the hep fer ratio liver paper first and surfaced answer-bearing cirrhosis evidence. The returned chunks supported the intended liver-biomarker path, including the independent association with cirrhosis and the predictive interpretation of a low hepcidin:ferritin ratio.",
+      "expected": "Stay on the liver-disease biomarker paper and surface cirrhosis/fibrosis interpretation rather than generic hepcidin review text.",
+      "repeated": true
+    },
+    {
+      "query": "Did the febrile-children hepcidin study find a difference between viral and bacterial infections, or mainly a change before versus after infection?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the hepcidin acute phase paper first and surfaced the intended finding. The returned evidence made clear that serum hepcidin was not notably different between viral and bacterial infection, while the main signal was a significant change between during-versus-after infection.",
+      "expected": "Return the pediatric acute-phase study and make the before-vs-after finding clearer than any viral-vs-bacterial distinction.",
+      "repeated": true
+    },
+    {
+      "query": "Which indexed hepcidin paper argues for clinical use as a diagnostic marker and therapeutic target in CKD, rather than measuring hepcidin-25 behavior across renal-function strata?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the hepcidin diagnostic tool paper first. The surfaced evidence matched the intended CKD mini-review framing by emphasizing clinical diagnostic value and therapeutic-target potential rather than an observational hepcidin-25-by-renal-function analysis.",
+      "expected": "Return the CKD mini-review ahead of assay-method or observational CKD hepcidin papers.",
+      "repeated": true
+    },
+    {
+      "query": "What analytical method was developed to identify IgA1 hinge-region O-glycoforms for IgA nephropathy?",
+      "status": "pass",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the IgaN method paper first and surfaced the intended analytical-method answer path. The returned evidence pointed to the developed one-pot sample-preparation workflow with UHPLC-QqQ MS/MS and MRM framing for identifying IgA1 hinge-region O-glycoforms.",
+      "expected": "Stay on the IgAN method paper and surface the one-pot sample-preparation plus UHPLC-MS/MS framing.",
+      "repeated": true
+    },
+    {
+      "query": "What conclusion did the JOGC study reach about concurrent fFN and phIGFBP-1 testing versus simpler point-of-care testing?",
+      "status": "mixed",
+      "observed": "Default UI run, Include table chunks run, and Enable re-ranking run all kept the JOGC fibronectin paper first, so document targeting was stable. However, the surfaced chunks stayed focused on sensitivity, specificity, PPV, and related diagnostic metrics rather than cleanly surfacing the paper's practical conclusion about concurrent fFN plus phIGFBP-1 testing versus simpler point-of-care testing.",
+      "expected": "Return the obstetrics paper and emphasize the practical conclusion rather than only diagnostic metrics.",
       "repeated": true
     }
   ]

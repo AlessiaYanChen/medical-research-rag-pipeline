@@ -1,0 +1,61 @@
+{
+  "collection": "medical_research_chunks_docling_v2_batch1",
+  "created_at": "2026-04-01",
+  "purpose": "Manual UI spot-check queue for the next batch of targeted stage-2 retrieval checks.",
+  "checks": [
+    {
+      "id": "N01",
+      "doc_focus": "hepcidin ckd",
+      "query": "What is the reported relationship between serum hepcidin levels and renal function or GFR in CKD patients?",
+      "expected_behavior": "Return the CKD hepcidin paper and surface the reported relationship between serum hepcidin and renal function or GFR rather than drifting to broader CKD hepcidin reviews."
+    },
+    {
+      "id": "N02",
+      "doc_focus": "hep anemia",
+      "query": "What role does hepcidin play in the anemia of chronic disease according to this paper?",
+      "expected_behavior": "Return the anemia-focused hepcidin paper and surface the mechanism-level role of hepcidin in anemia of chronic disease."
+    },
+    {
+      "id": "N03",
+      "doc_focus": "hep in diagnosis of iron disorders 2016",
+      "query": "What diagnostic value does the paper assign to hepcidin measurement for distinguishing iron deficiency anemia from anemia of chronic disease?",
+      "expected_behavior": "Return the 2016 diagnostic review and surface the paper's stated diagnostic value of hepcidin for differentiating iron deficiency anemia from anemia of chronic disease."
+    },
+    {
+      "id": "N04",
+      "doc_focus": "jmsacl",
+      "query": "What analytical platform or method is described in this paper, and what clinical application does it target?",
+      "expected_behavior": "Return the JMSACL paper and surface both the analytical platform or method and the intended clinical application."
+    },
+    {
+      "id": "N05",
+      "doc_focus": "RCM publication",
+      "query": "What is the main finding or method presented in this study?",
+      "expected_behavior": "Return the RCM publication and surface the study's main method or headline finding rather than only supporting technical details."
+    },
+    {
+      "id": "N06",
+      "doc_focus": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+      "query": "What negative predictive value did the lipidomics-based method achieve for ruling out positive urine cultures?",
+      "expected_behavior": "Return the Nartey lipidomics paper and surface the negative predictive value result clearly."
+    },
+    {
+      "id": "N07",
+      "doc_focus": "Culture-Free Lipidomics-Based Screening Test",
+      "query": "What was the overall diagnostic accuracy of the FLAT assay across both gram-positive and gram-negative organisms?",
+      "expected_behavior": "Return the culture-free lipidomics screening paper and surface the overall FLAT assay accuracy across organism classes."
+    },
+    {
+      "id": "N08",
+      "doc_focus": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "query": "What specific blood culture ordering practices does the review identify as low-value or inappropriate?",
+      "expected_behavior": "Return the Fabre diagnostic-stewardship review and surface the concrete low-value or inappropriate blood-culture ordering practices."
+    },
+    {
+      "id": "N09",
+      "doc_focus": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "query": "Which non-culture laboratory methods does the review recommend for diagnosing blood-culture-negative endocarditis?",
+      "expected_behavior": "Return the endocarditis review and surface the recommended non-culture laboratory diagnostic methods."
+    }
+  ]
+}
