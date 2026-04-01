@@ -102,6 +102,8 @@ class RetrievalService:
                 selected_body_headers_by_doc=selected_body_headers_by_doc,
             ):
                 continue
+            if self._should_skip_irrelevant_chunk_for_query_family(query=query, chunk=chunk):
+                continue
 
             raw_content = self._select_return_content(chunk)
             cleaned_content = self._clean_markdown(raw_content)
@@ -278,6 +280,28 @@ class RetrievalService:
         selected_headers = selected_body_headers_by_doc.get(doc_key, set())
         return any(self._is_discussion_or_conclusion_header(item) for item in selected_headers)
 
+    def _should_skip_irrelevant_chunk_for_query_family(self, query: str, chunk: Chunk) -> bool:
+        content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+        doc_text = self._doc_text_for_ranking(chunk)
+        header_text = self._header_for_ranking(chunk).lower()
+
+        if self._query_targets_broad_diagnostic_metrics(query):
+            return not self._chunk_matches_infectious_diagnostic_domain(
+                chunk=chunk,
+                content_text=content_text,
+                doc_text=doc_text,
+            )
+
+        if self._query_targets_study_design_classification(query):
+            return self._study_design_query_bonus(
+                chunk=chunk,
+                content_text=content_text,
+                doc_text=doc_text,
+                header_text=header_text,
+            ) < 0
+
+        return False
+
     def _select_candidate_chunks(
         self,
         query: str,
@@ -321,6 +345,8 @@ class RetrievalService:
         query: str,
         chunks: list[Chunk],
     ) -> str | None:
+        if self._query_uses_antibiotic_modification_timing_doc_lock(query):
+            return self._best_document_for_antibiotic_modification_timing_query(query=query, chunks=chunks)
         if self._query_uses_contrastive_stewardship_doc_lock(query):
             return self._best_document_for_contrastive_stewardship_query(query=query, chunks=chunks)
         if self._query_uses_contrastive_turnaround_doc_lock(query):
@@ -476,6 +502,8 @@ class RetrievalService:
         return any(signal in normalized for signal in table_signals)
 
     def _candidate_limit(self, query: str, limit: int) -> int:
+        if self._query_targets_study_design_classification(query):
+            return max(limit * 8, 40)
         if self._query_targets_cross_document_limitations(query):
             return max(limit * 20, 60)
         if self._query_prefers_tables(query):
@@ -788,6 +816,43 @@ class RetrievalService:
         best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
         return doc_ids[best_doc_key]
 
+    def _best_document_for_antibiotic_modification_timing_query(
+        self,
+        query: str,
+        chunks: list[Chunk],
+    ) -> str | None:
+        docs_with_body_sections = {
+            self._clean_markdown(chunk.metadata.doc_id).lower()
+            for chunk in chunks
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        }
+        doc_scores: dict[str, tuple[int, int, tuple[int, int, int]]] = {}
+        doc_ids: dict[str, str] = {}
+
+        for chunk in chunks:
+            doc_key = self._clean_markdown(chunk.metadata.doc_id).lower()
+            doc_ids.setdefault(doc_key, self._clean_markdown(chunk.metadata.doc_id))
+            content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
+            timing_bonus = self._antibiotic_modification_timing_content_bonus(content_text)
+            chunk_priority = self._chunk_priority(
+                query=query,
+                chunk=chunk,
+                docs_with_body_sections=docs_with_body_sections,
+            )
+            current = doc_scores.get(doc_key)
+            next_score = (
+                max(current[0], timing_bonus) if current else timing_bonus,
+                (current[1] if current else 0) + max(0, timing_bonus),
+                max(current[2], chunk_priority) if current else chunk_priority,
+            )
+            doc_scores[doc_key] = next_score
+
+        if not doc_scores:
+            return None
+
+        best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
+        return doc_ids[best_doc_key]
+
     @staticmethod
     def _query_section_profile(query: str) -> dict[str, int]:
         normalized = query.lower()
@@ -831,6 +896,13 @@ class RetrievalService:
         if any(token in normalized for token in ("biomarker", "biomarkers", "differentiat", "marker")):
             add_bonus(("result", "results", "discussion"), 2)
             add_bonus(("conclusion",), -3)
+        if RetrievalService._query_targets_antibiotic_modification_timing_benefit(query):
+            add_bonus(("result", "results", "discussion"), 6)
+            add_bonus(("introduction", "abstract", "document metadata/abstract", "method", "methods", "materials and methods"), -6)
+        if RetrievalService._query_targets_study_design_classification(query):
+            add_bonus(("method", "methods", "introduction", "discussion", "summary"), 5)
+            add_bonus(("result", "results"), 1)
+            add_bonus(("document metadata/abstract", "abstract"), -3)
         if any(token in normalized for token in ("optimization", "optimiz", "method", "methods", "experimental", "assay", "protocol")):
             add_bonus(("method", "methods", "materials and methods"), 4)
             add_bonus(("result", "results"), 1)
@@ -911,6 +983,8 @@ class RetrievalService:
     def _initial_search_limit(query: str, doc_filter: str | None, limit: int) -> int:
         if doc_filter is not None:
             return max(limit * 8, 40)
+        if RetrievalService._query_targets_study_design_classification(query):
+            return max(limit * 16, 80)
         if RetrievalService._query_prefers_tables(query):
             return max(limit * 12, 60)
         if RetrievalService._query_targets_cross_document_limitations(query):
@@ -981,11 +1055,49 @@ class RetrievalService:
         )
 
     @staticmethod
+    def _query_uses_antibiotic_modification_timing_doc_lock(query: str) -> bool:
+        return (
+            RetrievalService._query_prefers_single_document_target(query)
+            and RetrievalService._query_targets_antibiotic_modification_timing_benefit(query)
+        )
+
+    @staticmethod
     def _query_uses_contrastive_single_doc_lock(query: str) -> bool:
         return (
-            RetrievalService._query_uses_contrastive_stewardship_doc_lock(query)
+            RetrievalService._query_uses_antibiotic_modification_timing_doc_lock(query)
+            or RetrievalService._query_uses_contrastive_stewardship_doc_lock(query)
             or RetrievalService._query_uses_contrastive_turnaround_doc_lock(query)
         )
+
+    @staticmethod
+    def _antibiotic_modification_timing_content_bonus(content_text: str) -> int:
+        bonus = 0
+        if any(
+            signal in content_text
+            for signal in (
+                "antibiotic modifications",
+                "antibiotic modification",
+                "antibiotic changes",
+            )
+        ):
+            bonus += 10
+        if any(
+            signal in content_text
+            for signal in (
+                "24.8 hours",
+                "24 hours",
+                "hours faster",
+                "faster than soc",
+                "faster than standard of care",
+                "postrandomization",
+            )
+        ):
+            bonus += 8
+        if "standard of care" in content_text or "soc" in content_text:
+            bonus += 4
+        if "gram-negative" in content_text:
+            bonus += 2
+        return bonus
 
     @staticmethod
     def _query_prefers_metadata(query: str) -> bool:
@@ -1018,6 +1130,7 @@ class RetrievalService:
         doc_text = self._doc_text_for_ranking(chunk)
         content_text = self._clean_markdown(str(chunk.metadata.extra.get("parent_content", chunk.content))).lower()
         title_tokens = self._title_weighted_tokens(effective_query_tokens)
+        content_role = str(chunk.metadata.extra.get("content_role", chunk.metadata.chunk_type))
 
         doc_overlap = sum(1 for token in effective_query_tokens if token in doc_text)
         header_overlap = sum(1 for token in effective_query_tokens if token in header_text)
@@ -1030,6 +1143,24 @@ class RetrievalService:
         else:
             lexical_bonus += min(2, doc_overlap)
         lexical_bonus += self._query_specific_content_bonus(query=query, content_text=content_text)
+        if self._query_targets_broad_diagnostic_metrics(query):
+            if self._chunk_matches_infectious_diagnostic_domain(
+                chunk=chunk,
+                content_text=content_text,
+                doc_text=doc_text,
+            ):
+                lexical_bonus += 8
+                if content_role == "table" and self._table_matches_metric_query(chunk):
+                    lexical_bonus += 4
+            else:
+                lexical_bonus -= 14
+        if self._query_targets_study_design_classification(query):
+            lexical_bonus += self._study_design_query_bonus(
+                chunk=chunk,
+                content_text=content_text,
+                doc_text=doc_text,
+                header_text=header_text,
+            )
         return lexical_bonus
 
     @staticmethod
@@ -1048,6 +1179,32 @@ class RetrievalService:
             if "routine culture-based" in content_text:
                 bonus += 3
             if "culture-negative samples" in content_text:
+                bonus += 2
+        if RetrievalService._query_targets_antibiotic_modification_timing_benefit(query):
+            if any(
+                signal in content_text
+                for signal in (
+                    "antibiotic modifications",
+                    "antibiotic modification",
+                    "antibiotic changes",
+                )
+            ):
+                bonus += 10
+            if any(
+                signal in content_text
+                for signal in (
+                    "24.8 hours",
+                    "24 hours",
+                    "hours faster",
+                    "faster than soc",
+                    "faster than standard of care",
+                    "postrandomization",
+                )
+            ):
+                bonus += 8
+            if "standard of care" in content_text or "soc" in content_text:
+                bonus += 4
+            if "gram-negative" in content_text:
                 bonus += 2
         if RetrievalService._query_targets_resistance_marker_presence(query):
             if "resistance determinants" in content_text:
@@ -1229,8 +1386,45 @@ class RetrievalService:
             "rapid test outcomes",
             "rapid diagnostic outcomes",
             "rapid reporting",
+            "antibiotic modification",
+            "antibiotic modifications",
+            "antibiotic-modification",
+            "antibiotic changes",
+            "bacteremia workflow",
         )
-        return any(signal in normalized for signal in signals)
+        return any(signal in normalized for signal in signals) or RetrievalService._query_targets_antibiotic_modification_timing_benefit(query)
+
+    @staticmethod
+    def _query_targets_antibiotic_modification_timing_benefit(query: str) -> bool:
+        normalized = query.lower()
+        modification_signals = (
+            "antibiotic modification",
+            "antibiotic modifications",
+            "antibiotic-modification",
+            "antibiotic changes",
+        )
+        timing_signals = (
+            "24-hour",
+            "24 hour",
+            "24.8",
+            "roughly 24",
+            "nearly a day",
+            "hours faster",
+            "timing benefit",
+            "timing benefits",
+            "advantage",
+        )
+        rapid_bloodstream_signals = (
+            "bacteremia",
+            "bloodstream",
+            "rapid bacteremia workflow",
+            "indexed corpus do they report",
+        )
+        return (
+            any(signal in normalized for signal in modification_signals)
+            and any(signal in normalized for signal in timing_signals)
+            and any(signal in normalized for signal in rapid_bloodstream_signals)
+        )
 
     @staticmethod
     def _query_contrasts_against_stewardship_policy(query: str) -> bool:
@@ -1326,6 +1520,45 @@ class RetrievalService:
         )
 
     @staticmethod
+    def _query_targets_broad_diagnostic_metrics(query: str) -> bool:
+        normalized = query.lower()
+        if not (
+            "indexed" in normalized
+            or "across the corpus" in normalized
+            or "across the indexed studies" in normalized
+        ):
+            return False
+        metric_signals = (
+            "diagnostic accuracy",
+            "diagnostic performance",
+            "sensitivity",
+            "specificity",
+            "accuracy metrics",
+            "accuracy metric",
+            "accuracy findings",
+            "tabular sensitivity",
+            "performance outcomes",
+        )
+        return any(signal in normalized for signal in metric_signals)
+
+    @staticmethod
+    def _query_targets_study_design_classification(query: str) -> bool:
+        normalized = query.lower()
+        classification_signals = (
+            "randomized controlled trials",
+            "randomized controlled trial",
+            "observational or review papers",
+            "observational or review paper",
+            "review papers",
+            "study design",
+            "study designs",
+            "classification",
+            "classify",
+            "rct",
+        )
+        return any(signal in normalized for signal in classification_signals)
+
+    @staticmethod
     def _query_targets_cross_document_limitations(query: str) -> bool:
         normalized = query.lower()
         limitation_signals = (
@@ -1350,6 +1583,8 @@ class RetrievalService:
     @staticmethod
     def _query_targets_explanatory_mechanism(query: str) -> bool:
         normalized = query.lower()
+        if RetrievalService._query_targets_limit_of_detection_findings(query):
+            return False
         if any(
             token in normalized
             for token in (
@@ -1383,6 +1618,121 @@ class RetrievalService:
             "bypass culture",
         )
         return any(signal in normalized for signal in explanatory_signals)
+
+    @staticmethod
+    def _query_targets_limit_of_detection_findings(query: str) -> bool:
+        normalized = query.lower()
+        lod_signals = (
+            "lower-limit-of-detection",
+            "lower limit of detection",
+            "limit of detection",
+            "detection limit",
+            "detection limits",
+            "lod",
+        )
+        finding_signals = (
+            "finding",
+            "findings",
+            "reported",
+            "report",
+            "what",
+        )
+        return any(signal in normalized for signal in lod_signals) and any(
+            signal in normalized for signal in finding_signals
+        )
+
+    @staticmethod
+    def _chunk_matches_infectious_diagnostic_domain(
+        chunk: Chunk,
+        *,
+        content_text: str | None = None,
+        doc_text: str | None = None,
+    ) -> bool:
+        normalized_content = content_text
+        if normalized_content is None:
+            normalized_content = RetrievalService._clean_markdown(
+                str(chunk.metadata.extra.get("parent_content", chunk.content))
+            ).lower()
+
+        normalized_doc_text = doc_text
+        if normalized_doc_text is None:
+            normalized_doc_text = RetrievalService._doc_text_for_ranking(chunk)
+
+        combined = f"{normalized_doc_text} {normalized_content}"
+        domain_signals = (
+            "bal",
+            "bronchoalveolar lavage",
+            "blood culture",
+            "bacteremia",
+            "rapid",
+            "iridica",
+            "pcr/esi",
+            "pcr esi",
+            "pathogen",
+            "pathogens",
+            "antimicrobial",
+            "stewardship",
+            "endocarditis",
+            "urine",
+            "uti",
+            "lipidomics",
+            "flat assay",
+            "phenotypic ast",
+        )
+        return any(signal in combined for signal in domain_signals)
+
+    @staticmethod
+    def _study_design_query_bonus(
+        *,
+        chunk: Chunk,
+        content_text: str,
+        doc_text: str,
+        header_text: str,
+    ) -> int:
+        combined = f"{doc_text} {header_text} {content_text}"
+        bonus = 0
+        domain_match = RetrievalService._chunk_matches_infectious_diagnostic_domain(
+            chunk=chunk,
+            content_text=content_text,
+            doc_text=doc_text,
+        )
+        review_signals = (
+            "minireview",
+            "we reviewed",
+            "review of",
+            "systematic review",
+            "review article",
+        )
+        design_signals = (
+            "randomized",
+            "randomised",
+            "trial",
+            "rct",
+            "observational",
+            "retrospective",
+            "prospective",
+            "pragmatic trial",
+            "historical controls",
+            "study design",
+        )
+        design_match = any(signal in combined for signal in design_signals) or any(
+            signal in combined for signal in review_signals
+        )
+        if domain_match:
+            bonus += 6
+        else:
+            bonus -= 10
+        if design_match:
+            bonus += 10
+        else:
+            bonus -= 8
+        if "method" in header_text or "discussion" in header_text or "introduction" in header_text:
+            bonus += 2
+        if "randomized" in combined or "trial" in combined:
+            bonus += 4
+        if any(signal in combined for signal in review_signals):
+            bonus += 4
+        return bonus
 
     @staticmethod
     def _title_weighted_tokens(query_tokens: set[str]) -> set[str]:

@@ -1,0 +1,89 @@
+{
+  "collection": "medical_research_chunks_docling_v1",
+  "pdf_dir": "data\\raw_pdfs\\uploaded",
+  "glob": "*.pdf",
+  "doc_count": 7,
+  "chunk_count": 2512,
+  "ingestion_version": "ingestion_v2",
+  "chunking_version": "chunking_v2",
+  "parser": "docling",
+  "docs": [
+    {
+      "doc_id": "BAL SM",
+      "source_file": "BAL SM.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\BAL SM.pdf",
+      "chunk_count": 323,
+      "text_chunk_count": 320,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+      "source_file": "Culture-Free Lipidomics-Based Screening Test.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\Culture-Free Lipidomics-Based Screening Test.pdf",
+      "chunk_count": 308,
+      "text_chunk_count": 305,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "source_file": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+      "chunk_count": 470,
+      "text_chunk_count": 467,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "source_file": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+      "chunk_count": 451,
+      "text_chunk_count": 446,
+      "table_chunk_count": 5,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+      "source_file": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf",
+      "chunk_count": 377,
+      "text_chunk_count": 370,
+      "table_chunk_count": 7,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "RAPID",
+      "source_file": "RAPID.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\RAPID.pdf",
+      "chunk_count": 283,
+      "text_chunk_count": 279,
+      "table_chunk_count": 4,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "Single site RCT",
+      "source_file": "Single site RCT.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\Single site RCT.pdf",
+      "chunk_count": 300,
+      "text_chunk_count": 295,
+      "table_chunk_count": 5,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    }
+  ]
+}

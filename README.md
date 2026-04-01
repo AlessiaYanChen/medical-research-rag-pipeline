@@ -643,11 +643,21 @@ The next repo milestone should be medium-scale readiness for roughly `100 PDFs`,
   - promotion did not pass:
     - stable benchmark regressed beyond the current rollout tolerance, especially cross-document average doc precision
     - expanded benchmark regressed beyond tolerance
-    - OOD benchmark regressed materially, with `O11` as the measured blocker
+    - OOD benchmark regressed materially in the first compiled rollout report, with `O11` as the measured blocker at that checkpoint
     - runtime remained weaker than the small-corpus line and did not justify promotion
   - the resulting rollout-stage artifact is a deliberate no-promote checkpoint, not a collection to build stage 2 on top of
   - do not start the `50`-PDF stage from this state
-  - if follow-up work resumes before any new rollout attempt, keep it narrow and inspect the measured stage-1 regressions first, especially `O11` and `Q18`
+  - April 1, 2026 narrow follow-up checkpoint:
+    - local follow-up artifacts now show the earlier stage-1 OOD blocker `O11` resolved
+    - promotion is still blocked, but the remaining debt is now concentrated in broad cross-document precision rather than single-document retrieval
+    - the measured remaining regression set is:
+      - stable / expanded: `Q15`, `Q16`, `Q19`
+      - runtime: `R07`, `R38`
+    - candidate inspection now shows two narrow failure families:
+      - broad diagnostic-metric prompts admit unrelated metric-heavy papers outside the intended infectious-diagnostics corpus slice
+      - study-design classification prompts admit unrelated non-corpus papers with generic `study` / `results` language
+    - the current retrieval follow-up adds query-family guards for those two cases in `RetrievalService`, with regression tests covering the same stage-1 failure shape
+    - the next operational step is to rerun the stable, expanded, and runtime evaluations on `medical_research_chunks_docling_v2_batch1`, then compile one fresh rollout report before deciding whether stage 1 can be promoted
 
 This repo is now closer to controlled productization than early architecture exploration. The main remaining risk is operational scale and corpus drift, not lack of retrieval features.
 

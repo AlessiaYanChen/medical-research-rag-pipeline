@@ -11,6 +11,7 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+.pytest_tmp_run/
 
 .streamlit/secrets.toml
 
@@ -20,6 +21,11 @@ data/marker_tables/
 data/processed_chunks/
 data/parsed_debug/
 data/kb_registry.json
+data/parser_bakeoff/
+data/exports/
+data/eval/results/*                                                                                                                                                                                                                                                    
+data/kb_registry.json                                                                                                                                                                                                                                                  
+yesdata/ingestion_manifests/medical_research_chunks_docling_v1_rebuild_manifest.json  
 
 *.main_text.md
 *.table_*.json
@@ -33,3 +39,5 @@ Thumbs.db
 .DS_Store
 
 src.zip
+
+.env

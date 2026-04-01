@@ -1,0 +1,232 @@
+{
+  "collection": "medical_research_chunks_docling_v2_batch1",
+  "pdf_dir": "data\\raw_pdfs\\uploaded\\stage1_20",
+  "glob": "*.pdf",
+  "doc_count": 20,
+  "chunk_count": 7599,
+  "ingestion_version": "ingestion_v2",
+  "chunking_version": "chunking_v2",
+  "parser": "docling",
+  "docs": [
+    {
+      "doc_id": "1-s2.0-S0009912024000250-main",
+      "source_file": "1-s2.0-S0009912024000250-main.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\1-s2.0-S0009912024000250-main.pdf",
+      "chunk_count": 429,
+      "text_chunk_count": 429,
+      "table_chunk_count": 0,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "Aune-2020-Optimizing hepcidin measurement with",
+      "source_file": "Aune-2020-Optimizing hepcidin measurement with.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\Aune-2020-Optimizing hepcidin measurement with.pdf",
+      "chunk_count": 344,
+      "text_chunk_count": 341,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "BAL SM",
+      "source_file": "BAL SM.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\BAL SM.pdf",
+      "chunk_count": 323,
+      "text_chunk_count": 320,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "Chen_Michael_IntJMolSci_2021",
+      "source_file": "Chen_Michael_IntJMolSci_2021.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\Chen_Michael_IntJMolSci_2021.pdf",
+      "chunk_count": 454,
+      "text_chunk_count": 452,
+      "table_chunk_count": 2,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+      "source_file": "Culture-Free Lipidomics-Based Screening Test.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\Culture-Free Lipidomics-Based Screening Test.pdf",
+      "chunk_count": 308,
+      "text_chunk_count": 305,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "source_file": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship.pdf",
+      "chunk_count": 470,
+      "text_chunk_count": 467,
+      "table_chunk_count": 3,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "hep anemia",
+      "source_file": "hep anemia.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\hep anemia.pdf",
+      "chunk_count": 286,
+      "text_chunk_count": 285,
+      "table_chunk_count": 1,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "hep fer ratio liver",
+      "source_file": "hep fer ratio liver.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\hep fer ratio liver.pdf",
+      "chunk_count": 341,
+      "text_chunk_count": 337,
+      "table_chunk_count": 4,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "hep in diagnosis of iron disorders 2016",
+      "source_file": "hep in diagnosis of iron disorders 2016.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\hep in diagnosis of iron disorders 2016.pdf",
+      "chunk_count": 485,
+      "text_chunk_count": 484,
+      "table_chunk_count": 1,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "hepcidin acute phase",
+      "source_file": "hepcidin acute phase.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\hepcidin acute phase.pdf",
+      "chunk_count": 202,
+      "text_chunk_count": 200,
+      "table_chunk_count": 2,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "hepcidin ckd",
+      "source_file": "hepcidin ckd.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\hepcidin ckd.pdf",
+      "chunk_count": 271,
+      "text_chunk_count": 269,
+      "table_chunk_count": 2,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "hepcidin diagnostic tool",
+      "source_file": "hepcidin diagnostic tool.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\hepcidin diagnostic tool.pdf",
+      "chunk_count": 350,
+      "text_chunk_count": 350,
+      "table_chunk_count": 0,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "IgaN",
+      "source_file": "IgaN.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\IgaN.pdf",
+      "chunk_count": 723,
+      "text_chunk_count": 722,
+      "table_chunk_count": 1,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "source_file": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-.pdf",
+      "chunk_count": 451,
+      "text_chunk_count": 446,
+      "table_chunk_count": 5,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "jmsacl",
+      "source_file": "jmsacl.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\jmsacl.pdf",
+      "chunk_count": 675,
+      "text_chunk_count": 671,
+      "table_chunk_count": 4,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "JOGC fibronectin",
+      "source_file": "JOGC fibronectin.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\JOGC fibronectin.pdf",
+      "chunk_count": 239,
+      "text_chunk_count": 235,
+      "table_chunk_count": 4,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+      "source_file": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population.pdf",
+      "chunk_count": 377,
+      "text_chunk_count": 370,
+      "table_chunk_count": 7,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "RAPID",
+      "source_file": "RAPID.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\RAPID.pdf",
+      "chunk_count": 283,
+      "text_chunk_count": 279,
+      "table_chunk_count": 4,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "RCM publication",
+      "source_file": "RCM publication.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\RCM publication.pdf",
+      "chunk_count": 288,
+      "text_chunk_count": 283,
+      "table_chunk_count": 5,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    },
+    {
+      "doc_id": "Single site RCT",
+      "source_file": "Single site RCT.pdf",
+      "local_file": "data\\raw_pdfs\\uploaded\\stage1_20\\Single site RCT.pdf",
+      "chunk_count": 300,
+      "text_chunk_count": 295,
+      "table_chunk_count": 5,
+      "ingestion_version": "ingestion_v2",
+      "chunking_version": "chunking_v2",
+      "parser": "docling"
+    }
+  ]
+}

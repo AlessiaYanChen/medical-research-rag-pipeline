@@ -3177,6 +3177,319 @@ def test_retrieval_service_limits_where_in_indexed_corpus_queries_to_top_documen
     assert [chunk.doc_id for chunk in result] == ["RAPID"]
 
 
+def test_retrieval_service_prefers_rapid_antibiotic_modification_timing_evidence_over_bal_intro_noise() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="PCR/ESI-MS overcomes these limitations by combining multiple broad range PCR reactions with electrospray ionization-mass spectrometry.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "PCR/ESI-MS overcomes these limitations by combining multiple broad range PCR reactions with electrospray ionization-mass spectrometry.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="Structured Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Methods. Patients with positive blood cultures with Gram stains showing GNB were randomized to SOC testing with antimicrobial stewardship.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00002:C01",
+            content="Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC, which is a clinically significant improvement.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00002",
+                    "parent_content": "Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC, which is a clinically significant improvement.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Within the first 4 days after enrollment, vancomycin duration was not different between groups, though escalation timing was faster in the stewardship arm.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Within the first 4 days after enrollment, vancomycin duration was not different between groups, though escalation timing was faster in the stewardship arm.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Where in the indexed corpus do they report a roughly 24-hour antibiotic-modification advantage from a rapid bacteremia workflow?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [("RAPID", "DISCUSSION")]
+
+
+def test_retrieval_service_prefers_results_for_limit_of_detection_workflow_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-CF:M00001:C01",
+            content="Acquired mass spectral data were processed using the Bruker data analysis software and samples were called positive when diagnostic biomarker ions were detected with an S/N ratio greater than 10.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Materials and Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CF:M00001",
+                    "parent_content": "Acquired mass spectral data were processed using the Bruker data analysis software and samples were called positive when diagnostic biomarker ions were detected with an S/N ratio greater than 10.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CF:I00001:C01",
+            content="In this study, we first determined the optimal condition of lysozyme treatment and established the limit of detection of our assay.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CF:I00001",
+                    "parent_content": "In this study, we first determined the optimal condition of lysozyme treatment and established the limit of detection of our assay.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CF:R00001:C01",
+            content="Incorporating lysozyme into the workflow improved detection limits to 10^2-10^3 CFU/uL. The combination of 100 ug lysozyme per 1 mL urine pellet and a 60-minute incubation provided the most efficient detection rates.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CF:R00001",
+                    "parent_content": "Incorporating lysozyme into the workflow improved detection limits to 10^2-10^3 CFU/uL. The combination of 100 ug lysozyme per 1 mL urine pellet and a 60-minute incubation provided the most efficient detection rates.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What lower-limit-of-detection findings are reported for the lipidomics screening workflow?",
+        doc_id="Culture-Free Lipidomics-Based Screening Test",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("Culture-Free Lipidomics-Based Screening Test", "Results")
+    ]
+
+
+def test_retrieval_service_filters_non_infectious_metric_tables_for_broad_cross_doc_metric_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-NARTEY:T00001",
+            content="Source File: nartey.pdf | Table Index: 3 | Section: RESULTS\nSensitivity,Specificity\n70%,99%",
+            metadata=ChunkMetadata(
+                doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+                chunk_type="table",
+                parent_header="RESULTS",
+                page_number=5,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_id": "DOC-NARTEY:T00001",
+                    "parent_content": "Source File: nartey.pdf | Table Index: 3 | Section: RESULTS\nSensitivity,Specificity\n70%,99%",
+                    "contains_metric_values": True,
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-JOGC:T00001",
+            content="Source File: jogc.pdf | Table Index: 4 | Section: DISCUSSION\nSensitivity,Specificity,PPV,NPV\n80%,75%,70%,85%",
+            metadata=ChunkMetadata(
+                doc_id="JOGC fibronectin",
+                chunk_type="table",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_id": "DOC-JOGC:T00001",
+                    "parent_content": "Source File: jogc.pdf | Table Index: 4 | Section: DISCUSSION\nSensitivity,Specificity,PPV,NPV\n80%,75%,70%,85%",
+                    "contains_metric_values": True,
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Across the indexed studies, which papers contain tabular sensitivity or specificity findings?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ]
+
+
+def test_retrieval_service_filters_non_infectious_accuracy_docs_for_broad_metric_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="The presence of S. pneumoniae was confirmed in only 6/17 samples, supporting BAL diagnostic accuracy reporting.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "The presence of S. pneumoniae was confirmed in only 6/17 samples, supporting BAL diagnostic accuracy reporting.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-AUNE:T00001",
+            content="Source File: hepcidin.pdf | Table Index: 2 | Section: Results\nAccuracy [Range],%.\n145%",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="table",
+                parent_header="Results",
+                page_number=4,
+                extra={
+                    "content_role": "table",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE:T00001",
+                    "parent_content": "Source File: hepcidin.pdf | Table Index: 2 | Section: Results\nAccuracy [Range],%.\n145%",
+                    "contains_metric_values": True,
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(
+        repo=repo,
+        embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts],
+        include_tables=True,
+    )
+
+    result = service.retrieve(
+        query="Which papers in the indexed set report sensitivity, specificity, or other diagnostic accuracy metrics?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["BAL SM"]
+
+
+def test_retrieval_service_prefers_study_design_chunks_for_classification_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-REVIEW:P00001:C01",
+            content="We reviewed the tools currently used and the associated approaches in the diagnosis of blood culture-negative endocarditis.",
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-REVIEW:P00001",
+                    "parent_content": "We reviewed the tools currently used and the associated approaches in the diagnosis of blood culture-negative endocarditis.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-NOISE:P00001:C01",
+            content="Mol. Sci. 2021, 22, x FOR PEER REVIEW 6 of 13 Table 1. MRM transitions and parameters for the internal standard.",
+            metadata=ChunkMetadata(
+                doc_id="ChenMichaelIntJMolSci2021",
+                chunk_type="text",
+                parent_header="2. Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-NOISE:P00001",
+                    "parent_content": "Mol. Sci. 2021, 22, x FOR PEER REVIEW 6 of 13 Table 1. MRM transitions and parameters for the internal standard.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=3,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "Single site RCT",
+        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    ]
+
+
 def test_retrieval_service_allows_linked_table_references_for_explicit_table_queries() -> None:
     chunks = [
         Chunk(

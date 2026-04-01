@@ -428,10 +428,21 @@ Current checkpoint:
     - rebuild and audit passed cleanly for the `20`-PDF stage corpus
     - the compiled rollout report ended in `fail`, so this collection is a recorded no-promote checkpoint rather than the base for stage 2
     - stable and expanded benchmarks regressed beyond the current `0.02` rollout tolerance, with the strongest stable drift in cross-document average doc precision
-    - OOD regressed materially, driven by the measured `O11` miss
+    - OOD regressed materially in the first compiled rollout report, driven by the measured `O11` miss at that checkpoint
     - runtime remained weaker than the small-corpus line and did not justify promotion
     - candidate inspection on the main stage-1 misses (`O11`, `Q18`, `R37`) pointed to ranking/selection drift rather than a new architecture-level recall gap
     - do not begin the `50`-PDF stage from this checkpoint; any follow-up should stay narrow and start with `O11` and `Q18`
+  - April 1, 2026 narrow stage-1 follow-up checkpoint:
+    - local follow-up artifacts now show the earlier OOD blocker `O11` resolved
+    - stage 1 is still not promotion-ready because broad cross-document precision remains below the rollout gate
+    - the current blocking regression set is now concentrated in:
+      - stable / expanded: `Q15`, `Q16`, `Q19`
+      - runtime: `R07`, `R38`
+    - candidate inspection shows the remaining failures are narrow query-family issues rather than a new architecture-level recall gap:
+      - broad diagnostic-metric prompts admit unrelated metric-heavy papers outside the intended infectious-diagnostics corpus slice
+      - study-design classification prompts admit unrelated non-corpus papers with generic `study` / `results` language
+    - the current retrieval follow-up adds query-family guards plus regression tests for those two failure families without reopening hybrid retrieval or broader architecture work
+    - the next required gate is a fresh rerun of stable, expanded, and runtime evaluation plus one regenerated rollout report for `medical_research_chunks_docling_v2_batch1`
 
 ## Phase 5A: Medium-Scale Readiness
 
@@ -467,6 +478,7 @@ Current checkpoint:
 - March 31, 2026 stage 1 (`20 PDFs`) was executed and recorded as a failed checkpoint rather than a promotion-ready stage
 - `medical_research_chunks_docling_v2_batch1` should be treated as the stage-1 no-promote artifact
 - rebuild/audit infrastructure is validated by that run, but retrieval quality at stage scale is not yet promotion-clean
+- April 1, 2026 follow-up work narrows the remaining stage-1 debt to cross-document precision on `Q15`, `Q16`, `Q19`, `R07`, and `R38`; the next decision point must come from rerun eval artifacts and a regenerated rollout report rather than from the older failed report alone
 - do not advance to stage 2 until the stage-1 regression story is resolved or a new stage-1 corpus attempt is planned deliberately
 
 Exit criteria:
