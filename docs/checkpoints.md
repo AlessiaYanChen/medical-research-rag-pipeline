@@ -41,9 +41,28 @@ It is a record of how the repo moved from small-corpus retrieval tuning into sta
 - Stable, expanded, OOD, and runtime reruns on `medical_research_chunks_docling_v2_batch1` matched the small-corpus baselines on rollout-gated summary metrics.
 - Manual spot checks were recorded.
 - The regenerated stage-1 rollout report passed.
+- Separate stage-coverage evaluation was added at `data/eval/stage1_coverage_queries.json` and rerun on `medical_research_chunks_docling_v2_batch1`.
+- Stage-coverage retrieval now reaches all `20` stage-1 papers at the document-selection level, with only a small remaining top-1 ambiguity in the hepcidin cluster.
+- Zero-table audits on `1-s2.0-S0009912024000250-main` and `hepcidin diagnostic tool` indicate those PDFs do not currently show evidence of missing in-body tables in the ingested files.
+- Additional manual UI spot checks are in progress, with the first newly-added-paper checks currently passing.
+
+## April 1, 2026 (follow-up)
+
+- Stage-1 and stage-2 manual UI spot checks are now complete.
+- No confirmed retrieval failures were added to `known_gap_queries.json`; newly-added-paper checks passed.
+- Stage-1 is fully de-risked. Stage-2 planning may begin.
+
+## April 1, 2026 (answer quality hardening)
+
+- Dependencies pinned in `requirements.txt`; `docling==2.81.0` added (was missing from the file).
+- Research prompt hardened: instructions now cover study design identification, exact effect size reporting, CI/p-value inclusion, and key limitations.
+- `ReasoningService.research()` return type changed from `str` to `ResearchAnswer` (insight, evidence_basis, citations, confidence).
+- `ConfidenceLevel` enum added (HIGH/MEDIUM/LOW/INSUFFICIENT), derived from retrieval signals with no extra LLM call.
+- UI updated: Evidence Basis and Citations are collapsible expanders; a coloured confidence banner appears above each insight.
 
 ## Current Interpretation
 
-- The formal stage-1 rollout gate is now passing.
-- The main remaining risk is not the old blocker set; it is incomplete evaluation coverage of the `13` newly added papers in the `20`-PDF stage corpus.
-- The clearest next checkpoint work is separate stage-coverage evaluation, especially same-topic ambiguity in the hepcidin cluster and validation of zero-table-chunk documents.
+- The formal stage-1 rollout gate is passing and stage-1 is fully de-risked.
+- The stage-1 coverage gap is closed.
+- The remaining watch item is the hepcidin cluster top-1 ambiguity; it has not produced confirmed retrieval failures.
+- Next work: answer-quality evaluation layer, then UI collection-selection and observability improvements.

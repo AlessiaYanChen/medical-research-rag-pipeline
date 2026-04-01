@@ -1,11 +1,12 @@
-pandas
-pytest
-qdrant-client
-streamlit
-openai
-python-dotenv
-torch --index-url https://download.pytorch.org/whl/cpu
-marker-pdf
+pandas==2.3.3
+pytest==9.0.2
+qdrant-client==1.17.0
+streamlit==1.55.0
+openai==1.109.1
+python-dotenv==1.2.2
+torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu
+marker-pdf==1.10.2
+docling==2.81.0
 
 # Optional local re-ranking support
-transformers
+transformers==4.57.6

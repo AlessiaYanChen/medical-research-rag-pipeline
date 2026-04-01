@@ -44,7 +44,7 @@ from src.app.ingestion.registry_utils import (  # noqa: E402
 from src.app.adapters.llm.openai_llm_adapter import OpenAILLMAdapter  # noqa: E402
 from src.app.adapters.rerankers.transformers_reranker import TransformersReRanker  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
-from src.app.services.reasoning_service import ReasoningService  # noqa: E402
+from src.app.services.reasoning_service import ConfidenceLevel, ResearchAnswer, ReasoningService  # noqa: E402
 from src.app.services.retrieval_service import RetrievedChunk, RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from src.app.tables.table_normalizer import TableNormalizer  # noqa: E402
@@ -54,7 +54,7 @@ from src.ports.parser_port import ParsedTable  # noqa: E402
 UPLOAD_DIR = Path("data/raw_pdfs/uploaded")
 REGISTRY_PATH = Path("data/kb_registry.json")
 DEFAULT_QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-DEFAULT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_v1")
+DEFAULT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_v2_batch1")
 DEFAULT_EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "azure_openai")
 
 
@@ -261,7 +261,7 @@ def ask_research_question(
     reranker_model: str,
     embedding_fn: OpenAIEmbeddingAdapter,
     include_tables: bool,
-) -> str:
+) -> ResearchAnswer:
     client = QdrantClient(url=qdrant_url)
     validate_collection_exists(client, collection_name)
     repository = QdrantRepository(
@@ -335,7 +335,7 @@ def update_collection_docs(collection_name: str, doc_id: str, summary: dict[str,
 def init_state() -> None:
     st.session_state.setdefault("ingested_docs", None)
     st.session_state.setdefault("last_answer", [])
-    st.session_state.setdefault("last_research_answer", "")
+    st.session_state.setdefault("last_research_answer", None)
 
 
 def render_styles() -> None:
@@ -793,7 +793,35 @@ def main() -> None:
     )
 
     st.markdown("### Research Insight")
-    st.markdown(st.session_state.last_research_answer or "_No research answer yet._")
+    answer: ResearchAnswer | None = st.session_state.last_research_answer
+    if answer is None:
+        st.markdown("_No research answer yet._")
+    else:
+        distinct_docs = len({c.doc_id for c in answer.citations})
+        confidence_label = (
+            f"Evidence confidence: {answer.confidence.value} "
+            f"({len(answer.citations)} chunks, {distinct_docs} document(s))"
+        )
+        if answer.confidence == ConfidenceLevel.HIGH:
+            st.success(confidence_label)
+        elif answer.confidence == ConfidenceLevel.MEDIUM:
+            st.info(confidence_label)
+        elif answer.confidence == ConfidenceLevel.LOW:
+            st.warning(confidence_label)
+        else:
+            st.error(confidence_label)
+
+        st.markdown(answer.insight or "_No insight generated._")
+        if answer.evidence_basis:
+            with st.expander("Evidence Basis"):
+                st.markdown(answer.evidence_basis)
+        if answer.citations:
+            with st.expander(f"Citations ({len(answer.citations)} chunks)"):
+                for chunk in answer.citations:
+                    page = f", p. {chunk.page_number}" if chunk.page_number else ""
+                    st.markdown(
+                        f"- **{chunk.doc_id}** — {chunk.source} ({chunk.chunk_type}{page})"
+                    )
 
 
 if __name__ == "__main__":

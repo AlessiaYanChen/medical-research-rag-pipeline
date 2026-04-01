@@ -11,7 +11,7 @@ Make the medical research RAG pipeline reliable enough for a medium-scale corpus
 - Current small-corpus baseline collection: `medical_research_chunks_docling_v1`
 - Current stage-1 rollout collection: `medical_research_chunks_docling_v2_batch1`
 - Stage-1 formal gate status: `pass`
-- Stage-1 substantive risk: evaluation coverage still only exercises the original `7` baseline papers, not the full `20`-PDF corpus
+- Stage-1 substantive risk: manual UI spot-check completion is still in progress for the newly added papers, even though stage-coverage retrieval now exercises the full `20`-PDF corpus
 
 ## Collection Roles
 
@@ -45,11 +45,9 @@ Current retrieval gate policy:
 
 ## Active Risks
 
-1. Coverage gap: current eval datasets still cover only `7` of `20` stage-1 papers.
-2. Same-topic ambiguity: the hepcidin cluster is the clearest early multi-paper disambiguation risk.
-3. Parser blind spots: selected new papers show `0` table chunks and need PDF spot checks.
-4. Answer reliability: the app measures retrieval quality but not final synthesis quality.
-5. Operational drift: dependencies are unpinned, so parser or reranker behavior can shift silently.
+1. Same-topic ambiguity: the hepcidin cluster is still the clearest early multi-paper disambiguation risk; one residual top-1 ambiguity is under watch.
+2. Answer reliability: the app measures retrieval quality but not final synthesis quality.
+3. Operational drift: dependencies are unpinned, so parser or reranker behavior can shift silently.
 
 ## Phase Status
 
@@ -105,23 +103,25 @@ Objective:
 
 Current checkpoint:
 - stage 1 (`20 PDFs`) passed its formal rollout gate on `medical_research_chunks_docling_v2_batch1`
-- do not treat stage 1 as fully de-risked yet; close the coverage gap on the `13` newly added papers before stage 2
+- stage-coverage retrieval now hits all `20` papers at the document-selection level, and the roadmap-priority zero-table PDF audits are complete
+- stage-1 and stage-2 manual UI spot checks are now complete; stage 1 is fully de-risked
+- hepcidin cluster top-1 ambiguity remains a watch item but has not produced confirmed retrieval failures
 
 Stage-1 coverage completion tasks:
 
-1. Create a separate synthetic coverage dataset, for example `data/eval/stage1_coverage_queries.json`.
-2. Add at least `1-2` retrieval queries per newly added paper.
-3. Add cross-document queries that mix baseline and newly added papers.
-4. Add hepcidin-cluster disambiguation queries explicitly.
-5. Run `8-10` additional manual UI spot checks focused on newly added papers.
-6. Spot-check selected zero-table-chunk papers against the source PDFs, starting with `1-s2.0-S0009912024000250-main` and `hepcidin diagnostic tool`.
-7. Add confirmed new-paper misses to `known_gap_queries.json` rather than mixing them into the runtime baseline.
+1. Complete `data/eval/stage1_coverage_queries.json` and keep its results under `data/eval/results/retrieval_eval_stage1_coverage.json`. Status: complete.
+2. Add at least `1-2` retrieval queries per newly added paper. Status: complete.
+3. Add cross-document queries that mix baseline and newly added papers. Status: complete.
+4. Add hepcidin-cluster disambiguation queries explicitly. Status: complete, with one residual top-1 ambiguity still worth watching in manual review.
+5. Run `8-10` additional manual UI spot checks focused on newly added papers. Status: complete.
+6. Spot-check selected zero-table-chunk papers against the source PDFs, starting with `1-s2.0-S0009912024000250-main` and `hepcidin diagnostic tool`. Status: complete in `data/eval/results/stage1_zero_table_spot_checks.json`.
+7. Add confirmed new-paper misses to `known_gap_queries.json` rather than mixing them into the runtime baseline. Status: no confirmed new-paper misses currently require promotion to known-gap tracking.
 
 Stage-2 readiness rule:
 
 - keep `runtime_queries.json` limited to real user/runtime questions
 - put synthetic corpus-coverage probes into a separate evaluation dataset
-- do not begin stage 2 until the stage-1 coverage gap is closed or the risk is accepted explicitly
+- stage-1 coverage gap is now closed; stage 2 may begin
 
 ### Phase 5: Corpus Rollout
 
@@ -137,13 +137,13 @@ Phase gate:
 
 Immediate stabilization work:
 
-1. Pin dependencies to reduce parser and reranker drift risk.
+1. ~~Pin dependencies to reduce parser and reranker drift risk.~~ Complete — all packages pinned in `requirements.txt`, including `docling` which was previously missing from the file.
 
-Order of work after the stage-1 coverage gap is closed:
+Order of work (stage-1 coverage gap is now closed):
 
-1. Harden the medical research prompt for study design, effect sizes, uncertainty, and limitations.
-2. Move toward structured answer output with chunk-level citations.
-3. Add a typed abstention or confidence signal.
+1. ~~Harden the medical research prompt for study design, effect sizes, uncertainty, and limitations.~~ Complete — prompt now instructs study design identification, exact effect size reporting, CI/p-value inclusion, and limitation noting.
+2. ~~Move toward structured answer output with chunk-level citations.~~ Complete — `ReasoningService.research()` now returns `ResearchAnswer` (insight, evidence_basis, citations). Citations are the actual retrieved chunks, not LLM-generated text. UI renders them as collapsible expanders.
+3. ~~Add a typed abstention or confidence signal.~~ Complete — `ConfidenceLevel` enum (HIGH/MEDIUM/LOW/INSUFFICIENT) derived from retrieval signals (chunk count, distinct docs, "Insufficient evidence" in insight). UI shows a coloured banner per level.
 4. Add a small answer-quality evaluation layer separate from retrieval evaluation.
 5. Improve the UI collection-selection and rollback workflow.
 6. Add basic observability for latency and retrieved-chunk inspection.
