@@ -33,6 +33,9 @@ yesdata/ingestion_manifests/medical_research_chunks_docling_v1_rebuild_manifest.
 *.chunks.json
 
 models/
+!src/domain/models/
+!src/domain/models/__init__.py
+!src/domain/models/chunk.py
 .cache/
 
 Thumbs.db
