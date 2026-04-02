@@ -57,6 +57,15 @@ REGISTRY_PATH = Path("data/kb_registry.json")
 DEFAULT_QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 DEFAULT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_v2_batch1")
 DEFAULT_EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "azure_openai")
+COLLECTION_ROLES: dict[str, str] = {
+    "medical_research_chunks_docling_v2_batch1": "Stage-1 artifact (20 PDFs) - passing",
+    "medical_research_chunks_docling_v1": "Baseline small corpus",
+    "medical_research_chunks_v1": "Marker rollback - read-only",
+}
+
+
+def get_collection_role(name: str) -> str:
+    return COLLECTION_ROLES.get(name, "Custom collection")
 
 
 def build_embedding_fn(
@@ -337,6 +346,7 @@ def update_collection_docs(collection_name: str, doc_id: str, summary: dict[str,
 
 
 def init_state() -> None:
+    st.session_state.setdefault("active_collection", "")
     st.session_state.setdefault("ingested_docs", None)
     st.session_state.setdefault("last_retrieval_result", None)
     st.session_state.setdefault("last_research_answer", None)
@@ -559,6 +569,13 @@ def main() -> None:
         st.header("Runtime")
         qdrant_url = st.text_input("Qdrant URL", value=DEFAULT_QDRANT_URL)
         collection_name = st.text_input("Collection", value=DEFAULT_COLLECTION_NAME)
+        if collection_name != st.session_state.active_collection:
+            st.session_state.active_collection = collection_name
+            st.session_state.last_retrieval_result = None
+            st.session_state.last_research_answer = None
+            st.session_state.last_research_latency_ms = None
+            st.session_state.ingested_docs = None
+        st.caption(get_collection_role(collection_name))
         parser_name = st.selectbox(
             "Parser",
             options=list(PARSER_CHOICES),
@@ -681,9 +698,14 @@ def main() -> None:
             type=["pdf"],
             accept_multiple_files=True,
         )
+        is_rollback_collection = collection_name == "medical_research_chunks_v1"
+        if is_rollback_collection:
+            st.warning("Rollback collection selected. Ingestion is disabled for this collection.")
 
         if st.button("Ingest Uploaded PDFs", use_container_width=True):
-            if not uploaded_files:
+            if is_rollback_collection:
+                st.warning("Switch to a different collection before ingesting.")
+            elif not uploaded_files:
                 st.warning("Choose at least one PDF file first.")
             elif embedding_fn is None:
                 st.warning("Provide embedding credentials in the sidebar before ingesting.")
