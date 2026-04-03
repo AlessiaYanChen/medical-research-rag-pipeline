@@ -1,0 +1,295 @@
+[
+  {
+    "id": "S1C01",
+    "query": "What does the Clinical Biochemistry study report about imprecision of high-sensitivity cardiac troponin assays at the female 99th-percentile upper reference limit?",
+    "doc_id": "1-s2.0-S0009912024000250-main",
+    "expected_docs": ["1-s2.0-S0009912024000250-main"],
+    "expected_headers": ["Abstract", "Results", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "troponin", "assay_precision"],
+    "notes": "Coverage query for the newly added troponin assay paper."
+  },
+  {
+    "id": "S1C02",
+    "query": "Which manufacturers met or missed the 10% CV benchmark at the female URL in the multicenter high-sensitivity troponin precision study?",
+    "doc_id": "1-s2.0-S0009912024000250-main",
+    "expected_docs": ["1-s2.0-S0009912024000250-main"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "troponin", "cv_benchmark"],
+    "notes": "Metric-oriented variant for the zero-table-chunk troponin paper."
+  },
+  {
+    "id": "S1C03",
+    "query": "What framework did the Aune et al. paper propose for standardizing hepcidin measurement across laboratories?",
+    "doc_id": "Aune-2020-Optimizing hepcidin measurement with",
+    "expected_docs": ["Aune-2020-Optimizing hepcidin measurement with"],
+    "expected_headers": ["Abstract", "Introduction", "Results", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "standardization"],
+    "notes": "Targets the proficiency-testing and standardization framing."
+  },
+  {
+    "id": "S1C04",
+    "query": "How much did the high-level calibrator improve inter-assay variability in the hepcidin proficiency-testing study?",
+    "doc_id": "Aune-2020-Optimizing hepcidin measurement with",
+    "expected_docs": ["Aune-2020-Optimizing hepcidin measurement with"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "include_tables": true,
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "calibrator", "metric"],
+    "notes": "Calibration-performance query for the Aune hepcidin paper."
+  },
+  {
+    "id": "S1C05",
+    "query": "What IgG4 glycosylation profiling approach was used to study autoimmune pancreatitis in the International Journal of Molecular Sciences paper?",
+    "doc_id": "Chen_Michael_IntJMolSci_2021",
+    "expected_docs": ["Chen_Michael_IntJMolSci_2021"],
+    "expected_headers": ["Abstract", "Introduction", "Methods", "Materials and Methods"],
+    "labels": ["stage1_coverage", "single_doc", "glycosylation", "autoimmune_pancreatitis"],
+    "notes": "Anchors the Chen IJMS paper to its analytical method and disease context."
+  },
+  {
+    "id": "S1C06",
+    "query": "Which glycosylation features or profiles were reported as useful for autoimmune pancreatitis in the IgG4 LC-MS/MS study?",
+    "doc_id": "Chen_Michael_IntJMolSci_2021",
+    "expected_docs": ["Chen_Michael_IntJMolSci_2021"],
+    "expected_headers": ["Results", "Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "glycosylation", "biomarker"],
+    "notes": "Results-oriented coverage query for the Chen IJMS paper."
+  },
+  {
+    "id": "S1C07",
+    "query": "What role does the review describe for hepcidin in the pathophysiology and diagnosis of anemia?",
+    "doc_id": "hep anemia",
+    "expected_docs": ["hep anemia"],
+    "expected_headers": ["Abstract", "Introduction", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "anemia", "review"],
+    "notes": "Broad single-document review query for the anemia paper."
+  },
+  {
+    "id": "S1C08",
+    "query": "How does the anemia review link hepcidin regulation to iron homeostasis, erythropoiesis, and inflammatory anemia?",
+    "doc_id": "hep anemia",
+    "expected_docs": ["hep anemia"],
+    "expected_headers": ["Introduction", "Discussion", "Abstract", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "anemia", "regulation"],
+    "notes": "Mechanism-focused variant for the hepcidin-anemia review."
+  },
+  {
+    "id": "S1C09",
+    "query": "What does the Liver International study say about the serum hepcidin:ferritin ratio as a biomarker for cirrhosis?",
+    "doc_id": "hep fer ratio liver",
+    "expected_docs": ["hep fer ratio liver"],
+    "expected_headers": ["Abstract", "Results", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ferritin_ratio", "cirrhosis"],
+    "notes": "Coverage query for the chronic liver disease biomarker paper."
+  },
+  {
+    "id": "S1C10",
+    "query": "How did the hepcidin:ferritin ratio change with increasing fibrosis or cirrhosis in chronic liver disease?",
+    "doc_id": "hep fer ratio liver",
+    "expected_docs": ["hep fer ratio liver"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "include_tables": true,
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "liver_disease", "fibrosis", "metric"],
+    "notes": "Results-heavy liver-fibrosis query that may surface table-backed evidence."
+  },
+  {
+    "id": "S1C11",
+    "query": "What clinical value does the Blood Spotlight article propose for hepcidin in the diagnosis of iron disorders?",
+    "doc_id": "hep in diagnosis of iron disorders 2016",
+    "expected_docs": ["hep in diagnosis of iron disorders 2016"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "iron_disorders", "review"],
+    "notes": "Single-document overview query for the 2016 Blood Spotlight paper."
+  },
+  {
+    "id": "S1C12",
+    "query": "What assay harmonization or reference-standard problems are highlighted in the 2016 review on hepcidin in iron disorders?",
+    "doc_id": "hep in diagnosis of iron disorders 2016",
+    "expected_docs": ["hep in diagnosis of iron disorders 2016"],
+    "expected_headers": ["Introduction", "Discussion", "Methods", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "harmonization", "assay_limitations"],
+    "notes": "Disambiguates diagnostic-use review content from CKD- or assay-method-focused hepcidin papers."
+  },
+  {
+    "id": "S1C13",
+    "query": "What evidence does the pediatric study provide that serum hepcidin behaves as an acute phase marker in febrile children?",
+    "doc_id": "hepcidin acute phase",
+    "expected_docs": ["hepcidin acute phase"],
+    "expected_headers": ["Abstract", "Results", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "acute_phase", "pediatrics"],
+    "notes": "Coverage query for the febrile-children paper."
+  },
+  {
+    "id": "S1C14",
+    "query": "Did the febrile-children hepcidin study find a difference between viral and bacterial infections, or mainly a change before versus after infection?",
+    "doc_id": "hepcidin acute phase",
+    "expected_docs": ["hepcidin acute phase"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "acute_phase", "infection_comparison"],
+    "notes": "Focused pediatric infection-comparison query."
+  },
+  {
+    "id": "S1C15",
+    "query": "What does the nephrology paper report about serum hepcidin-25 levels in chronic kidney disease and their relationship to glomerular filtration rate?",
+    "doc_id": "hepcidin ckd",
+    "expected_docs": ["hepcidin ckd"],
+    "expected_headers": ["Abstract", "Results", "Discussion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd"],
+    "notes": "Primary coverage query for the CKD hepcidin-25 paper."
+  },
+  {
+    "id": "S1C16",
+    "query": "Which hepcidin isoforms accumulated with renal impairment in the CKD study, and which marker best predicted hepcidin-25 levels?",
+    "doc_id": "hepcidin ckd",
+    "expected_docs": ["hepcidin ckd"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd", "isoforms"],
+    "notes": "Results-oriented CKD query emphasizing isoforms and ferritin correlation."
+  },
+  {
+    "id": "S1C17",
+    "query": "What clinical utility does the mini-review propose for hepcidin as a diagnostic tool and therapeutic target in chronic kidney disease?",
+    "doc_id": "hepcidin diagnostic tool",
+    "expected_docs": ["hepcidin diagnostic tool"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd", "diagnostic_tool", "review"],
+    "notes": "Coverage query for the zero-table-chunk hepcidin diagnostic-tool review."
+  },
+  {
+    "id": "S1C18",
+    "query": "How does the Kidney International review explain elevated hepcidin in CKD and the rationale for therapies that lower hepcidin or block its action?",
+    "doc_id": "hepcidin diagnostic tool",
+    "expected_docs": ["hepcidin diagnostic tool"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd", "therapeutic_target"],
+    "notes": "Mechanism-and-treatment query for the diagnostic-tool review."
+  },
+  {
+    "id": "S1C19",
+    "query": "What analytical method was developed to identify IgA1 hinge-region O-glycoforms for IgA nephropathy?",
+    "doc_id": "IgaN",
+    "expected_docs": ["IgaN"],
+    "expected_headers": ["Abstract", "Introduction", "Methods", "Materials and Methods"],
+    "labels": ["stage1_coverage", "single_doc", "igan", "glycoforms", "method"],
+    "notes": "Single-document method query for the IgA nephropathy paper."
+  },
+  {
+    "id": "S1C20",
+    "query": "Which IgA1 O-glycopeptide differences were reported between IgA nephropathy patients and controls in the UHPLC-MS/MS study?",
+    "doc_id": "IgaN",
+    "expected_docs": ["IgaN"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "igan", "glycoforms", "biomarker"],
+    "notes": "Results-oriented biomarker query for the IgAN paper."
+  },
+  {
+    "id": "S1C21",
+    "query": "How does the JMSACL paper interpret serum hepcidin-25 in the setting of inflammation and renal dysfunction?",
+    "doc_id": "jmsacl",
+    "expected_docs": ["jmsacl"],
+    "expected_headers": ["Abstract", "Introduction", "Results", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "inflammation", "renal_dysfunction"],
+    "notes": "Primary coverage query for the JMSACL hepcidin interpretation paper."
+  },
+  {
+    "id": "S1C22",
+    "query": "What does the JMSACL study suggest about the hepcidin:ferritin index and when hepcidin-25 testing is or is not clinically useful?",
+    "doc_id": "jmsacl",
+    "expected_docs": ["jmsacl"],
+    "expected_headers": ["Results", "Conclusion", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "diagnostic_utility", "index"],
+    "notes": "Results and interpretation query for the JMSACL paper."
+  },
+  {
+    "id": "S1C23",
+    "query": "What diagnostic accuracy findings were reported when comparing fetal fibronectin and phosphorylated IGFBP-1 testing for preterm delivery in symptomatic women?",
+    "doc_id": "JOGC fibronectin",
+    "expected_docs": ["JOGC fibronectin"],
+    "expected_headers": ["Abstract", "Results", "Conclusion"],
+    "include_tables": true,
+    "labels": ["stage1_coverage", "single_doc", "preterm_delivery", "diagnostic_accuracy"],
+    "notes": "Coverage query for the obstetrics diagnostic paper."
+  },
+  {
+    "id": "S1C24",
+    "query": "What conclusion did the JOGC study reach about concurrent fFN and phIGFBP-1 testing versus simpler point-of-care testing?",
+    "doc_id": "JOGC fibronectin",
+    "expected_docs": ["JOGC fibronectin"],
+    "expected_headers": ["Conclusion", "Discussion", "Results", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "preterm_delivery", "clinical_utility"],
+    "notes": "Decision-oriented query for the fibronectin paper."
+  },
+  {
+    "id": "S1C25",
+    "query": "What direct-detection urine screening method and diagnostic performance findings are reported in the Nartey et al. lipidomics paper?",
+    "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+    "expected_docs": ["nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"],
+    "expected_headers": ["Results", "Discussion", "Conclusion", "Introduction"],
+    "include_tables": true,
+    "labels": ["stage1_coverage", "single_doc", "urine", "lipidomics", "diagnostic_accuracy"],
+    "notes": "Adds dedicated single-document coverage for the Nartey urine paper."
+  },
+  {
+    "id": "S1C26",
+    "query": "How does the urine lipidomics paper frame the value of eliminating negative urine cultures in the general population workflow?",
+    "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+    "expected_docs": ["nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "urine", "lipidomics", "workflow"],
+    "notes": "Workflow-oriented complement to the Nartey metric query."
+  },
+  {
+    "id": "S1C27",
+    "query": "What HPLC-MS/MS method improvements were reported for clinical measurement of serum hepcidin in the Rapid Communications in Mass Spectrometry paper?",
+    "doc_id": "RCM publication",
+    "expected_docs": ["RCM publication"],
+    "expected_headers": ["Abstract", "Methods", "Results", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "assay_method", "mass_spectrometry"],
+    "notes": "Method-focused coverage query for the RCM publication."
+  },
+  {
+    "id": "S1C28",
+    "query": "How did the RCM hepcidin assay perform for sensitivity, reproducibility, recovery, and sample-preparation cost?",
+    "doc_id": "RCM publication",
+    "expected_docs": ["RCM publication"],
+    "expected_headers": ["Results", "Abstract", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "assay_validation", "metric"],
+    "notes": "Validation-focused complement for the RCM assay paper."
+  },
+  {
+    "id": "S1C29",
+    "query": "Which hepcidin paper in the indexed set focuses on proficiency testing and assay standardization rather than CKD pathophysiology or assay implementation?",
+    "expected_docs": ["Aune-2020-Optimizing hepcidin measurement with"],
+    "expected_headers": ["Abstract", "Introduction", "Results", "Conclusion"],
+    "labels": ["stage1_coverage", "cross_doc", "hepcidin_cluster", "disambiguation", "standardization"],
+    "notes": "Hepcidin-cluster disambiguation query targeting the Aune proficiency-testing paper."
+  },
+  {
+    "id": "S1C30",
+    "query": "Which indexed hepcidin paper is about acute infection in febrile children rather than chronic kidney disease or iron-disorder review topics?",
+    "expected_docs": ["hepcidin acute phase"],
+    "expected_headers": ["Abstract", "Introduction", "Results", "Conclusion"],
+    "labels": ["stage1_coverage", "cross_doc", "hepcidin_cluster", "disambiguation", "pediatrics"],
+    "notes": "Cross-document hepcidin-cluster query for the pediatric acute-phase paper."
+  },
+  {
+    "id": "S1C31",
+    "query": "Which indexed hepcidin paper argues for clinical use as a diagnostic marker and therapeutic target in CKD, rather than measuring hepcidin-25 behavior across renal-function strata?",
+    "expected_docs": ["hepcidin diagnostic tool"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "cross_doc", "hepcidin_cluster", "disambiguation", "ckd_review"],
+    "notes": "Distinguishes the CKD review from the CKD observational study."
+  },
+  {
+    "id": "S1C32",
+    "query": "Across the indexed studies, which newly added papers focus on analytical assay development or laboratory measurement methods rather than clinical outcome trials?",
+    "expected_docs": [
+      "Aune-2020-Optimizing hepcidin measurement with",
+      "RCM publication",
+      "IgaN",
+      "Chen_Michael_IntJMolSci_2021"
+    ],
+    "expected_headers": ["Abstract", "Methods", "Results", "Introduction"],
+    "labels": ["stage1_coverage", "cross_doc", "methodology", "new_papers"],
+    "notes": "Cross-document probe spanning several newly added analytical-method papers."
+  }
+]

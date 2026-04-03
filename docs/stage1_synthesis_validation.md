@@ -285,10 +285,12 @@ Known-gap abstention pass 2:
 - No known-gap query now returns `confidence: HIGH`, so the hard false-confidence gate is cleared.
 - The reported `abstain_accuracy` in this file remains misleading because `known_gap_queries.json` does not carry `expected_abstain: true` flags for the evaluation script. Treat the `HIGH`-confidence count, not that summary ratio, as the operational gate for this track.
 
-Current status after Step 5:
+Current status after Steps 4 and 5:
 - The Stage-1 answer-quality baseline is materially improved and the known-gap false-confidence gate is clear.
 - `scripts/run_synthesis_gate.py` exists, `tests/unit/test_synthesis_gate.py` passes, and the stage-1 synthesis gate now passes cleanly.
+- The cross-document synthesis spot checks pass at `6/8` with no hepcidin paper mis-attribution.
 - Gate report: `data/eval/results/synthesis_gate_report_stage1.json`
+- Spot-check report: `docs/manual_spot_checks_synthesis_2026-04-01.md`
 
 If any expected-answer query returns `INSUFFICIENT` confidence, inspect with:
 
@@ -335,6 +337,14 @@ Run the following 8 queries through the Streamlit UI (`streamlit run scripts/ui_
 Record results in `docs/manual_spot_checks_synthesis_2026-04-01.md` (append to the existing file or create a new dated file).
 
 **Soft gate:** at least 6 of 8 pass. Any hepcidin failure (AQ17–AQ19) that attributes findings to the wrong paper must be recorded as a known issue before Stage 2.
+
+Step 4 result recorded on `2026-04-07`:
+- Report: `docs/manual_spot_checks_synthesis_2026-04-01.md`
+- Source artifact used for recording: `data/eval/results/answer_quality_eval_stage1_after_fixes.json`
+- Outcome: `6/8` pass
+- Passing queries: `AQ08`, `AQ09`, `AQ12`, `AQ17`, `AQ18`, `AQ19`
+- Failing watch items: `AQ10`, `AQ13`
+- No hepcidin paper mis-attribution observed in `AQ17`-`AQ19`
 
 ---
 
