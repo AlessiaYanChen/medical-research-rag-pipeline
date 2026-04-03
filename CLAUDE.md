@@ -158,6 +158,7 @@ Only keep a code change if it is narrow and benchmark-safe on `runtime_queries.j
 | `data/eval/ood_adversarial_queries.json` | 32 | Out-of-distribution / adversarial phrasing | `scripts/evaluate_retrieval.py` |
 | `data/eval/runtime_queries.json` | varies | Real user queries (regression tracking) | `scripts/evaluate_retrieval.py` |
 | `data/eval/known_gap_queries.json` | varies | Documented expected misses | `scripts/evaluate_retrieval.py` |
+| `data/eval/stage1_coverage_queries.json` | 32 | Stage-1 retrieval coverage across newly added papers and disambiguation probes | `scripts/evaluate_retrieval.py` |
 | `data/eval/answer_quality_queries.json` | varies | Answer quality: abstention, confidence, doc-ID coverage | `scripts/evaluate_answer_quality.py` |
 
 ### Answer Quality Query Format (`answer_quality_queries.json`)

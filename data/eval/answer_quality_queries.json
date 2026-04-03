@@ -1,0 +1,179 @@
+[
+  {
+    "id": "AQ01",
+    "query": "What confirmation rate was achieved for Staphylococcus aureus by culture or PCR in the IRIDICA study?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["BAL SM"],
+    "notes": "single-doc factual - manual test pack item 1. Mapped to the IRIDICA BAL paper in the stage-1 collection."
+  },
+  {
+    "id": "AQ02",
+    "query": "What was the overall detection rate of PCR/ESI-MS compared to routine culture in BAL samples?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["BAL SM"],
+    "notes": "single-doc factual - manual test pack item 2. Mapped to the BAL study doc_id in the stage-1 collection."
+  },
+  {
+    "id": "AQ03",
+    "query": "What lysozyme concentration and incubation time gave optimal cardiolipin detection in the FLAT assay?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["Culture-Free Lipidomics-Based Screening Test"],
+    "notes": "single-doc factual - manual test pack item 3. Uses the FLAT assay paper doc_id already referenced by the runtime regression set."
+  },
+  {
+    "id": "AQ04",
+    "query": "What is the reported turnaround time of the FLAT lipidomics assay for direct urine pathogen detection?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "notes": "single-doc factual - manual test pack item 4. The current stage-1 urine lipidomics coverage uses both FLAT-related urine papers for this turnaround-time query."
+  },
+  {
+    "id": "AQ05",
+    "query": "Which resistance determinants were NOT detected in the BAL samples?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["BAL SM"],
+    "notes": "single-doc factual - manual test pack item 5. Mapped to the BAL study doc_id in the stage-1 collection."
+  },
+  {
+    "id": "AQ06",
+    "query": "What did the BAL IRIDICA study find for overall detection versus routine culture?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["BAL SM"],
+    "notes": "single-doc factual - manual test pack item 14. Duplicate IRIDICA angle retained for answer-quality coverage."
+  },
+  {
+    "id": "AQ07",
+    "query": "Which urine paper reports the direct-detection screening workflow, and what metric did it improve most?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "notes": "single-doc factual - manual test pack item 15. The current runtime regression already treats both urine FLAT papers as valid support for this workflow-oriented query."
+  },
+  {
+    "id": "AQ08",
+    "query": "Compare the organism ID and AST turnaround improvements reported in RAPID with the faster-decision benefits reported in the Single site RCT.",
+    "expected_abstain": false,
+    "expected_confidence_min": "LOW",
+    "expected_doc_ids": ["RAPID", "Single site RCT"],
+    "notes": "cross-doc synthesis - manual test pack item 6. Requires both randomized blood-culture studies in evidence."
+  },
+  {
+    "id": "AQ09",
+    "query": "How do PCR/ESI-MS methods and FLAT lipidomics workflows differ in their approach to bypassing traditional culture times?",
+    "expected_abstain": false,
+    "expected_confidence_min": "LOW",
+    "expected_doc_ids": [
+      "BAL SM",
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "notes": "cross-doc synthesis - manual test pack item 7. Mirrors the stage-1 runtime comparison query that expects BAL plus both urine FLAT papers."
+  },
+  {
+    "id": "AQ10",
+    "query": "Contrast the reasons why single blood cultures are considered inadequate in the Fabre et al. minireview with the diagnostic limitations of urinalysis discussed by Nartey et al.",
+    "expected_abstain": false,
+    "expected_confidence_min": "LOW",
+    "expected_doc_ids": [
+      "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "notes": "cross-doc synthesis - manual test pack item 8. Uses the same Fabre plus Nartey pairing as the existing runtime regression."
+  },
+  {
+    "id": "AQ11",
+    "query": "Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
+    "expected_abstain": false,
+    "expected_confidence_min": "LOW",
+    "expected_doc_ids": ["RAPID"],
+    "notes": "document-navigation query - manual test pack item 9. Target doc is RAPID; this is a doc-selection check rather than a contrastive multi-doc coverage requirement."
+  },
+  {
+    "id": "AQ12",
+    "query": "What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?",
+    "expected_abstain": false,
+    "expected_confidence_min": "LOW",
+    "expected_doc_ids": [
+      "Single site RCT",
+      "RAPID",
+      "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+    ],
+    "notes": "cross-doc synthesis - manual test pack item 11. Mapped to the same evidence trio used by the existing runtime synthesis regression."
+  },
+  {
+    "id": "AQ13",
+    "query": "Which of these studies are randomized controlled trials, and which are observational or review papers?",
+    "expected_abstain": false,
+    "expected_confidence_min": "LOW",
+    "expected_doc_ids": [
+      "Single site RCT",
+      "RAPID",
+      "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+      "BAL SM",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+      "Culture-Free Lipidomics-Based Screening Test"
+    ],
+    "notes": "study-design classification - manual test pack item 13. Reuses the current runtime classification coverage set for the stage-1 diagnostic corpus."
+  },
+  {
+    "id": "AQ14",
+    "query": "What was the detection rate for gram-positive bacteria before and after lysozyme treatment in the FLAT study?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "known-gap K01 - table-dependent. Synthesis should abstain or stay at LOW/INSUFFICIENT confidence."
+  },
+  {
+    "id": "AQ15",
+    "query": "What was the LOD for E. faecalis with 100 ug lysozyme at 60 minutes?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "known-gap K02 - exact table-cell value. Synthesis should abstain."
+  },
+  {
+    "id": "AQ16",
+    "query": "How many Enterococcus faecalis samples were correctly identified by FLAT?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "known-gap K03 - species-level count from table context. Synthesis should abstain."
+  },
+  {
+    "id": "AQ17",
+    "query": "What did the 2016 hepcidin study find about hepcidin as a diagnostic tool for iron deficiency anaemia?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["hep in diagnosis of iron disorders 2016"],
+    "notes": "hepcidin disambiguation - mapped to the 2016 iron-disorders review in the stage-1 collection."
+  },
+  {
+    "id": "AQ18",
+    "query": "What role does hepcidin play in chronic kidney disease anaemia according to the CKD-specific paper?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["hepcidin ckd"],
+    "notes": "hepcidin disambiguation - mapped to the CKD-specific hepcidin paper in the stage-1 collection."
+  },
+  {
+    "id": "AQ19",
+    "query": "What were the main findings on hepcidin and anaemia of chronic disease in the paper focused on that topic?",
+    "expected_abstain": false,
+    "expected_confidence_min": "MEDIUM",
+    "expected_doc_ids": ["hep anemia"],
+    "notes": "hepcidin disambiguation - mapped to the anaemia-focused hepcidin paper in the stage-1 collection."
+  }
+]
