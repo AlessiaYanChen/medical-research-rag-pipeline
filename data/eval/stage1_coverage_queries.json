@@ -291,5 +291,519 @@
     "expected_headers": ["Abstract", "Methods", "Results", "Introduction"],
     "labels": ["stage1_coverage", "cross_doc", "methodology", "new_papers"],
     "notes": "Cross-document probe spanning several newly added analytical-method papers."
+  },
+  {
+    "id": "S1C33",
+    "query": "What confirmation rate for Staphylococcus aureus by culture or PCR was reported in the IRIDICA BAL study?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "bal", "iridica", "staphylococcus_aureus"],
+    "notes": "Adds direct factual stage-1 coverage for the BAL IRIDICA paper."
+  },
+  {
+    "id": "S1C34",
+    "query": "What overall detection rate did the BAL IRIDICA study report for PCR/ESI-MS versus routine culture?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "bal", "iridica", "detection_rate"],
+    "notes": "Direct results-oriented retrieval check for BAL vs routine culture."
+  },
+  {
+    "id": "S1C35",
+    "query": "Which resistance determinants were not detected in the BAL samples analyzed by IRIDICA?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "bal", "iridica", "resistance_determinants"],
+    "notes": "Single-document BAL query covering resistance-marker retrieval."
+  },
+  {
+    "id": "S1C36",
+    "query": "What limitations or clinical caveats did the BAL PCR/ESI-MS paper note for interpreting direct molecular detection in suspected pneumonia?",
+    "doc_id": "BAL SM",
+    "expected_docs": ["BAL SM"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "bal", "iridica", "limitations"],
+    "notes": "Discussion-heavy BAL coverage query to keep caveat retrieval visible."
+  },
+  {
+    "id": "S1C37",
+    "query": "What lysozyme concentration and incubation time gave optimal cardiolipin detection in the FLAT assay paper?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Results", "Discussion", "Methods"],
+    "labels": ["stage1_coverage", "single_doc", "flat", "optimization", "cardiolipin"],
+    "notes": "Direct optimization query for the FLAT stage-1 paper."
+  },
+  {
+    "id": "S1C38",
+    "query": "What turnaround time did the FLAT assay paper report for direct pathogen detection from urine specimens?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "flat", "turnaround_time", "urine"],
+    "notes": "Workflow-oriented direct retrieval check for the FLAT assay paper."
+  },
+  {
+    "id": "S1C39",
+    "query": "Which lipid biomarkers did the FLAT study use to distinguish gram-negative and gram-positive organisms?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Introduction", "Results", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "flat", "lipid_biomarkers", "organism_detection"],
+    "notes": "Single-document biomarker framing query for the FLAT paper."
+  },
+  {
+    "id": "S1C40",
+    "query": "What limitations did the FLAT assay paper describe for special populations or uncommon pathogens?",
+    "doc_id": "Culture-Free Lipidomics-Based Screening Test",
+    "expected_docs": ["Culture-Free Lipidomics-Based Screening Test"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "flat", "limitations", "special_populations"],
+    "notes": "Discussion-heavy FLAT query covering validation limits and generalizability."
+  },
+  {
+    "id": "S1C41",
+    "query": "What diagnostic stewardship argument does the Fabre minireview make for improving blood culture utilization in hospitals?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "fabre", "stewardship", "overview"],
+    "notes": "Adds direct overview coverage for the Fabre stewardship review."
+  },
+  {
+    "id": "S1C42",
+    "query": "What inappropriate blood culture rates or ordering problems are summarized in the Fabre diagnostic stewardship review?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "fabre", "stewardship", "inappropriate_ordering"],
+    "notes": "Results-in-review query focused on inappropriate-culture utilization."
+  },
+  {
+    "id": "S1C43",
+    "query": "How does the Fabre review describe the limited value of repeat blood cultures after previous negative results?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "fabre", "repeat_cultures", "limitations"],
+    "notes": "Direct coverage for the repeat-blood-culture stewardship angle."
+  },
+  {
+    "id": "S1C44",
+    "query": "What gaps in existing guidelines or stewardship recommendations does the Fabre review highlight for blood culture ordering?",
+    "doc_id": "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    "expected_docs": ["fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "fabre", "guidelines", "stewardship_gaps"],
+    "notes": "Discussion-focused stewardship-guideline query for the Fabre review."
+  },
+  {
+    "id": "S1C45",
+    "query": "What diagnostic approaches are reviewed for blood culture-negative endocarditis in the IJGM paper?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Methods", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "ijgm_endocarditis", "review", "diagnostic_approaches"],
+    "notes": "Adds direct overview coverage for the endocarditis laboratory-diagnosis review."
+  },
+  {
+    "id": "S1C46",
+    "query": "Which molecular or serologic laboratory methods does the endocarditis review discuss for diagnosing blood culture-negative cases?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Methods", "Discussion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "ijgm_endocarditis", "review", "laboratory_methods"],
+    "notes": "Methods-heavy retrieval check for the endocarditis review."
+  },
+  {
+    "id": "S1C47",
+    "query": "How does the IJGM endocarditis review frame the challenge of blood culture-negative infective endocarditis?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Introduction", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "ijgm_endocarditis", "review", "diagnostic_challenge"],
+    "notes": "Review-framing query for the scope and diagnostic challenge of BCNE."
+  },
+  {
+    "id": "S1C48",
+    "query": "What laboratory-workup limitations or review-scope caveats are described in the blood culture-negative endocarditis paper?",
+    "doc_id": "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    "expected_docs": ["IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"],
+    "expected_headers": ["Discussion", "Conclusion", "Methods"],
+    "labels": ["stage1_coverage", "single_doc", "ijgm_endocarditis", "review", "limitations"],
+    "notes": "Discussion-heavy caveat query for the endocarditis review."
+  },
+  {
+    "id": "S1C49",
+    "query": "What organism-identification turnaround improvement did the RAPID study report compared with standard of care?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "rapid", "turnaround", "organism_identification"],
+    "notes": "Adds direct retrieval coverage for RAPID turnaround outcomes."
+  },
+  {
+    "id": "S1C50",
+    "query": "What antimicrobial susceptibility testing turnaround improvement did RAPID report relative to standard methods?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "rapid", "ast", "turnaround"],
+    "notes": "AST-specific results query for the RAPID paper."
+  },
+  {
+    "id": "S1C51",
+    "query": "What clinical-outcome or de-escalation findings did the RAPID trial report after introducing faster diagnostic results?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "rapid", "clinical_outcomes", "deescalation"],
+    "notes": "Keeps RAPID clinical-impact retrieval visible alongside lab-turnaround results."
+  },
+  {
+    "id": "S1C52",
+    "query": "Which paper in the indexed set reports RAPID panel performance rather than blood-culture stewardship policy or an endocarditis laboratory review?",
+    "doc_id": "RAPID",
+    "expected_docs": ["RAPID"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "rapid", "title_navigation", "disambiguation"],
+    "notes": "Title-navigation and document-selection query for RAPID."
+  },
+  {
+    "id": "S1C53",
+    "query": "What clinical outcomes did the single-site randomized trial report between the intervention and control groups?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "single_site_rct", "clinical_outcomes"],
+    "notes": "Adds direct outcomes coverage for the single-site randomized trial."
+  },
+  {
+    "id": "S1C54",
+    "query": "How did the single-site randomized trial change escalation and de-escalation timing after rapid multiplex PCR?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "single_site_rct", "stewardship", "decision_timing"],
+    "notes": "Direct stewardship-timing query for the single-site RCT."
+  },
+  {
+    "id": "S1C55",
+    "query": "What happened to vancomycin exposure in the single-site randomized trial when rapid PCR testing was used?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "single_site_rct", "vancomycin", "antibiotic_use"],
+    "notes": "Single-site RCT query covering unnecessary-therapy reduction."
+  },
+  {
+    "id": "S1C56",
+    "query": "Which indexed paper is the single-site randomized trial of rapid multiplex PCR rather than the RAPID study or a stewardship review?",
+    "doc_id": "Single site RCT",
+    "expected_docs": ["Single site RCT"],
+    "expected_headers": ["Results", "Discussion", "Methods"],
+    "labels": ["stage1_coverage", "single_doc", "single_site_rct", "title_navigation", "disambiguation"],
+    "notes": "Document-selection query for the single-site RCT."
+  },
+  {
+    "id": "S1C57",
+    "query": "What clinical implication did the Clinical Biochemistry troponin paper draw from assay imprecision at the female 99th-percentile cutoff?",
+    "doc_id": "1-s2.0-S0009912024000250-main",
+    "expected_docs": ["1-s2.0-S0009912024000250-main"],
+    "expected_headers": ["Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "troponin", "clinical_implication"],
+    "notes": "Adds a discussion-heavy interpretation query for the troponin paper."
+  },
+  {
+    "id": "S1C58",
+    "query": "How did the troponin precision study compare assay performance across manufacturers or analytical platforms?",
+    "doc_id": "1-s2.0-S0009912024000250-main",
+    "expected_docs": ["1-s2.0-S0009912024000250-main"],
+    "expected_headers": ["Methods", "Results", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "troponin", "assay_comparison"],
+    "notes": "Method/results complement to the current troponin coverage."
+  },
+  {
+    "id": "S1C59",
+    "query": "What proficiency-testing workflow or reference materials did the Aune paper use to standardize hepcidin measurement across laboratories?",
+    "doc_id": "Aune-2020-Optimizing hepcidin measurement with",
+    "expected_docs": ["Aune-2020-Optimizing hepcidin measurement with"],
+    "expected_headers": ["Methods", "Introduction", "Results"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "standardization", "workflow"],
+    "notes": "Methods-heavy complement to the current Aune coverage."
+  },
+  {
+    "id": "S1C60",
+    "query": "What assay-harmonization or reference-standard limitations did the Aune hepcidin proficiency-testing study identify?",
+    "doc_id": "Aune-2020-Optimizing hepcidin measurement with",
+    "expected_docs": ["Aune-2020-Optimizing hepcidin measurement with"],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "standardization", "limitations"],
+    "notes": "Discussion-focused caveat query for the Aune paper."
+  },
+  {
+    "id": "S1C61",
+    "query": "What patient cohort or analytical design did the Chen IgG4 glycosylation study use for autoimmune pancreatitis?",
+    "doc_id": "Chen_Michael_IntJMolSci_2021",
+    "expected_docs": ["Chen_Michael_IntJMolSci_2021"],
+    "expected_headers": ["Methods", "Materials and Methods", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "glycosylation", "autoimmune_pancreatitis", "study_design"],
+    "notes": "Methods-oriented complement to the current Chen paper coverage."
+  },
+  {
+    "id": "S1C62",
+    "query": "How did the Chen autoimmune pancreatitis paper interpret the diagnostic value of its IgG4 glycosylation findings?",
+    "doc_id": "Chen_Michael_IntJMolSci_2021",
+    "expected_docs": ["Chen_Michael_IntJMolSci_2021"],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "labels": ["stage1_coverage", "single_doc", "glycosylation", "autoimmune_pancreatitis", "diagnostic_interpretation"],
+    "notes": "Discussion-heavy biomarker-interpretation query for the Chen paper."
+  },
+  {
+    "id": "S1C63",
+    "query": "What does the hepcidin-anemia review say specifically about anemia of chronic disease and the hepcidin-ferroportin axis?",
+    "doc_id": "hep anemia",
+    "expected_docs": ["hep anemia"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "anemia", "acd"],
+    "notes": "Adds an ACD-focused retrieval prompt for the hepcidin-anemia review."
+  },
+  {
+    "id": "S1C64",
+    "query": "What diagnostic or therapeutic implications does the hepcidin-anemia review draw from understanding the hepcidin-ferroportin pathway?",
+    "doc_id": "hep anemia",
+    "expected_docs": ["hep anemia"],
+    "expected_headers": ["Conclusion", "Discussion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "anemia", "diagnostic_therapeutic_implications"],
+    "notes": "Conclusion-focused complement to the current hepcidin-anemia coverage."
+  },
+  {
+    "id": "S1C65",
+    "query": "How did the liver-disease study frame the clinical usefulness of the serum hepcidin:ferritin ratio before presenting fibrosis and cirrhosis results?",
+    "doc_id": "hep fer ratio liver",
+    "expected_docs": ["hep fer ratio liver"],
+    "expected_headers": ["Introduction", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "liver_disease", "biomarker_framing"],
+    "notes": "Adds an overview/biomarker framing query for the liver study."
+  },
+  {
+    "id": "S1C66",
+    "query": "What threshold or directional pattern in the hepcidin:ferritin ratio did the liver paper report as fibrosis progressed toward cirrhosis?",
+    "doc_id": "hep fer ratio liver",
+    "expected_docs": ["hep fer ratio liver"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "include_tables": true,
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "liver_disease", "fibrosis_trend"],
+    "notes": "Metric-heavy complement to the current fibrosis coverage query."
+  },
+  {
+    "id": "S1C67",
+    "query": "How does the 2016 iron-disorders review describe hepcidin's role in distinguishing iron deficiency anaemia from anemia of chronic disease?",
+    "doc_id": "hep in diagnosis of iron disorders 2016",
+    "expected_docs": ["hep in diagnosis of iron disorders 2016"],
+    "expected_headers": ["Pathophysiological background", "Discussion", "Conclusions", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "iron_disorders", "ida_vs_acd"],
+    "notes": "Direct disambiguation query for IDA-versus-ACD content in the 2016 review."
+  },
+  {
+    "id": "S1C68",
+    "query": "What clinical decision-limit or assay-harmonization problems does the 2016 hepcidin review say must be solved before routine diagnostic use?",
+    "doc_id": "hep in diagnosis of iron disorders 2016",
+    "expected_docs": ["hep in diagnosis of iron disorders 2016"],
+    "expected_headers": ["Conclusions", "Discussion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "iron_disorders", "decision_limits"],
+    "notes": "Conclusion-heavy complement to the current 2016 review coverage."
+  },
+  {
+    "id": "S1C69",
+    "query": "How did serum hepcidin change before, during, or after infection in the febrile-children acute-phase paper?",
+    "doc_id": "hepcidin acute phase",
+    "expected_docs": ["hepcidin acute phase"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "acute_phase", "time_course"],
+    "notes": "Time-course complement to the current pediatric hepcidin coverage."
+  },
+  {
+    "id": "S1C70",
+    "query": "How did the febrile-children study interpret viral-versus-bacterial infection findings in relation to hepcidin as an acute-phase marker?",
+    "doc_id": "hepcidin acute phase",
+    "expected_docs": ["hepcidin acute phase"],
+    "expected_headers": ["Discussion", "Results", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "acute_phase", "infection_interpretation"],
+    "notes": "Discussion-heavy complement to the current acute-phase coverage."
+  },
+  {
+    "id": "S1C71",
+    "query": "What ferritin or regression findings did the CKD hepcidin-25 paper report as the strongest predictors of hepcidin levels?",
+    "doc_id": "hepcidin ckd",
+    "expected_docs": ["hepcidin ckd"],
+    "expected_headers": ["Results", "Discussion", "Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd", "regression"],
+    "notes": "Results-heavy complement emphasizing ferritin and regression outputs."
+  },
+  {
+    "id": "S1C72",
+    "query": "How did the CKD hepcidin-25 paper interpret hepcidin's relevance to iron homeostasis or ESA responsiveness in chronic kidney disease?",
+    "doc_id": "hepcidin ckd",
+    "expected_docs": ["hepcidin ckd"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd", "esa_responsiveness"],
+    "notes": "Interpretive CKD query complementing the current results-oriented coverage."
+  },
+  {
+    "id": "S1C73",
+    "query": "How does the hepcidin diagnostic-tool review explain reduced renal clearance and elevated hepcidin in CKD?",
+    "doc_id": "hepcidin diagnostic tool",
+    "expected_docs": ["hepcidin diagnostic tool"],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd_review", "mechanism"],
+    "notes": "Mechanism-focused complement for the CKD diagnostic-tool review."
+  },
+  {
+    "id": "S1C74",
+    "query": "What therapies or treatment rationale does the hepcidin diagnostic-tool review propose for lowering hepcidin or blocking its action in CKD?",
+    "doc_id": "hepcidin diagnostic tool",
+    "expected_docs": ["hepcidin diagnostic tool"],
+    "expected_headers": ["Discussion", "Conclusion", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "ckd_review", "therapeutic_target"],
+    "notes": "Treatment-oriented complement to the current hepcidin diagnostic-tool coverage."
+  },
+  {
+    "id": "S1C75",
+    "query": "What analytical workflow did the IgA nephropathy paper use to characterize IgA1 hinge-region O-glycopeptides?",
+    "doc_id": "IgaN",
+    "expected_docs": ["IgaN"],
+    "expected_headers": ["Methods", "Materials and Methods", "Introduction"],
+    "labels": ["stage1_coverage", "single_doc", "igan", "glycoforms", "analytical_workflow"],
+    "notes": "Method-focused complement for the IgAN paper."
+  },
+  {
+    "id": "S1C76",
+    "query": "How did the IgA nephropathy paper interpret the biological or diagnostic significance of the glycoform differences it found?",
+    "doc_id": "IgaN",
+    "expected_docs": ["IgaN"],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "labels": ["stage1_coverage", "single_doc", "igan", "glycoforms", "interpretation"],
+    "notes": "Discussion-heavy complement to the current IgAN biomarker query."
+  },
+  {
+    "id": "S1C77",
+    "query": "How did the JMSACL paper frame the clinical usefulness of serum hepcidin-25 before presenting the hepcidin:ferritin index findings?",
+    "doc_id": "jmsacl",
+    "expected_docs": ["jmsacl"],
+    "expected_headers": ["Introduction", "Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "jmsacl", "clinical_framing"],
+    "notes": "Overview complement for the JMSACL paper."
+  },
+  {
+    "id": "S1C78",
+    "query": "In what situations did the JMSACL paper suggest hepcidin-25 testing is or is not clinically useful?",
+    "doc_id": "jmsacl",
+    "expected_docs": ["jmsacl"],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "jmsacl", "clinical_utility"],
+    "notes": "Discussion-heavy complement to the current JMSACL index query."
+  },
+  {
+    "id": "S1C79",
+    "query": "How did the JOGC fibronectin paper compare concurrent fetal fibronectin plus phIGFBP-1 testing with simpler point-of-care approaches?",
+    "doc_id": "JOGC fibronectin",
+    "expected_docs": ["JOGC fibronectin"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "preterm_delivery", "testing_strategy", "comparison"],
+    "notes": "Comparison-focused complement to the current JOGC coverage."
+  },
+  {
+    "id": "S1C80",
+    "query": "What rule-out or workflow implication did the JOGC paper suggest for point-of-care testing in symptomatic women at risk of preterm delivery?",
+    "doc_id": "JOGC fibronectin",
+    "expected_docs": ["JOGC fibronectin"],
+    "expected_headers": ["Discussion", "Conclusion", "Results"],
+    "labels": ["stage1_coverage", "single_doc", "preterm_delivery", "workflow", "clinical_utility"],
+    "notes": "Workflow-oriented complement for the JOGC fibronectin paper."
+  },
+  {
+    "id": "S1C81",
+    "query": "What diagnostic limitation of dipstick urinalysis does the Nartey urine lipidomics paper highlight before proposing direct lipidomics screening?",
+    "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+    "expected_docs": ["nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"],
+    "expected_headers": ["Introduction", "Document Metadata/Abstract", "Discussion"],
+    "labels": ["stage1_coverage", "single_doc", "urine", "lipidomics", "urinalysis_limitations"],
+    "notes": "Direct retrieval check for the urinalysis-limitation framing in the Nartey paper."
+  },
+  {
+    "id": "S1C82",
+    "query": "How does the Nartey urine lipidomics paper justify eliminating negative urine cultures from the general-population workflow?",
+    "doc_id": "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+    "expected_docs": ["nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"],
+    "expected_headers": ["Discussion", "Conclusion", "Document Metadata/Abstract"],
+    "labels": ["stage1_coverage", "single_doc", "urine", "lipidomics", "workflow_justification"],
+    "notes": "Workflow-justification complement to the current Nartey coverage."
+  },
+  {
+    "id": "S1C83",
+    "query": "What sample-preparation or cost advantages did the RCM hepcidin assay paper report for clinical measurement?",
+    "doc_id": "RCM publication",
+    "expected_docs": ["RCM publication"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "assay_method", "cost"],
+    "notes": "Adds sample-preparation and cost coverage for the RCM assay paper."
+  },
+  {
+    "id": "S1C84",
+    "query": "How did the RCM publication report reproducibility, recovery, or validation performance for its serum hepcidin assay?",
+    "doc_id": "RCM publication",
+    "expected_docs": ["RCM publication"],
+    "expected_headers": ["Results", "Abstract", "Conclusion"],
+    "labels": ["stage1_coverage", "single_doc", "hepcidin", "assay_validation", "reproducibility"],
+    "notes": "Validation-focused complement to the current RCM assay coverage."
+  },
+  {
+    "id": "S1C85",
+    "query": "Which indexed rapid-diagnostics papers report turnaround or stewardship improvements in bloodstream infection management rather than urine lipidomics or BAL pathogen detection?",
+    "expected_docs": ["RAPID", "Single site RCT"],
+    "expected_headers": ["Results", "Discussion", "Conclusion"],
+    "labels": ["stage1_coverage", "cross_doc", "bloodstream_infection", "rapid_diagnostics", "disambiguation"],
+    "notes": "Cross-document bloodstream-diagnostics query centered on RAPID and the single-site RCT."
+  },
+  {
+    "id": "S1C86",
+    "query": "Which indexed papers discuss FLAT or urine lipidomics workflows rather than blood-culture stewardship reviews or randomized bloodstream-infection trials?",
+    "expected_docs": [
+      "Culture-Free Lipidomics-Based Screening Test",
+      "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Results"],
+    "labels": ["stage1_coverage", "cross_doc", "urine", "lipidomics", "disambiguation"],
+    "notes": "Cross-document urine-lipidomics disambiguation probe."
+  },
+  {
+    "id": "S1C87",
+    "query": "Which indexed reviews focus on diagnostic stewardship or laboratory workup policy rather than primary observational assay cohorts?",
+    "expected_docs": [
+      "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+      "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-"
+    ],
+    "expected_headers": ["Introduction", "Discussion", "Conclusion", "Methods"],
+    "labels": ["stage1_coverage", "cross_doc", "reviews", "diagnostic_policy", "disambiguation"],
+    "notes": "Cross-document review-vs-primary-study probe spanning the stewardship review and the endocarditis laboratory-workup review."
+  },
+  {
+    "id": "S1C88",
+    "query": "Which indexed hepcidin papers are primary observational measurement studies rather than narrative reviews of CKD or iron-disorder diagnosis?",
+    "expected_docs": [
+      "Aune-2020-Optimizing hepcidin measurement with",
+      "hep fer ratio liver",
+      "hepcidin acute phase",
+      "hepcidin ckd",
+      "jmsacl",
+      "RCM publication"
+    ],
+    "expected_headers": ["Abstract", "Results", "Methods", "Introduction"],
+    "labels": ["stage1_coverage", "cross_doc", "hepcidin_cluster", "primary_studies", "disambiguation"],
+    "notes": "Cross-document hepcidin-cluster query separating observational and assay studies from reviews."
   }
 ]

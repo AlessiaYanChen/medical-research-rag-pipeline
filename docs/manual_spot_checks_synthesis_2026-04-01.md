@@ -8,6 +8,10 @@ Source artifact: `data/eval/results/answer_quality_eval_stage1_after_fixes.json`
 
 Note: the environment did not have a live LLM key on `2026-04-07`, so this report was completed from the cached stage-1 synthesis outputs already generated from the same retrieval and reasoning stack used by the UI.
 
+Live rerun note:
+- A fresh Azure OpenAI rerun was completed on `2026-04-07` and written to `data/eval/results/manual_synthesis_spot_checks_stage1_2026-04-07_live.json`.
+- The live rerun matched the recorded gate outcome: `6/8` pass, no hepcidin mis-attribution, with `AQ10` and `AQ13` remaining the watch items.
+
 ## Summary
 
 - Result: `6/8` pass

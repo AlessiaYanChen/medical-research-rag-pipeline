@@ -2,6 +2,11 @@
 
 A modular Retrieval-Augmented Generation (RAG) system for medical research PDFs. The current implementation ingests PDFs, extracts narrative text and tables, normalizes tabular artifacts, chunks documents in a structure-aware way, stores chunks in Qdrant, retrieves evidence from the knowledge base, and optionally synthesizes research answers with an LLM.
 
+Current project focus:
+- the active proving ground is the stage-1 `20`-PDF collection, not broader corpus-scale architecture
+- the next bottleneck is benchmark quality, not raw document-hit retrieval
+- metadata and ingestion hardening now matter more than new retrieval stages
+
 Current benchmark status:
 - retrieval is now tracked on both a stable 26-query benchmark and a broader 43-query expanded benchmark
 - the 26-query `data/eval/sample_queries.json` file remains the stable retrieval baseline; `data/eval/expanded_queries.json` extends coverage for stewardship, review-style, title-query, and table-oriented evaluation
@@ -59,7 +64,8 @@ Current benchmark status:
 - before any further retrieval changes, the repo should diagnose and explain any header-precision or table-hit drift on the stable 26-query and expanded 43-query benchmarks before stacking new behavior on top
 - parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by destabilizing the active `Docling` ingestion path
 - current operational stance: use `Docling` for new ingestion, keep `medical_research_chunks_docling_v1` as the small-corpus active baseline, and keep `Marker` plus `medical_research_chunks_v1` as rollback only
-- the next major step is a controlled corpus-rollout rehearsal, not a broad retrieval-architecture change
+- the next major step is better signal on the current `20`-PDF stage: harder benchmarks, better absent-answer coverage, and stronger ingestion sanity checks
+- with the current `20`-PDF corpus, benchmark expansion and ingestion metadata hardening matter more than new retrieval stages; document-level candidate retrieval remains deferred
 
 ## What It Does
 

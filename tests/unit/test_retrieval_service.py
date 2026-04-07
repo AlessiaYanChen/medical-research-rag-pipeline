@@ -4284,6 +4284,211 @@ def test_retrieval_service_prefers_domain_reviews_over_hepcidin_noise_for_classi
     }
 
 
+def test_retrieval_service_prefers_hepcidin_standardization_paper_for_disambiguation_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-AUNE:P00001:C01",
+            content="This proficiency testing study proposes assay standardization across laboratories using a high-level calibrator and reference material.",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE:P00001",
+                    "parent_content": "This proficiency testing study proposes assay standardization across laboratories using a high-level calibrator and reference material.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-JMSACL:P00001:C01",
+            content="This observational paper interprets hepcidin-25 in renal dysfunction and inflammation.",
+            metadata=ChunkMetadata(
+                doc_id="jmsacl",
+                chunk_type="text",
+                parent_header="2. Materials and Methods",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-JMSACL:P00001",
+                    "parent_content": "This observational paper interprets hepcidin-25 in renal dysfunction and inflammation.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCM:P00001:C01",
+            content="We developed an HPLC/MS/MS assay with simple sample preparation for hepcidin measurement.",
+            metadata=ChunkMetadata(
+                doc_id="RCM publication",
+                chunk_type="text",
+                parent_header="5 | RESULTS AND DISCUSSION",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCM:P00001",
+                    "parent_content": "We developed an HPLC/MS/MS assay with simple sample preparation for hepcidin measurement.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which hepcidin paper in the indexed set focuses on proficiency testing and assay standardization rather than CKD pathophysiology or assay implementation?",
+        limit=3,
+    )
+
+    assert result[0].doc_id == "Aune-2020-Optimizing hepcidin measurement with"
+
+
+def test_retrieval_service_prefers_bloodstream_rapid_diagnostics_over_urine_or_bal_noise() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="The single-site randomized trial reduced vancomycin exposure and improved escalation and de-escalation timing in bloodstream infection management.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "The single-site randomized trial reduced vancomycin exposure and improved escalation and de-escalation timing in bloodstream infection management.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="RAPID improved organism ID and phenotypic AST turnaround compared with standard of care in bloodstream infection.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "RAPID improved organism ID and phenotypic AST turnaround compared with standard of care in bloodstream infection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-FLAT:P00001:C01",
+            content="The FLAT assay detects urine lipidomics biomarkers for direct pathogen detection.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-FLAT:P00001",
+                    "parent_content": "The FLAT assay detects urine lipidomics biomarkers for direct pathogen detection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="PCR/ESI-MS enables BAL pathogen detection directly from bronchoalveolar lavage samples.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "PCR/ESI-MS enables BAL pathogen detection directly from bronchoalveolar lavage samples.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed rapid-diagnostics papers report turnaround or stewardship improvements in bloodstream infection management rather than urine lipidomics or BAL pathogen detection?",
+        limit=4,
+    )
+
+    assert set(chunk.doc_id for chunk in result[:2]) == {"Single site RCT", "RAPID"}
+
+
+def test_retrieval_service_prefers_review_policy_docs_over_primary_study_noise() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-FABRE:P00001:C01",
+            content="This review discusses diagnostic stewardship and blood culture utilization in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-FABRE:P00001",
+                    "parent_content": "This review discusses diagnostic stewardship and blood culture utilization in the hospital setting.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-IJGM:P00001:C01",
+            content="We reviewed the laboratory workup for blood culture-negative endocarditis and diagnostic approaches.",
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-IJGM:P00001",
+                    "parent_content": "We reviewed the laboratory workup for blood culture-negative endocarditis and diagnostic approaches.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="This randomized trial reports patient outcomes and stewardship timing changes.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "This randomized trial reports patient outcomes and stewardship timing changes.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed reviews focus on diagnostic stewardship or laboratory workup policy rather than primary observational assay cohorts?",
+        limit=3,
+    )
+
+    assert [chunk.doc_id for chunk in result[:2]] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    ]
+
+
 def test_retrieval_service_allows_linked_table_references_for_explicit_table_queries() -> None:
     chunks = [
         Chunk(

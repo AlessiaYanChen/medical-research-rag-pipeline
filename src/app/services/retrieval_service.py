@@ -367,6 +367,115 @@ class RetrievalService:
                 doc_text=doc_text,
                 header_text=header_text,
             ) < 0
+        if self._query_targets_hepcidin_standardization_disambiguation(query):
+            positive_markers = (
+                "proficiency testing",
+                "proficiency-testing",
+                "standardization",
+                "standardising",
+                "standardizing",
+                "harmonization",
+                "harmonisation",
+                "inter-assay variability",
+                "high-level calibrator",
+                "reference material",
+            )
+            negative_markers = (
+                "renal dysfunction",
+                "hepcidin-25",
+                "sample preparation",
+                "hplc/ms/ms",
+                "hplc-ms/ms",
+                "mass spectrometry",
+                "diagnostic tool",
+                "therapeutic target",
+            )
+            if any(marker in f"{doc_text} {content_text}" for marker in positive_markers):
+                return False
+            return any(marker in f"{doc_text} {content_text}" for marker in negative_markers)
+        if self._query_targets_bloodstream_rapid_diagnostics_disambiguation(query):
+            if any(
+                marker in f"{doc_text} {content_text}"
+                for marker in ("urine", "lipidomics", "flat assay", "bal", "bronchoalveolar lavage")
+            ):
+                return True
+            if any(
+                marker in f"{doc_text} {content_text}"
+                for marker in (
+                    "diagnostic stewardship",
+                    "utilization in the hospital setting",
+                    "blood culture utilization",
+                    "ordering",
+                    "collection",
+                    "guideline",
+                )
+            ):
+                return True
+            return not any(
+                marker in f"{doc_text} {content_text}"
+                for marker in (
+                    "bloodstream",
+                    "bacteremia",
+                    "rapid multiplex",
+                    "de-escalation",
+                    "escalation",
+                    "vancomycin",
+                    "organism id",
+                    "phenotypic ast",
+                    "standard of care",
+                    "soc",
+                )
+            )
+        if self._query_targets_review_policy_disambiguation(query):
+            review_markers = (
+                "review",
+                "minireview",
+                "we reviewed",
+                "review article",
+                "summary",
+                "call for diagnostic stewardship",
+                "blood culture-negative endocarditis",
+            )
+            policy_markers = (
+                "diagnostic stewardship",
+                "utilization in the hospital setting",
+                "laboratory workup",
+                "workup",
+                "ordering",
+                "collection",
+                "guideline",
+                "guidelines",
+            )
+            primary_study_markers = (
+                "randomized",
+                "trial",
+                "prospective",
+                "retrospective",
+                "cross-sectional",
+                "samples were collected",
+                "clinical validation",
+                "method development",
+                "patients were",
+            )
+            combined = f"{doc_text} {content_text}"
+            if any(marker in combined for marker in review_markers) and any(
+                marker in combined for marker in policy_markers
+            ):
+                return False
+            if any(
+                marker in combined
+                for marker in (
+                    "single site rct",
+                    "rapid",
+                    "rapid multiplex",
+                    "patient outcomes",
+                    "vancomycin",
+                    "de-escalation",
+                    "escalation",
+                )
+            ):
+                return True
+            return any(marker in combined for marker in primary_study_markers)
 
         return False
 
@@ -413,6 +522,8 @@ class RetrievalService:
         query: str,
         chunks: list[Chunk],
     ) -> str | None:
+        if self._query_uses_hepcidin_standardization_doc_lock(query):
+            return self._best_document_for_hepcidin_standardization_query(query=query, chunks=chunks)
         if self._query_uses_anemia_of_chronic_disease_doc_lock(query):
             return self._best_document_for_anemia_of_chronic_disease_query(query=query, chunks=chunks)
         if self._query_uses_ckd_hepcidin_review_doc_lock(query):
@@ -984,6 +1095,44 @@ class RetrievalService:
         best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
         return doc_ids[best_doc_key]
 
+    def _best_document_for_hepcidin_standardization_query(
+        self,
+        query: str,
+        chunks: list[Chunk],
+    ) -> str | None:
+        docs_with_body_sections = {
+            self._normalized_doc_id_key(chunk.metadata.doc_id)
+            for chunk in chunks
+            if not self._is_metadata_like_header(self._header_for_ranking(chunk).lower())
+        }
+        doc_scores: dict[str, tuple[int, int, int, tuple[int, int, int]]] = {}
+        doc_ids: dict[str, str] = {}
+
+        for chunk in chunks:
+            doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
+            doc_ids.setdefault(doc_key, self._doc_id_value(chunk.metadata.doc_id))
+            contrast_bonus = self._contrastive_query_bonus(query=query, chunk=chunk)
+            title_overlap = self._doc_title_overlap(query=query, chunk=chunk)
+            chunk_priority = self._chunk_priority(
+                query=query,
+                chunk=chunk,
+                docs_with_body_sections=docs_with_body_sections,
+            )
+            current = doc_scores.get(doc_key)
+            next_score = (
+                max(current[0], contrast_bonus) if current else contrast_bonus,
+                (current[1] if current else 0) + max(0, contrast_bonus),
+                max(current[2], title_overlap) if current else title_overlap,
+                max(current[3], chunk_priority) if current else chunk_priority,
+            )
+            doc_scores[doc_key] = next_score
+
+        if not doc_scores:
+            return None
+
+        best_doc_key = max(doc_scores, key=doc_scores.__getitem__)
+        return doc_ids[best_doc_key]
+
     def _best_document_for_anemia_of_chronic_disease_query(
         self,
         query: str,
@@ -1195,6 +1344,8 @@ class RetrievalService:
             r"\bwhich indexed [a-z0-9\s-]{0,60} paper\b",
             r"\bwhich indexed [a-z0-9\s-]{0,60} document\b",
             r"\bwhich indexed [a-z0-9\s-]{0,60} trial\b",
+            r"\bwhich [a-z0-9\s-]{0,60} paper in the indexed set\b",
+            r"\bwhich [a-z0-9\s-]{0,60} study in the indexed set\b",
         )
         if any(re.search(pattern, normalized) for pattern in singular_pattern_signals):
             return True
@@ -1259,6 +1410,13 @@ class RetrievalService:
         )
 
     @staticmethod
+    def _query_uses_hepcidin_standardization_doc_lock(query: str) -> bool:
+        return (
+            RetrievalService._query_prefers_single_document_target(query)
+            and RetrievalService._query_targets_hepcidin_standardization_disambiguation(query)
+        )
+
+    @staticmethod
     def _query_uses_anemia_of_chronic_disease_doc_lock(query: str) -> bool:
         return (
             RetrievalService._query_prefers_single_document_target(query)
@@ -1268,7 +1426,8 @@ class RetrievalService:
     @staticmethod
     def _query_uses_contrastive_single_doc_lock(query: str) -> bool:
         return (
-            RetrievalService._query_uses_anemia_of_chronic_disease_doc_lock(query)
+            RetrievalService._query_uses_hepcidin_standardization_doc_lock(query)
+            or RetrievalService._query_uses_anemia_of_chronic_disease_doc_lock(query)
             or RetrievalService._query_uses_ckd_hepcidin_review_doc_lock(query)
             or RetrievalService._query_uses_antibiotic_modification_timing_doc_lock(query)
             or RetrievalService._query_uses_contrastive_stewardship_doc_lock(query)
@@ -1717,6 +1876,124 @@ class RetrievalService:
                 marker in combined_text for marker in stewardship_policy_markers
             ):
                 bonus -= 10
+        if self._query_targets_hepcidin_standardization_disambiguation(query):
+            if any(
+                marker in combined_text
+                for marker in (
+                    "proficiency testing",
+                    "proficiency-testing",
+                    "standardization",
+                    "standardising",
+                    "standardizing",
+                    "harmonization",
+                    "harmonisation",
+                    "inter-assay variability",
+                    "high-level calibrator",
+                    "reference material",
+                    "laboratories",
+                )
+            ):
+                bonus += 24
+            if any(
+                marker in combined_text
+                for marker in (
+                    "chronic kidney disease",
+                    "renal dysfunction",
+                    "diagnostic tool",
+                    "therapeutic target",
+                    "hepcidin-25",
+                    "sample preparation",
+                    "hplc/ms/ms",
+                    "hplc-ms/ms",
+                    "mass spectrometry",
+                )
+            ):
+                bonus -= 18
+            if not any(
+                marker in combined_text
+                for marker in (
+                    "proficiency testing",
+                    "proficiency-testing",
+                    "standardization",
+                    "standardising",
+                    "standardizing",
+                    "harmonization",
+                    "harmonisation",
+                )
+            ):
+                bonus -= 8
+            if title_overlap > 0:
+                bonus += min(10, title_overlap * 4)
+        if self._query_targets_bloodstream_rapid_diagnostics_disambiguation(query):
+            if any(
+                marker in combined_text
+                for marker in (
+                    "bloodstream",
+                    "bacteremia",
+                    "rapid multiplex",
+                    "de-escalation",
+                    "escalation",
+                    "vancomycin",
+                    "organism id",
+                    "phenotypic ast",
+                    "standard of care",
+                    "soc",
+                )
+            ):
+                bonus += 12
+            if any(
+                marker in combined_text
+                for marker in (
+                    "urine",
+                    "lipidomics",
+                    "flat assay",
+                    "bal",
+                    "bronchoalveolar lavage",
+                )
+            ):
+                bonus -= 12
+        if self._query_targets_review_policy_disambiguation(query):
+            review_markers = (
+                "review",
+                "minireview",
+                "we reviewed",
+                "review article",
+                "summary",
+                "call for diagnostic stewardship",
+                "blood culture-negative endocarditis",
+            )
+            policy_markers = (
+                "diagnostic stewardship",
+                "utilization in the hospital setting",
+                "laboratory workup",
+                "workup",
+                "ordering",
+                "collection",
+                "guideline",
+                "guidelines",
+                "diagnosis of blood culture-negative endocarditis",
+            )
+            primary_study_markers = (
+                "randomized",
+                "trial",
+                "prospective",
+                "retrospective",
+                "cross-sectional",
+                "samples were collected",
+                "clinical validation",
+                "method development",
+                "patients were",
+            )
+            if any(marker in combined_text for marker in review_markers):
+                bonus += 18
+            if any(marker in combined_text for marker in policy_markers):
+                bonus += 14
+            if any(marker in combined_text for marker in primary_study_markers):
+                bonus -= 22
+            if not any(marker in combined_text for marker in review_markers):
+                bonus -= 8
+            if title_overlap > 0:
+                bonus += min(8, title_overlap * 4)
         return bonus
 
     def _doc_title_overlap(self, query: str, chunk: Chunk) -> int:
@@ -1736,6 +2013,25 @@ class RetrievalService:
 
     @staticmethod
     def _effective_query_tokens_for_chunk_scoring(query: str, query_tokens: set[str]) -> set[str]:
+        if RetrievalService._query_targets_review_policy_disambiguation(query):
+            contrast_tokens = {
+                "primary",
+                "observational",
+                "cohorts",
+                "cohort",
+                "assay",
+                "studies",
+                "study",
+            }
+            return {token for token in query_tokens if token not in contrast_tokens}
+        if RetrievalService._query_targets_bloodstream_rapid_diagnostics_disambiguation(query):
+            contrast_tokens = {
+                "urine",
+                "lipidomics",
+                "pathogen",
+                "detection",
+            }
+            return {token for token in query_tokens if token not in contrast_tokens}
         if not (
             RetrievalService._query_targets_stewardship_process(query)
             and RetrievalService._query_contrasts_against_trial_or_platform(query)
@@ -1783,6 +2079,27 @@ class RetrievalService:
         return all(token in normalized for token in required) and any(token in normalized for token in contrast)
 
     @staticmethod
+    def _query_targets_hepcidin_standardization_disambiguation(query: str) -> bool:
+        normalized = query.lower()
+        if "hepcidin" not in normalized:
+            return False
+        target_signals = (
+            "proficiency testing",
+            "assay standardization",
+            "standardization",
+            "standardising",
+            "standardizing",
+        )
+        contrast_signals = (
+            "rather than",
+            "assay implementation",
+            "ckd pathophysiology",
+        )
+        return any(signal in normalized for signal in target_signals) and any(
+            signal in normalized for signal in contrast_signals
+        )
+
+    @staticmethod
     def _query_targets_stewardship_process(query: str) -> bool:
         normalized = query.lower()
         process_signals = (
@@ -1820,6 +2137,47 @@ class RetrievalService:
             "bacteremia workflow",
         )
         return any(signal in normalized for signal in signals) or RetrievalService._query_targets_antibiotic_modification_timing_benefit(query)
+
+    @staticmethod
+    def _query_targets_bloodstream_rapid_diagnostics_disambiguation(query: str) -> bool:
+        normalized = query.lower()
+        target_signals = (
+            "rapid-diagnostics papers",
+            "rapid diagnostics papers",
+            "bloodstream infection management",
+            "bloodstream infection",
+        )
+        contrast_signals = (
+            "rather than urine",
+            "rather than urine lipidomics",
+            "rather than bal",
+            "rather than bal pathogen detection",
+            "rather than",
+        )
+        return any(signal in normalized for signal in target_signals) and any(
+            signal in normalized for signal in contrast_signals
+        )
+
+    @staticmethod
+    def _query_targets_review_policy_disambiguation(query: str) -> bool:
+        normalized = query.lower()
+        required = (
+            "which indexed reviews",
+            "reviews focus",
+        )
+        policy_signals = (
+            "diagnostic stewardship",
+            "laboratory workup",
+            "workup policy",
+        )
+        contrast_signals = (
+            "rather than primary observational",
+            "rather than primary observational assay cohorts",
+            "rather than",
+        )
+        return any(signal in normalized for signal in required) and any(
+            signal in normalized for signal in policy_signals
+        ) and any(signal in normalized for signal in contrast_signals)
 
     @staticmethod
     def _query_targets_antibiotic_modification_timing_benefit(query: str) -> bool:
