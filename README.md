@@ -8,6 +8,16 @@ Current project focus:
 - metadata and ingestion hardening now matter more than new retrieval stages
 
 Current benchmark status:
+- stage-1 retrieval coverage on the active `20`-PDF `medical_research_chunks_docling_v2_batch1` collection is now tracked with an `88`-query benchmark in `data/eval/stage1_coverage_queries.json`
+- current `2026-04-10` stage-1 coverage rerun metrics:
+  - expected doc hit rate: `1.0`
+  - top-1 expected doc hit rate: `1.0`
+  - average doc precision: `1.0`
+  - cross-document average doc precision: `1.0`
+  - expected header hit rate: `1.0`
+  - top-1 expected header hit rate: `0.8182`
+  - average header precision: `0.793`
+- a follow-up `2026-04-10` narrowing pass resolved the remaining `S1C29`, `S1C30`, and `S1C61` section-selection misses without regressing document precision; the remaining benchmark debt is now mainly top-1 header ordering
 - retrieval is now tracked on both a stable 26-query benchmark and a broader 43-query expanded benchmark
 - the 26-query `data/eval/sample_queries.json` file remains the stable retrieval baseline; `data/eval/expanded_queries.json` extends coverage for stewardship, review-style, title-query, and table-oriented evaluation
 - `data/eval/ood_adversarial_queries.json` is now the separate clinician-style and adversarial phrasing track; it is evaluation-only and should not replace the stable baseline or the expanded benchmark

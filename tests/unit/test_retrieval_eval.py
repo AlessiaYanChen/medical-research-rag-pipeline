@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from src.app.evaluation.retrieval_eval import (
+    EvaluationQuery,
     build_summary,
     evaluate_retrieval_results,
     load_evaluation_queries,
@@ -94,6 +95,70 @@ def test_evaluate_retrieval_results_counts_noise_and_duplicates(tmp_path: Path) 
     assert evaluation["duplicate_hits"] == 1
     assert evaluation["non_structural_header_hits"] == 1
     assert evaluation["non_structural_headers"] == ["PCR/ESI-MS allows detection of non-cultivable and fastidious pathogens"]
+
+
+def test_evaluate_retrieval_results_matches_numbered_and_compound_headers() -> None:
+    query = EvaluationQuery(
+        id="Q02",
+        query="What did the study report?",
+        expected_docs=("DOC-1",),
+        expected_headers=("Results", "Discussion", "Conclusion"),
+    )
+
+    chunks = [
+        RetrievedChunk(
+            source="5 | RESULTS AND DISCUSSION",
+            doc_id="DOC-1",
+            content="The primary outcome improved after intervention.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="6. Conclusions",
+            doc_id="DOC-1",
+            content="The intervention appears useful.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="2. Materials and Methods",
+            doc_id="DOC-1",
+            content="This section describes the study design.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+
+    evaluation = evaluate_retrieval_results(query, chunks)
+
+    assert evaluation["expected_header_hit"] is True
+    assert evaluation["top1_expected_header_hit"] is True
+    assert evaluation["header_precision"] == 0.6667
+
+
+def test_evaluate_retrieval_results_treats_summary_as_abstract() -> None:
+    query = EvaluationQuery(
+        id="Q03",
+        query="What is the paper about?",
+        expected_docs=("DOC-1",),
+        expected_headers=("Abstract",),
+    )
+
+    chunks = [
+        RetrievedChunk(
+            source="SUMMARY",
+            doc_id="DOC-1",
+            content="This review summarizes current laboratory stewardship practice.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+
+    evaluation = evaluate_retrieval_results(query, chunks)
+
+    assert evaluation["expected_header_hit"] is True
+    assert evaluation["top1_expected_header_hit"] is True
+    assert evaluation["header_precision"] == 1.0
 
 
 def test_build_summary_aggregates_query_metrics() -> None:

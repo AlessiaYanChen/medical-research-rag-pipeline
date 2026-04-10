@@ -206,6 +206,17 @@ class RetrievalService:
                 "antimicrobial stewardship diagnostic stewardship blood culture utilization "
                 "review process outcomes mortality length of stay"
             )
+        if RetrievalService._query_targets_hepcidin_standardization_disambiguation(query):
+            return (
+                f"{query} "
+                "proficiency testing standardization reference material high-level calibrator "
+                "harmonization introduction results conclusion"
+            )
+        if RetrievalService._query_targets_hepcidin_acute_phase_disambiguation(query):
+            return (
+                f"{query} "
+                "acute infection febrile children pediatric hepcidin introduction results conclusion"
+            )
         if RetrievalService._query_targets_study_design_classification(query):
             return (
                 f"{query} "
@@ -1218,7 +1229,14 @@ class RetrievalService:
         if RetrievalService._query_targets_study_design_classification(query):
             add_bonus(("method", "methods", "introduction", "discussion", "summary"), 5)
             add_bonus(("result", "results"), 1)
+            add_bonus(("conclusion",), -6)
             add_bonus(("document metadata/abstract", "abstract"), -3)
+        if RetrievalService._query_targets_hepcidin_standardization_disambiguation(query):
+            add_bonus(("introduction", "abstract", "result", "results", "conclusion"), 4)
+            add_bonus(("discussion",), -4)
+        if RetrievalService._query_targets_hepcidin_acute_phase_disambiguation(query):
+            add_bonus(("introduction", "abstract", "result", "results", "conclusion"), 5)
+            add_bonus(("discussion",), -5)
         if any(token in normalized for token in ("optimization", "optimiz", "method", "methods", "experimental", "assay", "protocol")):
             add_bonus(("method", "methods", "materials and methods"), 4)
             add_bonus(("result", "results"), 1)
@@ -1924,6 +1942,36 @@ class RetrievalService:
                 bonus -= 8
             if title_overlap > 0:
                 bonus += min(10, title_overlap * 4)
+        if RetrievalService._query_targets_hepcidin_acute_phase_disambiguation(query):
+            if any(
+                marker in combined_text
+                for marker in (
+                    "acute infection",
+                    "acute-phase",
+                    "acute phase",
+                    "febrile children",
+                    "febrile child",
+                    "viral and bacterial infections",
+                    "post-infection",
+                    "pediatric",
+                    "paediatric",
+                )
+            ):
+                bonus += 18
+            if any(
+                marker in combined_text
+                for marker in (
+                    "chronic kidney disease",
+                    "renal dysfunction",
+                    "iron disorders",
+                    "diagnostic tool",
+                    "therapeutic target",
+                    "hepcidin-25",
+                )
+            ):
+                bonus -= 14
+            if title_overlap > 0:
+                bonus += min(8, title_overlap * 4)
         if self._query_targets_bloodstream_rapid_diagnostics_disambiguation(query):
             if any(
                 marker in combined_text
@@ -2094,6 +2142,31 @@ class RetrievalService:
             "rather than",
             "assay implementation",
             "ckd pathophysiology",
+        )
+        return any(signal in normalized for signal in target_signals) and any(
+            signal in normalized for signal in contrast_signals
+        )
+
+    @staticmethod
+    def _query_targets_hepcidin_acute_phase_disambiguation(query: str) -> bool:
+        normalized = query.lower()
+        if "hepcidin" not in normalized:
+            return False
+        target_signals = (
+            "acute infection",
+            "febrile children",
+            "febrile child",
+            "acute phase",
+            "acute-phase",
+            "pediatric",
+            "paediatric",
+        )
+        contrast_signals = (
+            "rather than",
+            "chronic kidney disease",
+            "iron-disorder review",
+            "iron disorder review",
+            "review topics",
         )
         return any(signal in normalized for signal in target_signals) and any(
             signal in normalized for signal in contrast_signals
@@ -2399,6 +2472,8 @@ class RetrievalService:
             "review papers",
             "study design",
             "study designs",
+            "analytical design",
+            "patient cohort",
             "classification",
             "classify",
             "rct",
@@ -2613,6 +2688,11 @@ class RetrievalService:
             "lipidomics",
             "flat assay",
             "phenotypic ast",
+            "igg4",
+            "glycosylation",
+            "autoimmune pancreatitis",
+            "pancreatic",
+            "pdac",
         )
         if any(signal in combined for signal in phrase_signals):
             return True

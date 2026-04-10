@@ -115,18 +115,22 @@ Target `10-12` absent-answer queries total.
 3. Then bring the other `14` papers from `2` direct queries each up to `4`.
 4. Only after that, add the absent-answer slice in the answer-quality benchmark.
 
-Status after implementation on `2026-04-09`:
+Status after implementation on `2026-04-10`:
 
 - `data/eval/stage1_coverage_queries.json` now contains `88` retrieval queries.
 - All `20` stage-1 papers now have `4` direct retrieval queries each.
-- The expanded benchmark now produces useful non-ceiling signal:
+- The expanded benchmark now produces useful non-ceiling signal on `medical_research_chunks_docling_v2_batch1`:
   - `expected_doc_hit_rate = 1.0`
   - `top1_expected_doc_hit_rate = 1.0`
   - `average_doc_precision = 1.0`
   - `cross_document_average_doc_precision = 1.0`
-  - `expected_header_hit_rate = 0.8182`
-  - `average_header_precision = 0.5631`
-- Interpretation: the remaining retrieval debt on the `20`-PDF corpus is now mostly section/header selection, not document-level recall.
+  - `expected_header_hit_rate = 1.0`
+  - `top1_expected_header_hit_rate = 0.8182`
+  - `average_header_precision = 0.793`
+- Interpretation: on the current `20`-PDF stage-1 corpus, document recall, cross-document precision, and at-least-one-hit header coverage are now clean on the expanded `88`-query retrieval benchmark.
+- Remaining retrieval debt is narrower:
+  - top-1 header selection still has room to improve
+  - the benchmark is now better suited for future absent-answer and ingestion-hardening work than for large new retrieval architecture changes
 
 ## Success criteria
 

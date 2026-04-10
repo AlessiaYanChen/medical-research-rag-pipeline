@@ -4346,6 +4346,151 @@ def test_retrieval_service_prefers_hepcidin_standardization_paper_for_disambigua
     assert result[0].doc_id == "Aune-2020-Optimizing hepcidin measurement with"
 
 
+def test_retrieval_service_prefers_non_discussion_chunk_for_hepcidin_standardization_disambiguation() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-AUNE-INTRO:P00001:C01",
+            content="Introduction to a proficiency testing framework for hepcidin assay standardization across laboratories.",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE-INTRO:P00001",
+                    "parent_content": "Introduction to a proficiency testing framework for hepcidin assay standardization across laboratories.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-AUNE-DISC:P00002:C01",
+            content="Discussion of worldwide standardization enabled by a two-level commutable reference material.",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE-DISC:P00002",
+                    "parent_content": "Discussion of worldwide standardization enabled by a two-level commutable reference material.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which hepcidin paper in the indexed set focuses on proficiency testing and assay standardization rather than CKD pathophysiology or assay implementation?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("Aune-2020-Optimizing hepcidin measurement with", "Introduction"),
+    ]
+
+
+def test_retrieval_service_prefers_non_discussion_chunk_for_hepcidin_acute_phase_disambiguation() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-ACUTE-INTRO:P00001:C01",
+            content="Introduction to serum hepcidin as an acute phase marker in febrile children with infection.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ACUTE-INTRO:P00001",
+                    "parent_content": "Introduction to serum hepcidin as an acute phase marker in febrile children with infection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-ACUTE-DISC:P00002:C01",
+            content="Discussion of hepcidin rising during acute infection and falling post-infection in children.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ACUTE-DISC:P00002",
+                    "parent_content": "Discussion of hepcidin rising during acute infection and falling post-infection in children.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed hepcidin paper is about acute infection in febrile children rather than chronic kidney disease or iron-disorder review topics?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("hepcidin acute phase", "Introduction"),
+    ]
+
+
+def test_retrieval_service_prefers_methods_for_single_doc_cohort_or_design_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-CHEN-METHODS:P00001:C01",
+            content="Patients and methods. We analyzed a cohort of healthy controls, PDAC, and autoimmune pancreatitis patients using an UHPLC-MS/MS workflow for IgG4 glycosylation.",
+            metadata=ChunkMetadata(
+                doc_id="Chen_Michael_IntJMolSci_2021",
+                chunk_type="text",
+                parent_header="Materials and Methods",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CHEN-METHODS:P00001",
+                    "parent_content": "Patients and methods. We analyzed a cohort of healthy controls, PDAC, and autoimmune pancreatitis patients using an UHPLC-MS/MS workflow for IgG4 glycosylation.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CHEN-CONC:P00002:C01",
+            content="The developed method generated IgG4 glycosylation profiles that separated AIP from comparator groups.",
+            metadata=ChunkMetadata(
+                doc_id="Chen_Michael_IntJMolSci_2021",
+                chunk_type="text",
+                parent_header="5. Conclusions",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CHEN-CONC:P00002",
+                    "parent_content": "The developed method generated IgG4 glycosylation profiles that separated AIP from comparator groups.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What patient cohort or analytical design did the Chen IgG4 glycosylation study use for autoimmune pancreatitis?",
+        doc_id="Chen_Michael_IntJMolSci_2021",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("Chen_Michael_IntJMolSci_2021", "Materials and Methods"),
+    ]
+
+
 def test_retrieval_service_prefers_bloodstream_rapid_diagnostics_over_urine_or_bal_noise() -> None:
     chunks = [
         Chunk(

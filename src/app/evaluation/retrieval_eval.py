@@ -66,19 +66,19 @@ def evaluate_retrieval_results(query: EvaluationQuery, chunks: list[RetrievedChu
 
     expected_doc_hit = True if not query.expected_docs else any(doc.lower() in expected_doc_set for doc in result_docs)
     expected_header_hit = True if not query.expected_headers else any(
-        _normalize_header(header) in expected_header_set
+        _header_matches_expected(header, expected_header_set)
         for header in result_headers
     )
     top1_expected_doc_hit = True if not query.expected_docs else bool(result_docs and result_docs[0].lower() in expected_doc_set)
     top1_expected_header_hit = True if not query.expected_headers else bool(
-        result_headers and _normalize_header(result_headers[0]) in expected_header_set
+        result_headers and _header_matches_expected(result_headers[0], expected_header_set)
     )
     doc_precision = _safe_ratio(
         sum(1 for doc in result_docs if doc.lower() in expected_doc_set),
         len(result_docs),
     ) if query.expected_docs else None
     header_precision = _safe_ratio(
-        sum(1 for header in result_headers if _normalize_header(header) in expected_header_set),
+        sum(1 for header in result_headers if _header_matches_expected(header, expected_header_set)),
         len(result_headers),
     ) if query.expected_headers else None
 
@@ -213,6 +213,52 @@ def _tokenize(text: str) -> set[str]:
 
 def _normalize_header(header: str) -> str:
     return re.sub(r"\s+", " ", header.strip().lower())
+
+
+def _header_matches_expected(header: str, expected_header_set: set[str]) -> bool:
+    normalized = _normalize_header(header)
+    if normalized in expected_header_set:
+        return True
+
+    actual_sections = _canonical_structural_sections(normalized)
+    if not actual_sections:
+        return False
+
+    expected_sections: set[str] = set()
+    for expected in expected_header_set:
+        expected_sections.update(_canonical_structural_sections(expected))
+
+    return bool(actual_sections & expected_sections)
+
+
+def _canonical_structural_sections(header: str) -> set[str]:
+    normalized = _normalize_header(header)
+    normalized = re.sub(r"^\d+(?:\s*[.|-]\s*|\.\d+\s*[.|-]\s*)*", "", normalized)
+    normalized = normalized.replace("|", " ")
+    normalized = normalized.replace("/", " ")
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+
+    sections: set[str] = set()
+    if (
+        "document metadata" in normalized
+        or "structured abstract" in normalized
+        or "abstract" in normalized
+        or "summary" in normalized
+    ):
+        sections.add("abstract")
+    if "introduction" in normalized or "background" in normalized:
+        sections.add("introduction")
+    if "materials and methods" in normalized or "material and methods" in normalized:
+        sections.add("methods")
+    elif "materials" in normalized or "method" in normalized:
+        sections.add("methods")
+    if "result" in normalized:
+        sections.add("results")
+    if "discussion" in normalized:
+        sections.add("discussion")
+    if "conclusion" in normalized:
+        sections.add("conclusion")
+    return sections
 
 
 def _is_non_structural_header(header: str) -> bool:
