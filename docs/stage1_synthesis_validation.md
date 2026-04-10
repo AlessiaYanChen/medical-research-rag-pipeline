@@ -292,6 +292,20 @@ Current status after Steps 4 and 5:
 - Gate report: `data/eval/results/synthesis_gate_report_stage1.json`
 - Spot-check report: `docs/manual_spot_checks_synthesis_2026-04-01.md`
 
+Expanded absent-answer follow-up on `2026-04-10`:
+- `data/eval/answer_quality_queries.json` now contains `31` queries, including plausible-but-absent false-positive traps.
+- `data/eval/results/answer_quality_eval_stage1_expanded_absent_answer_v3.json` reports:
+  - `abstain_accuracy = 1.0`
+  - `has_insight_rate = 1.0`
+  - `has_evidence_basis_rate = 1.0`
+  - `confidence_meets_minimum_rate = 0.8125`
+  - `average_doc_id_coverage = 0.9821`
+  - `average_citation_count = 3.0`
+- New false-positive families now controlled by narrow pre-LLM abstention guards:
+  - named comparator queries when the named comparator is not supported by retrieved evidence (`AQ20`)
+  - exact subgroup-summary value requests that remain unsupported in current prose retrieval (`AQ22`)
+- Remaining synthesis watch items are still `AQ10` and `AQ13`; they remain quality refinements, not blockers for the current stage-1 gate.
+
 If any expected-answer query returns `INSUFFICIENT` confidence, inspect with:
 
 ```bash

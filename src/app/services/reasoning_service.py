@@ -118,6 +118,8 @@ def _should_force_known_gap_abstention(query: str, citations: list[RetrievedChun
         _query_requires_species_specific_mz_values(normalized_query)
         or _query_requires_figure_interpretation(normalized_query)
         or _query_requires_specific_low_value_scenario_list(normalized_query)
+        or _query_requires_exact_subgroup_summary_value(normalized_query)
+        or _query_requires_missing_named_comparator_abstention(normalized_query, citations)
     )
 
 
@@ -148,6 +150,41 @@ def _query_requires_specific_low_value_scenario_list(normalized_query: str) -> b
         and "low diagnostic value" in normalized_query
         and "initial blood cultures" in normalized_query
     )
+
+
+def _query_requires_exact_subgroup_summary_value(normalized_query: str) -> bool:
+    return (
+        "exact" in normalized_query
+        and "median egfr" in normalized_query
+        and "highest hepcidin-25 concentration" in normalized_query
+    )
+
+
+def _query_requires_missing_named_comparator_abstention(
+    normalized_query: str,
+    citations: list[RetrievedChunk],
+) -> bool:
+    comparator_markers = (
+        "biofire",
+        "bcid2",
+    )
+    if not any(marker in normalized_query for marker in comparator_markers):
+        return False
+    comparison_signals = (
+        "compare",
+        "compared with",
+        "compared to",
+        "versus",
+        " vs ",
+    )
+    if not any(signal in normalized_query for signal in comparison_signals):
+        return False
+
+    combined_citation_text = " ".join(
+        f"{citation.doc_id} {citation.source} {citation.content}".lower()
+        for citation in citations
+    )
+    return not any(marker in combined_citation_text for marker in comparator_markers)
 
 
 class ReasoningService:

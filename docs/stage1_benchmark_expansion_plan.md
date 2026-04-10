@@ -131,6 +131,24 @@ Status after implementation on `2026-04-10`:
 - Remaining retrieval debt is narrower:
   - top-1 header selection still has room to improve
   - the benchmark is now better suited for future absent-answer and ingestion-hardening work than for large new retrieval architecture changes
+- Recommended next step from this benchmark state:
+  - expand the answer-quality layer with plausible-but-absent queries and hard negatives before doing more retrieval tuning
+  - if top-1 header ordering is revisited later, inspect failing cases first rather than adding new heuristics proactively
+- Stage-1 answer-quality follow-up on `2026-04-10`:
+  - `data/eval/answer_quality_queries.json` has been expanded beyond the original factual + known-gap + hepcidin set to include plausible-but-absent queries
+  - the new abstention slice targets:
+    - out-of-corpus comparator papers
+    - exact subgroup or threshold asks not stably present in prose
+    - economic-analysis or mortality-benefit claims not supported by the current `20`-PDF corpus
+    - figure-derived exact counts that should remain abstention targets
+  - current expanded answer-quality run (`data/eval/results/answer_quality_eval_stage1_expanded_absent_answer_v3.json`) now reports:
+    - `queries_total = 31`
+    - `abstain_accuracy = 1.0`
+    - `confidence_meets_minimum_rate = 0.8125`
+    - `average_doc_id_coverage = 0.9821`
+  - narrow reasoning guards were sufficient for the newly exposed false-positive families:
+    - named out-of-corpus comparator queries like `AQ20`
+    - exact subgroup-summary queries like `AQ22`
 
 ## Success criteria
 

@@ -175,5 +175,101 @@
     "expected_confidence_min": "MEDIUM",
     "expected_doc_ids": ["hep anemia"],
     "notes": "hepcidin disambiguation - mapped to the anaemia-focused hepcidin paper in the stage-1 collection."
+  },
+  {
+    "id": "AQ20",
+    "query": "How did RAPID compare with the BioFire BCID2 platform for organism identification turnaround time?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent cross-paper comparison. RAPID is in corpus, but a BCID2 comparison paper is not."
+  },
+  {
+    "id": "AQ21",
+    "query": "What was the exact number of febrile children with bacterial infection versus viral infection in the pediatric hepcidin study cohort?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent subgroup-count query. The pediatric hepcidin paper is in corpus, but this exact subgroup count is not expected to be stable in prose."
+  },
+  {
+    "id": "AQ22",
+    "query": "What was the exact median eGFR of the subgroup with the highest hepcidin-25 concentration in the CKD hepcidin paper?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent subgroup-summary query. The CKD paper is indexed, but this exact subgroup statistic should not be answerable reliably from current prose chunks."
+  },
+  {
+    "id": "AQ23",
+    "query": "Which paper in the indexed set shows a reduction in 30-day mortality from rapid bloodstream diagnostics in ICU patients?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent outcome query. The corpus discusses stewardship and turnaround benefits, not an ICU-specific 30-day mortality reduction paper."
+  },
+  {
+    "id": "AQ24",
+    "query": "What was the exact sensitivity and specificity of FLAT for Enterococcus faecalis at the optimized lysozyme setting?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent exact metric query. This asks for species-level performance values that are not expected to be reliably available in prose."
+  },
+  {
+    "id": "AQ25",
+    "query": "Which indexed paper reports pediatric reference intervals for serum hepcidin in healthy controls?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent navigation query. The hepcidin papers cover acute infection, CKD, and diagnostic interpretation, not pediatric reference-interval establishment."
+  },
+  {
+    "id": "AQ26",
+    "query": "How did the Fabre stewardship review compare blood culture overuse rates before and after a hospital intervention program?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent before/after intervention query. Fabre is a stewardship review, not a pre/post intervention cohort with a stable overuse-rate estimate."
+  },
+  {
+    "id": "AQ27",
+    "query": "What was the exact false-positive rate of urinalysis for culture-negative urine samples in older adult women according to Nartey et al.?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent subgroup metric query. The urine paper discusses urinalysis limitations broadly, but this age/sex-specific false-positive rate is not a stable corpus answer."
+  },
+  {
+    "id": "AQ28",
+    "query": "Which indexed blood-culture paper includes a cost-effectiveness analysis of antimicrobial stewardship staffing for rapid diagnostics?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent economic-analysis query. The bloodstream papers discuss stewardship and turnaround, not a full staffing cost-effectiveness analysis."
+  },
+  {
+    "id": "AQ29",
+    "query": "What exact IgG4 glycoform percentage threshold separated autoimmune pancreatitis from PDAC in the Chen study?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent exact threshold query. The Chen paper reports cohort differences, but a single threshold value is not expected to be stable in current text chunks."
+  },
+  {
+    "id": "AQ30",
+    "query": "Which indexed paper validates hepcidin against bone marrow iron staining as the gold standard in pregnancy-related anaemia?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent domain-extension query. The current hepcidin cluster does not include a pregnancy-anaemia validation paper with bone marrow iron staining."
+  },
+  {
+    "id": "AQ31",
+    "query": "How many BAL samples had polymicrobial infection by both routine culture and PCR/ESI-MS in Figure 1?",
+    "expected_abstain": true,
+    "expected_confidence_min": null,
+    "expected_doc_ids": [],
+    "notes": "plausible-but-absent figure-derived count query. The BAL paper is indexed, but this exact visual count should remain an abstention target."
   }
 ]

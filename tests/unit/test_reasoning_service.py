@@ -323,6 +323,74 @@ def test_reasoning_service_forces_abstention_for_specific_scenario_list_query() 
     assert llm.last_prompt is None
 
 
+def test_reasoning_service_forces_abstention_for_missing_named_comparator_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="RESULTS",
+            doc_id="RAPID",
+            content="RAPID reduced time to first antibiotic change compared with standard of care.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="RESULTS",
+            doc_id="Single site RCT",
+            content="Rapid multiplex PCR reduced time to organism identification after positive Gram stain.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="How did RAPID compare with the BioFire BCID2 platform for organism identification turnaround time?",
+        limit=6,
+    )
+
+    assert _should_force_known_gap_abstention(
+        query="How did RAPID compare with the BioFire BCID2 platform for organism identification turnaround time?",
+        citations=citations,
+    ) is True
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
+
+
+def test_reasoning_service_forces_abstention_for_exact_subgroup_summary_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Results",
+            doc_id="jmsacl",
+            content="CKD stage 4+ had the highest hepcidin-25 concentration, but the subgroup median eGFR was not reported.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="Results",
+            doc_id="hepcidin ckd",
+            content="Ferritin was the only independent predictor of hepcidin-25, and no significant correlation with eGFR was found.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="What was the exact median eGFR of the subgroup with the highest hepcidin-25 concentration in the CKD hepcidin paper?",
+        limit=6,
+    )
+
+    assert _should_force_known_gap_abstention(
+        query="What was the exact median eGFR of the subgroup with the highest hepcidin-25 concentration in the CKD hepcidin paper?",
+        citations=citations,
+    ) is True
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
+
+
 def test_parse_llm_response_with_section_label_text() -> None:
     # LLM includes the label text from the prompt on the header line
     text = (
