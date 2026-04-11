@@ -12,12 +12,21 @@ Live rerun note:
 - A fresh Azure OpenAI rerun was completed on `2026-04-07` and written to `data/eval/results/manual_synthesis_spot_checks_stage1_2026-04-07_live.json`.
 - The live rerun matched the recorded gate outcome: `6/8` pass, no hepcidin mis-attribution, with `AQ10` and `AQ13` remaining the watch items.
 
+Follow-up note:
+- A targeted retrieval follow-up rerun was completed on `2026-04-10` while working from `data/eval/results/answer_quality_eval_stage1_watch_items_v8.json`.
+- In that follow-up state, `AQ10` was materially improved and `AQ19` remained correctly anchored to `hep anemia`.
+- `AQ13` improved to `6/7` expected evidence docs and now includes correct `RAPID` coverage, but it still misses the Nartey urine paper, so it remains the active watch item.
+
 ## Summary
 
 - Result: `6/8` pass
 - Soft gate: pass
 - Hepcidin mis-attribution gate (`AQ17`-`AQ19`): pass
 - Failures to keep on watch: `AQ10`, `AQ13`
+
+Current follow-up watch state on `2026-04-10`:
+- `AQ10`: improved enough to remove as the primary watch item for ongoing Stage-2 work.
+- `AQ13`: still active due to incomplete study-design coverage across the full expected paper set.
 
 ## Results
 
@@ -36,4 +45,5 @@ Live rerun note:
 
 - Stage-1 synthesis Step 4 passes at `6/8`.
 - No hepcidin paper mis-attribution was observed in `AQ17`-`AQ19`.
-- `AQ10` and `AQ13` remain quality watch items, but they do not block the documented Step 4 gate.
+- The original gate record remains `6/8` and valid for Stage-1 signoff.
+- After the `2026-04-10` follow-up reruns, `AQ10` is no longer the main concern; `AQ13` remains the active residual watch item, but it does not block the documented Step 4 gate.

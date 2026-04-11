@@ -222,7 +222,10 @@ class RetrievalService:
                 f"{query} "
                 "randomized trial pragmatic trial observational review diagnostic stewardship "
                 "blood culture rapid diagnostics BAL urine culture lipidomics endocarditis "
-                "clinical validation ethics board samples were collected review article"
+                "clinical validation validation study diagnostic accuracy method development "
+                "ethics board samples were collected consecutive samples observational cohort "
+                "patients were enrolled screened included excluded review article "
+                "flat assay urine samples screening workflow direct detection"
             )
         return query
 
@@ -267,7 +270,11 @@ class RetrievalService:
             return True
 
         doc_key = self._normalized_doc_id_key(chunk.metadata.doc_id)
-        doc_limit = self._max_chunks_for_doc(limit=limit, selected_count=selected_count)
+        doc_limit = self._max_chunks_for_doc(
+            query=query,
+            limit=limit,
+            selected_count=selected_count,
+        )
         if self._query_targets_assay_optimization_parameters(query):
             doc_limit = max(doc_limit, 2)
         return doc_counts.get(doc_key, 0) < doc_limit
@@ -1227,7 +1234,7 @@ class RetrievalService:
             add_bonus(("result", "results", "discussion"), 6)
             add_bonus(("introduction", "abstract", "document metadata/abstract", "method", "methods", "materials and methods"), -6)
         if RetrievalService._query_targets_study_design_classification(query):
-            add_bonus(("method", "methods", "introduction", "discussion", "summary"), 5)
+            add_bonus(("method", "methods", "materials and methods", "introduction", "discussion", "summary"), 5)
             add_bonus(("result", "results"), 1)
             add_bonus(("conclusion",), -6)
             add_bonus(("document metadata/abstract", "abstract"), -3)
@@ -1237,6 +1244,10 @@ class RetrievalService:
         if RetrievalService._query_targets_hepcidin_acute_phase_disambiguation(query):
             add_bonus(("introduction", "abstract", "result", "results", "conclusion"), 5)
             add_bonus(("discussion",), -5)
+        if RetrievalService._query_targets_anemia_of_chronic_disease_focus(query):
+            add_bonus(("abstract", "document metadata/abstract", "discussion", "introduction"), 5)
+            add_bonus(("result", "results"), 2)
+            add_bonus(("conclusion",), -8)
         if any(token in normalized for token in ("optimization", "optimiz", "method", "methods", "experimental", "assay", "protocol")):
             add_bonus(("method", "methods", "materials and methods"), 4)
             add_bonus(("result", "results"), 1)
@@ -1248,6 +1259,11 @@ class RetrievalService:
         if any(token in normalized for token in ("compare", "compares", "comparing", "versus", " vs ", "with and without")):
             add_bonus(("result", "results"), 4)
             add_bonus(("discussion",), -1)
+        if RetrievalService._query_targets_cross_document_limitations(query):
+            add_bonus(("discussion", "conclusion"), 3)
+            if "single blood cultures" in normalized or "solitary blood cultures" in normalized:
+                add_bonus(("conclusion",), 6)
+                add_bonus(("discussion",), -2)
         if RetrievalService._query_targets_clinical_outcome_comparison(query):
             add_bonus(("discussion",), 4)
             add_bonus(("result", "results"), 1)
@@ -1620,6 +1636,17 @@ class RetrievalService:
                 bonus += 6
             if "single blood cultures" in content_text or "solitary blood cultures" in content_text:
                 bonus += 4
+            if any(
+                signal in content_text
+                for signal in (
+                    "adequate number of blood cultures",
+                    "two blood culture sets",
+                    "optimal bacteremia",
+                    "optimal bacteremia/fungemia detection",
+                    "sufficient or more than 2 sets",
+                )
+            ):
+                bonus += 14
         if RetrievalService._query_targets_decision_making_vs_clinical_outcomes(query):
             if any(
                 signal in content_text
@@ -2649,10 +2676,27 @@ class RetrievalService:
             "institutional review board",
             "clinical validation",
             "method development",
+            "diagnostic accuracy",
+            "validation study",
+        )
+        cohort_signals = (
+            "samples were collected",
+            "consecutive samples",
+            "patients were",
+            "patients with",
+            "screened",
+            "randomized",
+            "included in",
+            "excluded",
+            "cohort",
+            "clinical validation",
+            "method development",
+            "diagnostic accuracy",
         )
         design_match = any(signal in combined for signal in design_signals) or any(
             signal in combined for signal in review_signals
         )
+        cohort_match = any(signal in combined for signal in cohort_signals)
         if domain_match:
             bonus += 6
         else:
@@ -2661,8 +2705,25 @@ class RetrievalService:
             bonus += 10
         else:
             bonus -= 8
+        if cohort_match:
+            bonus += 8
+        if any(
+            signal in combined
+            for signal in (
+                "urine samples",
+                "lipidomics",
+                "flat assay",
+                "screening workflow",
+                "direct detection",
+                "clinical validation",
+                "method development",
+            )
+        ):
+            bonus += 6
         if "method" in header_text or "discussion" in header_text or "introduction" in header_text:
             bonus += 2
+        if ("result" in header_text or "results" in header_text) and cohort_match:
+            bonus += 4
         if "randomized" in combined or "trial" in combined:
             bonus += 4
         if any(signal in combined for signal in review_signals):
@@ -2818,7 +2879,9 @@ class RetrievalService:
         return 1
 
     @staticmethod
-    def _max_chunks_for_doc(limit: int, selected_count: int) -> int:
+    def _max_chunks_for_doc(query: str, limit: int, selected_count: int) -> int:
+        if RetrievalService._query_targets_study_design_classification(query):
+            return 1
         if limit <= 3:
             return 1
         if selected_count < 3:

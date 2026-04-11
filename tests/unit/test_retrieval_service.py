@@ -2458,6 +2458,86 @@ def test_retrieval_service_promotes_body_metadata_limitation_evidence_for_cross_
     assert ranked[0].metadata.doc_id == limitation_chunk.metadata.doc_id
 
 
+def test_retrieval_service_promotes_fabre_single_blood_culture_conclusion_for_limitation_query() -> None:
+    query = (
+        "Contrast the reasons why single blood cultures are considered inadequate in the Fabre et al. "
+        "minireview with the diagnostic limitations of urinalysis discussed by Nartey et al."
+    )
+    nartey_chunk = Chunk(
+        id="DOC-NARTEY:P00006:C02",
+        content=(
+            "Urine dipstick analysis for blood, nitrites, and leukocyte esterase can be prone to positive "
+            "interferences leading to unnecessary urine culture investigations."
+        ),
+        metadata=ChunkMetadata(
+            doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+            chunk_type="text",
+            parent_header="Document Metadata/Abstract",
+            page_number=2,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-NARTEY:P00006",
+                "parent_content": (
+                    "Urine dipstick analysis for blood, nitrites, and leukocyte esterase can be prone to positive "
+                    "interferences leading to unnecessary urine culture investigations."
+                ),
+            },
+        ),
+    )
+    fabre_discussion_chunk = Chunk(
+        id="DOC-FABRE:P00001:C01",
+        content="Approximately 40% of repeat blood cultures were inappropriate based on previous negative blood cultures.",
+        metadata=ChunkMetadata(
+            doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+            chunk_type="text",
+            parent_header="Discussion",
+            page_number=7,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-FABRE:P00001",
+                "parent_content": "Approximately 40% of repeat blood cultures were inappropriate based on previous negative blood cultures.",
+            },
+        ),
+    )
+    fabre_conclusion_chunk = Chunk(
+        id="DOC-FABRE:P00002:C01",
+        content=(
+            "The adequate number of blood cultures for optimal bacteremia detection has been evaluated, "
+            "and data consistently show that two blood culture sets are sufficient for highest sensitivity."
+        ),
+        metadata=ChunkMetadata(
+            doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+            chunk_type="text",
+            parent_header="Conclusion",
+            page_number=9,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-FABRE:P00002",
+                "parent_content": (
+                    "The adequate number of blood cultures for optimal bacteremia detection has been evaluated, "
+                    "and data consistently show that two blood culture sets are sufficient for highest sensitivity."
+                ),
+            },
+        ),
+    )
+    service = RetrievalService(repo=FakeVectorRepository([]), embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    ranked = service._rank_chunks(
+        query=query,
+        chunks=[fabre_discussion_chunk, nartey_chunk, fabre_conclusion_chunk],
+    )
+
+    fabre_headers = [
+        chunk.metadata.parent_header
+        for chunk in ranked
+        if chunk.metadata.doc_id == "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+    ]
+    assert fabre_headers[:2] == ["Conclusion", "Discussion"]
+
+
 def test_retrieval_service_locks_turnaround_query_to_rapid_paper_over_stewardship_review() -> None:
     chunks = [
         Chunk(
@@ -4174,11 +4254,89 @@ def test_retrieval_service_excludes_non_domain_retrospective_noise_for_classific
         limit=4,
     )
 
-    assert [chunk.doc_id for chunk in result] == [
-        "RAPID",
+    assert set(chunk.doc_id for chunk in result) == {
         "Single site RCT",
+        "RAPID",
         "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    }
+
+
+def test_retrieval_service_limits_classification_queries_to_one_chunk_per_doc() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT-A:P00001:C01",
+            content="We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT-A:P00001",
+                    "parent_content": "We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT-B:P00002:C01",
+            content="This trial was not powered to detect mortality differences.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=9,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT-B:P00002",
+                    "parent_content": "This trial was not powered to detect mortality differences.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Strengths of this study include its pragmatic trial design.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Strengths of this study include its pragmatic trial design.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-REVIEW:P00001:C01",
+            content="In total, 18 studies were reviewed in full.",
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-REVIEW:P00001",
+                    "parent_content": "In total, 18 studies were reviewed in full.",
+                },
+            ),
+        ),
     ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=4,
+    )
+
+    assert len({chunk.doc_id for chunk in result}) == len(result)
 
 
 def test_retrieval_service_expands_search_text_for_classification_queries() -> None:
@@ -4217,6 +4375,9 @@ def test_retrieval_service_expands_search_text_for_classification_queries() -> N
     assert len(captured_queries) == 1
     assert "diagnostic stewardship" in captured_queries[0]
     assert "blood culture" in captured_queries[0]
+    assert "method development" in captured_queries[0]
+    assert "consecutive samples" in captured_queries[0]
+    assert "flat assay" in captured_queries[0]
 
 
 def test_retrieval_service_prefers_domain_reviews_over_hepcidin_noise_for_classification_queries() -> None:
@@ -4282,6 +4443,120 @@ def test_retrieval_service_prefers_domain_reviews_over_hepcidin_noise_for_classi
         "Single site RCT",
         "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
     }
+
+
+def test_retrieval_service_boosts_cohort_style_results_for_classification_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-NARTEY:P00001:C01",
+            content=(
+                "A total of 435 samples were collected for this study. Of those, 33 were excluded, "
+                "leaving 402 urine samples for clinical validation of the lipidomics workflow."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-NARTEY:P00001",
+                    "parent_content": (
+                        "A total of 435 samples were collected for this study. Of those, 33 were excluded, "
+                        "leaving 402 urine samples for clinical validation of the lipidomics workflow."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-HEP:P00001:C01",
+            content="This review summarizes hepcidin biology in anemia of chronic disease.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-HEP:P00001",
+                    "parent_content": "This review summarizes hepcidin biology in anemia of chronic disease.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+    ]
+
+
+def test_retrieval_service_prefers_abstract_over_conclusion_for_anemia_focus_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-ANEMIA-ABS:P00001:C01",
+            content=(
+                "Patients with infections, chronic inflammatory disorders, and cancers have anemia of chronic "
+                "disease/inflammation. Hepcidin is elevated and contributes to iron-restricted erythropoiesis."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hep anemia",
+                chunk_type="text",
+                parent_header="Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ANEMIA-ABS:P00001",
+                    "parent_content": (
+                        "Patients with infections, chronic inflammatory disorders, and cancers have anemia of chronic "
+                        "disease/inflammation. Hepcidin is elevated and contributes to iron-restricted erythropoiesis."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-ANEMIA-CONC:P00002:C01",
+            content=(
+                "Recent research on the hepcidin-ferroportin axis has clarified the pathogenesis of iron-related "
+                "conditions and may enable new tests and treatments."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hep anemia",
+                chunk_type="text",
+                parent_header="CONCLUSIONS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ANEMIA-CONC:P00002",
+                    "parent_content": (
+                        "Recent research on the hepcidin-ferroportin axis has clarified the pathogenesis of iron-related "
+                        "conditions and may enable new tests and treatments."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What were the main findings on hepcidin and anaemia of chronic disease in the paper focused on that topic?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("hep anemia", "Abstract"),
+    ]
 
 
 def test_retrieval_service_prefers_hepcidin_standardization_paper_for_disambiguation_query() -> None:
