@@ -6,7 +6,6 @@ from io import StringIO
 from pathlib import Path
 import re
 import sys
-import time
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -46,7 +45,7 @@ from src.app.adapters.llm.openai_llm_adapter import OpenAILLMAdapter  # noqa: E4
 from src.app.adapters.rerankers.transformers_reranker import TransformersReRanker  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.services.reasoning_service import ConfidenceLevel, ResearchAnswer, ReasoningService  # noqa: E402
-from src.app.services.retrieval_service import RetrievalResult, RetrievedChunk, RetrievalService  # noqa: E402
+from src.app.services.retrieval_service import RetrievedChunk, RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from src.app.tables.table_normalizer import TableNormalizer  # noqa: E402
 from src.ports.parser_port import ParsedTable  # noqa: E402
@@ -237,7 +236,7 @@ def ask_question(
     reranker_model: str,
     embedding_fn: OpenAIEmbeddingAdapter,
     include_tables: bool,
-) -> RetrievalResult:
+) -> list[RetrievedChunk]:
     client = QdrantClient(url=qdrant_url)
     validate_collection_exists(client, collection_name)
     repository = QdrantRepository(
@@ -254,7 +253,7 @@ def ask_question(
         re_ranker=re_ranker,
         include_tables=include_tables,
     )
-    return retrieval_service.retrieve_with_diagnostics(query=query, limit=limit)
+    return retrieval_service.retrieve(query=query, limit=limit)
 
 
 def ask_research_question(
@@ -271,7 +270,7 @@ def ask_research_question(
     reranker_model: str,
     embedding_fn: OpenAIEmbeddingAdapter,
     include_tables: bool,
-) -> tuple[ResearchAnswer, float]:
+) -> ResearchAnswer:
     client = QdrantClient(url=qdrant_url)
     validate_collection_exists(client, collection_name)
     repository = QdrantRepository(
@@ -299,10 +298,7 @@ def ask_research_question(
         retrieval_service=retrieval_service,
         llm_client=llm_client,
     )
-    started_at = time.perf_counter()
-    answer = reasoning_service.research(query=query, limit=limit)
-    latency_ms = (time.perf_counter() - started_at) * 1000
-    return answer, latency_ms
+    return reasoning_service.research(query=query, limit=limit)
 
 
 def save_uploaded_file(uploaded_file: object) -> Path:
@@ -348,9 +344,8 @@ def update_collection_docs(collection_name: str, doc_id: str, summary: dict[str,
 def init_state() -> None:
     st.session_state.setdefault("active_collection", "")
     st.session_state.setdefault("ingested_docs", None)
-    st.session_state.setdefault("last_retrieval_result", None)
+    st.session_state.setdefault("last_answer", [])
     st.session_state.setdefault("last_research_answer", None)
-    st.session_state.setdefault("last_research_latency_ms", None)
 
 
 def render_styles() -> None:
@@ -766,7 +761,7 @@ def main() -> None:
         else:
             with st.spinner("Retrieving knowledge-base context"):
                 try:
-                    result = ask_question(
+                    st.session_state.last_answer = ask_question(
                         query=query.strip(),
                         collection_name=collection_name,
                         qdrant_url=qdrant_url,
@@ -776,7 +771,6 @@ def main() -> None:
                         embedding_fn=embedding_fn,
                         include_tables=include_tables,
                     )
-                    st.session_state.last_retrieval_result = result
                 except Exception as exc:  # noqa: BLE001
                     st.error(str(exc))
 
@@ -796,7 +790,7 @@ def main() -> None:
         else:
             with st.spinner("Synthesizing research insight"):
                 try:
-                    answer, latency_ms = ask_research_question(
+                    st.session_state.last_research_answer = ask_research_question(
                         query=query.strip(),
                         collection_name=collection_name,
                         qdrant_url=qdrant_url,
@@ -811,22 +805,12 @@ def main() -> None:
                         embedding_fn=embedding_fn,
                         include_tables=include_tables,
                     )
-                    st.session_state.last_research_answer = answer
-                    st.session_state.last_research_latency_ms = latency_ms
                 except Exception as exc:  # noqa: BLE001
                     st.error(str(exc))
 
     st.markdown("### Retrieved Context")
-    retrieval_result: RetrievalResult | None = st.session_state.last_retrieval_result
-    if retrieval_result is not None:
-        st.caption(
-            "Retrieved "
-            f"{len(retrieval_result.chunks)} chunks in {retrieval_result.latency_ms:.0f} ms "
-            f"({retrieval_result.initial_candidate_count} candidates before filtering)"
-        )
-    retrieved_chunks = retrieval_result.chunks if retrieval_result is not None else []
     render_retrieved_context(
-        retrieved_chunks,
+        st.session_state.last_answer,
         st.session_state.ingested_docs or {},
     )
 
@@ -848,9 +832,6 @@ def main() -> None:
             st.warning(confidence_label)
         else:
             st.error(confidence_label)
-        research_latency_ms = st.session_state.last_research_latency_ms
-        if research_latency_ms is not None:
-            st.caption(f"Synthesized in {research_latency_ms:.0f} ms")
 
         st.markdown(answer.insight or "_No insight generated._")
         if answer.evidence_basis:
