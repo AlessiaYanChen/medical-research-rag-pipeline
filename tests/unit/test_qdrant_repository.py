@@ -3,7 +3,9 @@ from __future__ import annotations
 import logging
 from types import SimpleNamespace
 
-from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository
+import pytest
+
+from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository, VectorStoreWriteError
 from src.app.ports.repositories.vector_repository import MetadataFilter, VectorSearchFilters
 from src.domain.models.chunk import Chunk, ChunkMetadata
 
@@ -124,7 +126,7 @@ def test_qdrant_repository_maps_chunk_metadata_into_payload() -> None:
     assert payload["page_number"] == 7
 
 
-def test_qdrant_repository_logs_success_and_failure_counts(caplog) -> None:
+def test_qdrant_repository_raises_on_partial_write_failure(caplog) -> None:
     client = FakeQdrantClient(fail_on_call=2)
     repo = QdrantRepository(
         qdrant_client=client,
@@ -134,7 +136,8 @@ def test_qdrant_repository_logs_success_and_failure_counts(caplog) -> None:
     chunks = _build_chunks(200)
 
     with caplog.at_level(logging.ERROR):
-        repo.upsert_chunks(chunks)
+        with pytest.raises(VectorStoreWriteError, match="stored=100 failed=100 total=200"):
+            repo.upsert_chunks(chunks)
 
     assert "stored=100 failed=100 total=200" in caplog.text
 

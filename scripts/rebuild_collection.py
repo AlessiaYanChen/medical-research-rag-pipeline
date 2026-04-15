@@ -24,12 +24,13 @@ from qdrant_client import QdrantClient  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.dedup_utils import build_doc_identity, validate_unique_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
+from src.app.ingestion.file_identity_utils import compute_file_identity  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, write_rebuild_manifest  # noqa: E402
 from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 from src.app.ingestion.registry_utils import default_manifest_path_for_collection  # noqa: E402
+from src.app.ingestion.runtime_utils import ensure_collection, normalize_tables  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
-from scripts.test_e2e_flow import ensure_collection, normalize_tables  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -88,6 +89,15 @@ def parse_args() -> argparse.Namespace:
         "--failure-report-out",
         default="",
         help="Optional path to write a JSON report describing per-document rebuild failures.",
+    )
+    parser.add_argument(
+        "--allow-recreate-existing-collection",
+        action="store_true",
+        help=(
+            "Allow rebuilding into an existing collection by deleting and recreating it. "
+            "By default, rebuild refuses to mutate an existing collection so staged collections "
+            "can be validated before promotion."
+        ),
     )
     parser.add_argument(
         "--embedding-provider",
@@ -179,6 +189,22 @@ def write_failure_report(
     return path
 
 
+def ensure_rebuild_target_is_safe(
+    *,
+    client: QdrantClient,
+    collection: str,
+    allow_recreate_existing_collection: bool,
+) -> None:
+    if allow_recreate_existing_collection:
+        return
+    if client.collection_exists(collection):
+        raise ValueError(
+            f"target collection '{collection}' already exists. "
+            "Rebuild into a fresh staged collection name or pass "
+            "--allow-recreate-existing-collection to replace it intentionally."
+        )
+
+
 def main() -> int:
     args = parse_args()
     pdf_dir = Path(args.pdf_dir)
@@ -200,6 +226,7 @@ def main() -> int:
                     doc_id=doc_id_from_path(path),
                     source_file=path.name,
                     local_file=str(path),
+                    source_sha256=str(compute_file_identity(path)["source_sha256"]),
                 )
                 for path in pdf_paths
             ],
@@ -221,6 +248,15 @@ def main() -> int:
     chunker = UnifiedChunker(max_chars=args.max_chars, overlap_paragraphs=args.overlap_paragraphs)
     client = QdrantClient(url=args.qdrant_url)
     repository: QdrantRepository | None = None
+    try:
+        ensure_rebuild_target_is_safe(
+            client=client,
+            collection=args.collection,
+            allow_recreate_existing_collection=args.allow_recreate_existing_collection,
+        )
+    except ValueError as exc:
+        print(f"ERROR: {exc}")
+        return 1
 
     manifest_docs: list[dict[str, object]] = []
     total_chunks = 0
@@ -233,12 +269,15 @@ def main() -> int:
             parsed = document_parser.parse(pdf_path)
             normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
             doc_id = doc_id_from_path(pdf_path)
+            file_identity = compute_file_identity(pdf_path)
             chunks = chunker.chunk_document(
                 doc_id=doc_id,
                 source_file=pdf_path.name,
                 markdown_text=parsed.markdown_text,
                 tables=normalized_tables,
                 local_file=str(pdf_path),
+                source_sha256=str(file_identity["source_sha256"]),
+                file_size_bytes=int(file_identity["file_size_bytes"]),
             )
             if not chunks:
                 raise RuntimeError("no chunks generated")
@@ -249,7 +288,7 @@ def main() -> int:
                     client=client,
                     collection_name=args.collection,
                     vector_size=vector_size,
-                    recreate=True,
+                    recreate=args.allow_recreate_existing_collection,
                 )
                 repository = QdrantRepository(
                     qdrant_client=client,
@@ -268,6 +307,8 @@ def main() -> int:
                     ingestion_version=UnifiedChunker.INGESTION_VERSION,
                     chunking_version=UnifiedChunker.CHUNKING_VERSION,
                     parser_name=args.parser,
+                    source_sha256=str(file_identity["source_sha256"]),
+                    file_size_bytes=int(file_identity["file_size_bytes"]),
                 )
             )
         except Exception as exc:  # noqa: BLE001

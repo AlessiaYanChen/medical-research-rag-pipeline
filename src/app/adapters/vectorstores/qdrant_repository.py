@@ -15,6 +15,10 @@ from src.domain.models.chunk import Chunk, ChunkMetadata
 logger = logging.getLogger(__name__)
 
 
+class VectorStoreWriteError(RuntimeError):
+    """Raised when a vector-store write only partially succeeds."""
+
+
 class QdrantRepository(VectorRepositoryPort):
     """
     Qdrant adapter for chunk persistence.
@@ -42,6 +46,7 @@ class QdrantRepository(VectorRepositoryPort):
 
         success_count = 0
         failed_count = 0
+        first_error: Exception | None = None
 
         for start in range(0, len(chunks), self._batch_size):
             batch = chunks[start : start + self._batch_size]
@@ -57,14 +62,16 @@ class QdrantRepository(VectorRepositoryPort):
                     start,
                     exc,
                 )
+                if first_error is None:
+                    first_error = exc
 
         if failed_count > 0:
-            logger.error(
-                "Qdrant upsert completed with failures. stored=%d failed=%d total=%d",
-                success_count,
-                failed_count,
-                len(chunks),
+            message = (
+                "Qdrant upsert completed with failures. "
+                f"stored={success_count} failed={failed_count} total={len(chunks)}"
             )
+            logger.error("%s", message)
+            raise VectorStoreWriteError(f"{message}. First error: {first_error}") from first_error
         else:
             logger.info(
                 "Qdrant upsert completed successfully. stored=%d total=%d",

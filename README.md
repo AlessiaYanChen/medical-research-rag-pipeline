@@ -74,6 +74,11 @@ Current benchmark status:
 - returned table chunks now prepend lightweight caption and linked-prose context when metadata establishes a table-prose linkage, improving answer context without adding a new retrieval stage
 - metadata-linked table context is no longer limited to literal `Table N` mentions; ingestion can also attach same-section prose when caption/table terminology overlaps strongly enough to support a narrow semantic linkage
 - rebuild, UI ingestion, and single-document repair now fail fast on duplicate document identities (`doc_id`, `source_file`, `local_file`) instead of silently creating parallel entries for the same source PDF
+- rebuild, UI ingestion, and single-document repair now also fail loud on Qdrant write errors instead of logging partial batch failures and continuing with a misleading success path
+- single-document repair now snapshots the existing Qdrant points before replacement and restores them directly if the replacement write fails, so a failed repair does not leave the collection missing the original document unless rollback itself also fails
+- collection rebuild now refuses to recreate an existing Qdrant collection unless `--allow-recreate-existing-collection` is passed explicitly, so the default path encourages staged rebuilds into fresh collection names instead of mutating an active collection in place
+- `scripts/promote_collection_alias.py` can now atomically move a stable Qdrant alias to a validated staged collection and snapshot an alias-specific manifest/registry view for downstream audit and UI flows
+- `scripts/build_rollout_report.py` can now include a ready-to-run promotion command for `scripts/promote_collection_alias.py` when the overall rollout report passes and a `--promotion-alias` is supplied
 - `scripts/audit_collection_state.py` now reports duplicate identity conflicts and can emit a non-destructive cleanup plan before any manual corpus reconciliation work
 - `scripts/rebuild_collection.py` now supports batch-oriented `--continue-on-error` operation plus an optional structured failure report so larger rebuilds can retain successful documents while surfacing per-file failures explicitly
 - next benchmark work is keeping the stable and expanded records separate while validating that future retrieval or ingestion changes do not regress the now-clean baseline
@@ -524,19 +529,19 @@ Inspect one OOD query across retrieval stages before changing ranking logic:
 python scripts/inspect_retrieval_candidates.py --query-id O03 --dataset data/eval/ood_adversarial_queries.json --collection medical_research_chunks_docling_v1 --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
-Deterministically rebuild the active `Docling` collection from the uploaded benchmark PDFs:
+Deterministically rebuild a staged `Docling` collection from the uploaded benchmark PDFs:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v2_batch2_candidate --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name"
 ```
 
 If you want a medium-scale batch rebuild to continue past per-file failures while still recording them for follow-up:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_docling_v1.json
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v2_batch2_candidate --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error --failure-report-out data/eval/results/rebuild_failures_medical_research_chunks_docling_v2_batch2_candidate.json
 ```
 
-If `--manifest-out` is omitted, rebuilds now default to `data/ingestion_manifests/<collection>_rebuild_manifest.json`, which keeps the rebuild output aligned with the default audit and reingest workflow for the same collection. With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/rebuild_failures_<collection>.json`.
+If `--manifest-out` is omitted, rebuilds now default to `data/ingestion_manifests/<collection>_rebuild_manifest.json`, which keeps the rebuild output aligned with the default audit and reingest workflow for the same collection. With `--continue-on-error`, successful documents are still written into the rebuilt collection and manifest, the JSON failure report captures per-file errors, and the command still exits with code `1` if any failures occurred so automation can flag the batch for follow-up. If `--failure-report-out` is omitted, the report now defaults to `data/eval/results/rebuild_failures_<collection>.json`. Rebuild now refuses to recreate an existing collection unless `--allow-recreate-existing-collection` is passed explicitly, so the default operator path is to build into a fresh staged collection name and promote it only after validation.
 
 Reparse and replace a single document in an existing collection, optionally syncing the rebuild manifest entry at the same time:
 
@@ -576,10 +581,16 @@ Use the audit as an explicit rollout gate for Phase 5 or any medium-scale ingest
 .\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json --fail-on-issues
 ```
 
-Compile the stage gate into one rollout report after rebuild, audit, benchmark reruns, and manual spot checks:
+Compile the stage gate into one rollout report after rebuild, audit, benchmark reruns, and manual spot checks. When the report passes, it can now emit the next promotion command directly:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build_rollout_report.py --collection medical_research_chunks_docling_v2_batch1 --stage-label stage-1-20-pdfs --target-pdf-count 20 --audit-json data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch1.json --stable-eval-json data/eval/results/retrieval_eval_sample_stage1.json --expanded-eval-json data/eval/results/retrieval_eval_expanded_stage1.json --ood-eval-json data/eval/results/ood_retrieval_eval_stage1.json --runtime-eval-json data/eval/results/retrieval_eval_runtime_stage1.json --baseline-stable-eval-json data/eval/results/retrieval_eval_sample.json --baseline-expanded-eval-json data/eval/results/retrieval_eval_expanded.json --baseline-ood-eval-json data/eval/results/ood_retrieval_eval.json --baseline-runtime-eval-json data/eval/results/retrieval_eval_runtime_queries.json --manual-spot-checks data/eval/results/manual_spot_checks_stage1.json
+.\.venv\Scripts\python.exe scripts/build_rollout_report.py --collection medical_research_chunks_docling_v2_batch2_candidate --stage-label stage-2-50-pdfs-candidate --target-pdf-count 50 --audit-json data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch2_candidate.json --stable-eval-json data/eval/results/retrieval_eval_sample_stage2_candidate.json --expanded-eval-json data/eval/results/retrieval_eval_expanded_stage2_candidate.json --ood-eval-json data/eval/results/ood_retrieval_eval_stage2_candidate.json --runtime-eval-json data/eval/results/retrieval_eval_runtime_stage2_candidate.json --baseline-stable-eval-json data/eval/results/retrieval_eval_sample_stage1.json --baseline-expanded-eval-json data/eval/results/retrieval_eval_expanded_stage1.json --baseline-ood-eval-json data/eval/results/ood_retrieval_eval_stage1.json --baseline-runtime-eval-json data/eval/results/retrieval_eval_runtime_stage1.json --manual-spot-checks data/eval/results/manual_spot_checks_stage2_candidate.json --promotion-alias medical_research_chunks_docling_active --promotion-json-out data/eval/results/promotion_stage2_candidate.json
+```
+
+When that report ends in `pass`, it will include a promotion command shaped like:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/promote_collection_alias.py --source-collection medical_research_chunks_docling_v2_batch2_candidate --alias medical_research_chunks_docling_active --qdrant-url http://localhost:6333 --registry data/kb_registry.json --json-out data/eval/results/promotion_stage2_candidate.json
 ```
 
 The manual spot-check file can be a JSON array, or an object with `checks`, using records like:
@@ -606,35 +617,41 @@ Rollback note:
 
 For medium-scale ingestion work, the current operator path is:
 
-1. Rebuild the collection with manifest output:
+1. Rebuild into a fresh staged collection name with manifest output:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error
+.\.venv\Scripts\python.exe scripts/rebuild_collection.py --pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_docling_v2_batch2_candidate --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --continue-on-error
 ```
 
-2. Review any rebuild failures written to `data/eval/results/rebuild_failures_medical_research_chunks_docling_v1.json`.
+2. Review any rebuild failures written to `data/eval/results/rebuild_failures_medical_research_chunks_docling_v2_batch2_candidate.json`.
 
-3. Repair individual documents as needed:
+3. Repair individual documents inside that staged collection as needed:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_docling_v1 --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_docling_v1_rebuild_manifest.json
+.\.venv\Scripts\python.exe scripts/reingest_single_doc.py --doc-id "your-doc-id" --pdf "data/raw_pdfs/uploaded/your_file.pdf" --collection medical_research_chunks_docling_v2_batch2_candidate --parser docling --embedding-provider azure_openai --embedding-model "your-embedding-deployment-name" --manifest data/ingestion_manifests/medical_research_chunks_docling_v2_batch2_candidate_rebuild_manifest.json
 ```
 
 4. Review any single-document repair failures under `data/eval/results/reingest_failure_<collection>_<doc_id>.json`.
 
-5. Run the audit gate before treating the collection as rollout-ready:
+5. Run the audit gate against the staged collection before treating it as rollout-ready:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v1 --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v1.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v1.json --fail-on-issues
+.\.venv\Scripts\python.exe scripts/audit_collection_state.py --collection medical_research_chunks_docling_v2_batch2_candidate --sync-registry --json-out data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch2_candidate.json --cleanup-plan-out data/eval/results/collection_cleanup_plan_docling_v2_batch2_candidate.json --fail-on-issues
 ```
 
-6. Compile the rollout-stage report after benchmark reruns and manual spot checks:
+6. Compile the rollout-stage report after benchmark reruns and manual spot checks, with a promotion alias configured:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/build_rollout_report.py --collection medical_research_chunks_docling_v2_batch1 --stage-label stage-1-20-pdfs --target-pdf-count 20 --audit-json data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch1.json --stable-eval-json data/eval/results/retrieval_eval_sample_stage1.json --expanded-eval-json data/eval/results/retrieval_eval_expanded_stage1.json --ood-eval-json data/eval/results/ood_retrieval_eval_stage1.json --runtime-eval-json data/eval/results/retrieval_eval_runtime_stage1.json --baseline-stable-eval-json data/eval/results/retrieval_eval_sample.json --baseline-expanded-eval-json data/eval/results/retrieval_eval_expanded.json --baseline-ood-eval-json data/eval/results/ood_retrieval_eval.json --baseline-runtime-eval-json data/eval/results/retrieval_eval_runtime_queries.json --manual-spot-checks data/eval/results/manual_spot_checks_stage1.json
+.\.venv\Scripts\python.exe scripts/build_rollout_report.py --collection medical_research_chunks_docling_v2_batch2_candidate --stage-label stage-2-50-pdfs-candidate --target-pdf-count 50 --audit-json data/eval/results/collection_audit_medical_research_chunks_docling_v2_batch2_candidate.json --stable-eval-json data/eval/results/retrieval_eval_sample_stage2_candidate.json --expanded-eval-json data/eval/results/retrieval_eval_expanded_stage2_candidate.json --ood-eval-json data/eval/results/ood_retrieval_eval_stage2_candidate.json --runtime-eval-json data/eval/results/retrieval_eval_runtime_stage2_candidate.json --baseline-stable-eval-json data/eval/results/retrieval_eval_sample_stage1.json --baseline-expanded-eval-json data/eval/results/retrieval_eval_expanded_stage1.json --baseline-ood-eval-json data/eval/results/ood_retrieval_eval_stage1.json --baseline-runtime-eval-json data/eval/results/retrieval_eval_runtime_stage1.json --manual-spot-checks data/eval/results/manual_spot_checks_stage2_candidate.json --promotion-alias medical_research_chunks_docling_active --promotion-json-out data/eval/results/promotion_stage2_candidate.json
 ```
 
-This keeps the current operational loop explicit: rebuild, inspect failures, repair specific documents, run the audit gate, rerun the evaluation sets, document manual spot checks, then compile one rollout-stage report before larger rollout work.
+7. If the rollout report ends in `pass`, run the generated promotion command to move the stable alias to the staged collection:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/promote_collection_alias.py --source-collection medical_research_chunks_docling_v2_batch2_candidate --alias medical_research_chunks_docling_active --qdrant-url http://localhost:6333 --registry data/kb_registry.json --json-out data/eval/results/promotion_stage2_candidate.json
+```
+
+This keeps the operational loop explicit: staged rebuild, inspect failures, repair specific documents, run the audit gate, rerun the evaluation sets, document manual spot checks, compile one rollout-stage report, then promote only on pass.
 
 ## Production Track
 

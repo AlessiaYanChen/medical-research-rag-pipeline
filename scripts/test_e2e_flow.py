@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import argparse
-from io import StringIO
 import os
 from pathlib import Path
 import sys
 
-import pandas as pd
 from dotenv import load_dotenv
 
 
@@ -20,16 +18,14 @@ _ensure_project_root_on_path()
 load_dotenv()
 
 from qdrant_client import QdrantClient  # noqa: E402
-from qdrant_client.models import Distance, VectorParams  # noqa: E402
 
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path, normalize_doc_id  # noqa: E402
 from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
+from src.app.ingestion.runtime_utils import ensure_collection, normalize_tables  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.services.retrieval_service import RetrievalService  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
-from src.app.tables.table_normalizer import TableNormalizer  # noqa: E402
-from src.ports.parser_port import ParsedTable  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -127,74 +123,6 @@ def build_embedding_fn(args: argparse.Namespace) -> OpenAIEmbeddingAdapter:
         azure_api_version=args.embedding_azure_api_version or None,
         dimensions=None if args.embedding_dimensions == 0 else args.embedding_dimensions,
     )
-
-
-def normalize_tables(parsed_tables: list[ParsedTable], file_name: str) -> list[dict[str, object]]:
-    normalizer = TableNormalizer()
-    normalized: list[dict[str, object]] = []
-
-    for table in parsed_tables:
-        df = parsed_table_to_dataframe(table)
-        cleaned_df = normalizer.sanitize_table(df=df, file_name=file_name)
-
-        csv_text = cleaned_df.to_csv(index=False, header=False).strip()
-        rows = dataframe_to_rows(cleaned_df)
-        artifact = {
-            "csv": csv_text,
-            "rows": rows,
-        }
-
-        metadata_artifact = normalizer.get_last_metadata_artifact()
-        if metadata_artifact:
-            artifact["normalization_metadata"] = metadata_artifact
-
-        normalized.append(artifact)
-
-    return normalized
-
-
-def parsed_table_to_dataframe(table: ParsedTable) -> pd.DataFrame:
-    if table.headers or table.rows:
-        row_lists: list[list[str]] = []
-        if table.headers:
-            row_lists.append([str(value) for value in table.headers])
-        for row in table.rows:
-            row_lists.append([str(row.get(header, "")) for header in table.headers])
-        return pd.DataFrame(row_lists)
-
-    return pd.read_csv(StringIO(table.csv), header=None, engine="python", on_bad_lines="skip")
-
-
-def dataframe_to_rows(df: pd.DataFrame) -> list[dict[str, str]]:
-    if df.empty or len(df) < 2:
-        return []
-
-    headers = [str(value) for value in df.iloc[0].tolist()]
-    rows: list[dict[str, str]] = []
-    for row_idx in range(1, len(df)):
-        values = ["" if pd.isna(value) else str(value) for value in df.iloc[row_idx].tolist()]
-        if len(values) < len(headers):
-            values.extend([""] * (len(headers) - len(values)))
-        rows.append(dict(zip(headers, values)))
-    return rows
-
-
-def ensure_collection(
-    client: QdrantClient,
-    collection_name: str,
-    vector_size: int,
-    recreate: bool,
-) -> None:
-    exists = client.collection_exists(collection_name)
-    if exists and recreate:
-        client.delete_collection(collection_name)
-        exists = False
-
-    if not exists:
-        client.create_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-        )
 
 
 def main() -> int:
