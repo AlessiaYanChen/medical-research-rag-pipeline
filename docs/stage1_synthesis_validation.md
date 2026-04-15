@@ -285,9 +285,10 @@ Known-gap abstention pass 2:
 - No known-gap query now returns `confidence: HIGH`, so the hard false-confidence gate is cleared.
 - The reported `abstain_accuracy` in this file remains misleading because `known_gap_queries.json` does not carry `expected_abstain: true` flags for the evaluation script. Treat the `HIGH`-confidence count, not that summary ratio, as the operational gate for this track.
 
-Current status before Step 5:
+Current status after Step 5:
 - The Stage-1 answer-quality baseline is materially improved and the known-gap false-confidence gate is clear.
-- The next Codex task is Step 5 in this file: build `scripts/run_synthesis_gate.py`, add `tests/unit/test_synthesis_gate.py`, and update `ROADMAP.md` once the gate script exists.
+- `scripts/run_synthesis_gate.py` exists, `tests/unit/test_synthesis_gate.py` passes, and the stage-1 synthesis gate now passes cleanly.
+- Gate report: `data/eval/results/synthesis_gate_report_stage1.json`
 
 If any expected-answer query returns `INSUFFICIENT` confidence, inspect with:
 
@@ -438,5 +439,5 @@ Do not begin the 50-PDF rebuild until all of the following are true:
 | 4 | No known-gap query returns `HIGH` confidence | Step 3 output |
 | 5 | Cross-doc synthesis spot checks ≥ 6/8 pass | Step 4 report |
 | 6 | No hepcidin paper mis-attribution in AQ17–AQ19 | Step 4 report |
-| 7 | `run_synthesis_gate.py` exists and passes on stage-1 collection | Step 5 |
+| 7 | `run_synthesis_gate.py` exists and passes on stage-1 collection | `data/eval/results/synthesis_gate_report_stage1.json` |
 | 8 | Retrieval eval still passing on stable + runtime tracks | Re-run `scripts/evaluate_retrieval.py` |

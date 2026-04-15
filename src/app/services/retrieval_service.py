@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 import logging
 import re
+import time
 
 from src.app.ports.re_ranker_port import ReRankerPort
 from src.app.ports.repositories.vector_repository import (
@@ -26,6 +27,13 @@ class RetrievedChunk:
     content_role: str
     page_number: int | None = None
     local_file: str = ""
+
+
+@dataclass(frozen=True)
+class RetrievalResult:
+    chunks: list[RetrievedChunk]
+    latency_ms: float
+    initial_candidate_count: int
 
 
 class RetrievalService:
@@ -52,6 +60,44 @@ class RetrievalService:
             limit=initial_limit,
             filters=self._build_search_filters(query=query, doc_id=doc_id),
         )
+        return self._retrieve_from_initial_chunks(
+            query=query,
+            doc_id=doc_id,
+            limit=limit,
+            initial_chunks=initial_chunks,
+        )
+
+    def retrieve_with_diagnostics(self, query: str, doc_id: str | None = None, limit: int = 5) -> RetrievalResult:
+        start = time.perf_counter()
+        query_vector = self._embedding_fn([self._search_query_text(query)])[0]
+        initial_limit = self._initial_search_limit(query=query, doc_filter=doc_id, limit=limit)
+        initial_chunks = self._repo.search(
+            query_vector,
+            doc_id=doc_id,
+            limit=initial_limit,
+            filters=self._build_search_filters(query=query, doc_id=doc_id),
+        )
+        latency_ms = round((time.perf_counter() - start) * 1000, 1)
+        chunks = self._retrieve_from_initial_chunks(
+            query=query,
+            doc_id=doc_id,
+            limit=limit,
+            initial_chunks=initial_chunks,
+        )
+        return RetrievalResult(
+            chunks=chunks,
+            latency_ms=latency_ms,
+            initial_candidate_count=len(initial_chunks),
+        )
+
+    def _retrieve_from_initial_chunks(
+        self,
+        *,
+        query: str,
+        doc_id: str | None,
+        limit: int,
+        initial_chunks: list[Chunk],
+    ) -> list[RetrievedChunk]:
         filtered_initial_chunks = self._filter_chunks(query=query, chunks=initial_chunks)
         if doc_id is not None:
             filtered_initial_chunks = self._suppress_metadata_fallback(query=query, chunks=filtered_initial_chunks)

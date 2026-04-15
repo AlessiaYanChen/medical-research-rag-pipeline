@@ -11,7 +11,11 @@ Make the medical research RAG pipeline reliable enough for a medium-scale corpus
 - Current small-corpus baseline collection: `medical_research_chunks_docling_v1`
 - Current stage-1 rollout collection: `medical_research_chunks_docling_v2_batch1`
 - Stage-1 formal gate status: `pass`
+<<<<<<< HEAD
 - Stage-1 substantive risk: manual UI spot-check completion is still in progress for the newly added papers, even though stage-coverage retrieval now exercises the full `20`-PDF corpus
+=======
+- Stage-1 synthesis validation: in progress — answer quality baseline exists, known-gap false-confidence gate is clear, and the stage-1 synthesis gate now passes; remaining manual spot checks still gate Stage 2
+>>>>>>> a5f3f07 (Add synthesis gate and record stage-1 pass)
 
 ## Collection Roles
 
@@ -45,9 +49,14 @@ Current retrieval gate policy:
 
 ## Active Risks
 
+<<<<<<< HEAD
 1. Same-topic ambiguity: the hepcidin cluster is still the clearest early multi-paper disambiguation risk; one residual top-1 ambiguity is under watch.
 2. Answer reliability: the app measures retrieval quality but not final synthesis quality.
 3. Operational drift: dependencies are unpinned, so parser or reranker behavior can shift silently.
+=======
+1. Same-topic ambiguity: the hepcidin cluster is still the clearest early multi-paper disambiguation risk; one residual top-1 ambiguity is under watch at the synthesis level.
+2. Synthesis validation gap: the answer quality baseline exists, the known-gap false-confidence gate is clear, and the stage-1 synthesis gate passes; Stage 2 still must not begin until the remaining synthesis spot checks are completed.
+>>>>>>> a5f3f07 (Add synthesis gate and record stage-1 pass)
 
 ## Phase Status
 
@@ -145,8 +154,23 @@ Order of work (stage-1 coverage gap is now closed):
 2. ~~Move toward structured answer output with chunk-level citations.~~ Complete — `ReasoningService.research()` now returns `ResearchAnswer` (insight, evidence_basis, citations). Citations are the actual retrieved chunks, not LLM-generated text. UI renders them as collapsible expanders.
 3. ~~Add a typed abstention or confidence signal.~~ Complete — `ConfidenceLevel` enum (HIGH/MEDIUM/LOW/INSUFFICIENT) derived from retrieval signals (chunk count, distinct docs, "Insufficient evidence" in insight). UI shows a coloured banner per level.
 4. ~~Add a small answer-quality evaluation layer separate from retrieval evaluation.~~ Complete — `src/app/evaluation/answer_quality_eval.py` evaluates abstention accuracy, confidence thresholds, and doc-ID coverage in evidence basis. Runner at `scripts/evaluate_answer_quality.py`. Query format: `data/eval/answer_quality_queries.json`.
+<<<<<<< HEAD
 5. ~~Improve the UI collection-selection and rollback workflow.~~ Complete - collection roles now render in the UI, switching collections clears stale session state, and rollback ingestion is soft-blocked in `scripts/ui_app.py`.
 6. ~~Add basic observability for latency and retrieved-chunk inspection.~~ Complete — retrieval now exposes `RetrievalResult` diagnostics (`latency_ms`, `initial_candidate_count`) and the Streamlit UI surfaces retrieval and synthesis latency alongside retrieved context and answer confidence.
+=======
+5. ~~Improve the UI collection-selection and rollback workflow.~~ Complete — `COLLECTION_ROLES` map and `get_collection_role()` helper added; switching collections resets stale session state; rollback collection (`medical_research_chunks_v1`) soft-blocks ingestion. `pytest.ini` added to fix Windows temp-dir permission errors in CI.
+6. ~~Add basic observability for latency and retrieved-chunk inspection.~~ Complete — `RetrievalResult` dataclass exposes `latency_ms` and `initial_candidate_count` via `retrieve_with_diagnostics()`; UI shows retrieval and synthesis latency captions.
+
+## Stage-1 Synthesis Validation (pre–Stage-2 gate)
+
+Full plan in `docs/stage1_synthesis_validation.md`. Must complete before the 50-PDF rebuild.
+
+1. Create `data/eval/answer_quality_queries.json` (19 queries: factual, abstention-expected, hepcidin disambiguation). Status: query structure drafted in plan; `expected_doc_ids` to be filled in by user.
+2. Run answer quality baseline on `medical_research_chunks_docling_v2_batch1`. Status: complete, with baseline metrics recorded in `data/eval/results/answer_quality_eval_stage1_baseline.json`.
+3. Run known-gap abstention check through synthesis. Status: complete, with no known-gap query returning `HIGH` confidence in `data/eval/results/answer_quality_eval_known_gaps_stage1_after_abstention_pass2.json`.
+4. Cross-document synthesis UI spot checks (8 queries). Status: pending.
+5. Build `scripts/run_synthesis_gate.py` with pass/fail thresholds. Status: complete, and the stage-1 gate passes in `data/eval/results/synthesis_gate_report_stage1.json`.
+>>>>>>> a5f3f07 (Add synthesis gate and record stage-1 pass)
 
 ## Future Considerations
 
