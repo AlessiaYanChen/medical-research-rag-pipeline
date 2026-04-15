@@ -84,6 +84,7 @@ Query → OpenAIEmbeddingAdapter → Qdrant vector search
 | TableNormalizer | `src/app/tables/table_normalizer.py` | Remove metadata/title rows using row-density and variance heuristics |
 | RetrievalService | `src/app/services/retrieval_service.py` | Semantic search with section preference, cross-document diversity, token-aware suppression |
 | ReasoningService | `src/app/services/reasoning_service.py` | LLM synthesis; returns `ResearchAnswer` (insight, evidence_basis, citations, confidence) |
+| RetrievalResult | `src/app/services/retrieval_service.py` | Diagnostic wrapper: `chunks`, `latency_ms`, `initial_candidate_count`; use `retrieve_with_diagnostics()` |
 | QdrantRepository | `src/app/adapters/vectorstores/qdrant_repository.py` | Idempotent upsert, batch=100 |
 | ParserFactory | `src/app/ingestion/parser_factory.py` | Selects Docling (active) or Marker (rollback) |
 | DedupUtils | `src/app/ingestion/dedup_utils.py` | Prevents re-ingesting same PDF under different identities |
@@ -99,9 +100,9 @@ Query → OpenAIEmbeddingAdapter → Qdrant vector search
 
 | Collection | Status |
 |------------|--------|
-| `medical_research_chunks_docling_v2_batch1` | Passing stage-1 artifact (20 PDFs); stage-1 and stage-2 spot checks complete; stage 2 may begin |
+| `medical_research_chunks_docling_v2_batch1` | Passing stage-1 artifact (20 PDFs); retrieval validated; synthesis validation in progress per `docs/stage1_synthesis_validation.md` |
 | `medical_research_chunks_docling_v1` | Baseline small corpus; active manual-testing collection |
-| `medical_research_chunks_v1` | Marker-based rollback — do **not** touch |
+| `medical_research_chunks_v1` | Marker-based rollback — do **not** touch; ingestion blocked in UI |
 
 ## ReasoningService Output Types
 
