@@ -4,8 +4,11 @@ import json
 import shlex
 from pathlib import Path
 
+import pytest
+
 from scripts.rebuild_collection import (
     build_failure_record,
+    ensure_rebuild_target_is_safe,
     parse_args,
     resolve_failure_report_path,
     resolve_manifest_output_path,
@@ -121,3 +124,37 @@ def test_parse_args_leaves_manifest_out_blank_until_collection_is_known(monkeypa
     args = parse_args()
 
     assert args.manifest_out == ""
+
+
+def test_parse_args_defaults_to_safe_no_recreate(monkeypatch) -> None:
+    argv = shlex.split("--pdf-dir data/raw_pdfs/uploaded --collection medical_research_chunks_v1")
+    monkeypatch.setattr("sys.argv", ["rebuild_collection.py", *argv])
+
+    args = parse_args()
+
+    assert args.allow_recreate_existing_collection is False
+
+
+def test_ensure_rebuild_target_is_safe_rejects_existing_collection_without_override() -> None:
+    class FakeClient:
+        def collection_exists(self, collection_name: str) -> bool:
+            return collection_name == "medical_research_chunks_v1"
+
+    with pytest.raises(ValueError, match="target collection 'medical_research_chunks_v1' already exists"):
+        ensure_rebuild_target_is_safe(
+            client=FakeClient(),
+            collection="medical_research_chunks_v1",
+            allow_recreate_existing_collection=False,
+        )
+
+
+def test_ensure_rebuild_target_is_safe_allows_existing_collection_with_override() -> None:
+    class FakeClient:
+        def collection_exists(self, collection_name: str) -> bool:
+            return collection_name == "medical_research_chunks_v1"
+
+    ensure_rebuild_target_is_safe(
+        client=FakeClient(),
+        collection="medical_research_chunks_v1",
+        allow_recreate_existing_collection=True,
+    )

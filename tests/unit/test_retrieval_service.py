@@ -2247,6 +2247,70 @@ def test_retrieval_service_prefers_doc_title_overlap_for_this_paper_hepcidin_que
     assert [chunk.doc_id for chunk in result] == ["hep anemia"]
 
 
+def test_retrieval_service_prefers_hep_anemia_for_anemia_of_chronic_disease_focus_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-DIAG:P00001:C01",
+            content=(
+                "Hepcidin is the key regulator of iron balance, and high hepcidin levels cause iron blockade"
+                " and anemia in chronic disease. Studies show CKD patients have high hepcidin levels,"
+                " likely contributing to anemia of CKD and ESA hyporesponsiveness."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hepcidin diagnostic tool",
+                chunk_type="text",
+                parent_header="CONCLUSIONS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-DIAG:P00001",
+                    "parent_content": (
+                        "Hepcidin is the key regulator of iron balance, and high hepcidin levels cause iron blockade"
+                        " and anemia in chronic disease. Studies show CKD patients have high hepcidin levels,"
+                        " likely contributing to anemia of CKD and ESA hyporesponsiveness."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/hepcidin diagnostic tool.pdf",
+                    "source_file": "hepcidin diagnostic tool.pdf",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-ANEMIA:P00002:C01",
+            content=(
+                "Hepcidin has a central role in anemia of chronic disease through hepcidin-ferroportin interaction,"
+                " restricting iron availability and contributing to iron-restricted erythropoiesis."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hep anemia",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ANEMIA:P00002",
+                    "parent_content": (
+                        "Hepcidin has a central role in anemia of chronic disease through hepcidin-ferroportin interaction,"
+                        " restricting iron availability and contributing to iron-restricted erythropoiesis."
+                    ),
+                    "local_file": "data/raw_pdfs/uploaded/stage1_20/hep anemia.pdf",
+                    "source_file": "hep anemia.pdf",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What were the main findings on hepcidin and anaemia of chronic disease in the paper focused on that topic?",
+        limit=1,
+    )
+
+    assert [chunk.doc_id for chunk in result] == ["hep anemia"]
+
+
 def test_retrieval_service_preserves_underscores_in_returned_doc_ids() -> None:
     chunks = [
         Chunk(
@@ -2394,6 +2458,86 @@ def test_retrieval_service_promotes_body_metadata_limitation_evidence_for_cross_
     assert ranked[0].metadata.doc_id == limitation_chunk.metadata.doc_id
 
 
+def test_retrieval_service_promotes_fabre_single_blood_culture_conclusion_for_limitation_query() -> None:
+    query = (
+        "Contrast the reasons why single blood cultures are considered inadequate in the Fabre et al. "
+        "minireview with the diagnostic limitations of urinalysis discussed by Nartey et al."
+    )
+    nartey_chunk = Chunk(
+        id="DOC-NARTEY:P00006:C02",
+        content=(
+            "Urine dipstick analysis for blood, nitrites, and leukocyte esterase can be prone to positive "
+            "interferences leading to unnecessary urine culture investigations."
+        ),
+        metadata=ChunkMetadata(
+            doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+            chunk_type="text",
+            parent_header="Document Metadata/Abstract",
+            page_number=2,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-NARTEY:P00006",
+                "parent_content": (
+                    "Urine dipstick analysis for blood, nitrites, and leukocyte esterase can be prone to positive "
+                    "interferences leading to unnecessary urine culture investigations."
+                ),
+            },
+        ),
+    )
+    fabre_discussion_chunk = Chunk(
+        id="DOC-FABRE:P00001:C01",
+        content="Approximately 40% of repeat blood cultures were inappropriate based on previous negative blood cultures.",
+        metadata=ChunkMetadata(
+            doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+            chunk_type="text",
+            parent_header="Discussion",
+            page_number=7,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-FABRE:P00001",
+                "parent_content": "Approximately 40% of repeat blood cultures were inappropriate based on previous negative blood cultures.",
+            },
+        ),
+    )
+    fabre_conclusion_chunk = Chunk(
+        id="DOC-FABRE:P00002:C01",
+        content=(
+            "The adequate number of blood cultures for optimal bacteremia detection has been evaluated, "
+            "and data consistently show that two blood culture sets are sufficient for highest sensitivity."
+        ),
+        metadata=ChunkMetadata(
+            doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+            chunk_type="text",
+            parent_header="Conclusion",
+            page_number=9,
+            extra={
+                "content_role": "child",
+                "section_role": "body",
+                "parent_id": "DOC-FABRE:P00002",
+                "parent_content": (
+                    "The adequate number of blood cultures for optimal bacteremia detection has been evaluated, "
+                    "and data consistently show that two blood culture sets are sufficient for highest sensitivity."
+                ),
+            },
+        ),
+    )
+    service = RetrievalService(repo=FakeVectorRepository([]), embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    ranked = service._rank_chunks(
+        query=query,
+        chunks=[fabre_discussion_chunk, nartey_chunk, fabre_conclusion_chunk],
+    )
+
+    fabre_headers = [
+        chunk.metadata.parent_header
+        for chunk in ranked
+        if chunk.metadata.doc_id == "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship"
+    ]
+    assert fabre_headers[:2] == ["Conclusion", "Discussion"]
+
+
 def test_retrieval_service_locks_turnaround_query_to_rapid_paper_over_stewardship_review() -> None:
     chunks = [
         Chunk(
@@ -2484,6 +2628,53 @@ def test_retrieval_service_prefers_tables_for_tabular_queries() -> None:
     result = service.retrieve(query="Which papers contain tabular sensitivity or specificity findings?", doc_id="DOC-16", limit=2)
 
     assert [chunk.chunk_type for chunk in result] == ["table"]
+
+
+def test_retrieval_service_prefers_turnaround_gain_chunk_over_limitations_for_doc_navigation_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="The rapid testing platform did not have targets to identify one-third of the gram-negative bacilli and did not test all clinically important antibiotics.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "The rapid testing platform did not have targets to identify one-third of the gram-negative bacilli and did not test all clinically important antibiotics.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00002:C01",
+            content="Rapid organism ID and phenotypic AST led to significantly faster antibiotic modifications and shorter turnaround than standard of care.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00002",
+                    "parent_content": "Rapid organism ID and phenotypic AST led to significantly faster antibiotic modifications and shorter turnaround than standard of care.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which paper should I read for blood-culture turnaround improvements, not stewardship policy?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [("RAPID", "DISCUSSION")]
+    assert "faster antibiotic modifications" in result[0].content.lower()
 
 
 def test_retrieval_service_treats_confirmation_rate_queries_as_table_friendly() -> None:
@@ -2680,6 +2871,69 @@ def test_retrieval_service_prefers_bal_overall_detection_summary_for_overall_com
     )
 
     assert [chunk.source for chunk in result] == ["Discussion", "Results"]
+
+
+def test_retrieval_service_prefers_bal_overall_detection_summary_for_detection_rate_wording() -> None:
+    chunks = [
+        Chunk(
+            id="BAL-SM:P00012:C01",
+            content=(
+                "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%)"
+                " BAL samples. Semi-quantitative PCR/ESI-MS levels were low in three culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00012",
+                    "parent_content": (
+                        "Detection of H. influenzae by PCR/ESI-MS was confirmed by culture in 16/20 (80%)"
+                        " BAL samples. Semi-quantitative PCR/ESI-MS levels were low in three culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="BAL-SM:P00013:C01",
+            content=(
+                "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                " demonstrated an overall higher sensitivity compared to routine culture-based"
+                " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                " culture-negative samples."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "BAL-SM:P00013",
+                    "parent_content": (
+                        "PCR/ESI-MS could identify 60 different microorganisms in 121 BAL samples and"
+                        " demonstrated an overall higher sensitivity compared to routine culture-based"
+                        " microbiological diagnostics, with identification of microorganisms in 15/17 (88%)"
+                        " culture-negative samples."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What was the overall detection rate of PCR/ESI-MS compared to routine culture in BAL samples?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [("BAL SM", "Discussion")]
+    assert "overall higher sensitivity" in result[0].content.lower()
 
 
 def test_retrieval_service_prefers_bal_abstract_for_explanatory_workflow_comparisons() -> None:
@@ -3473,6 +3727,110 @@ def test_retrieval_service_prefers_rapid_antibiotic_modification_timing_evidence
     assert [(chunk.doc_id, chunk.source) for chunk in result] == [("RAPID", "DISCUSSION")]
 
 
+def test_retrieval_service_includes_stewardship_review_for_decision_making_vs_clinical_outcomes_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC, with more stewardship recommendations.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Rapid testing enabled gram-negative antibiotic modifications to occur a median of 24.8 hours faster than SOC, with more stewardship recommendations.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="Time to de-escalation and escalation improved, but the study was not powered to detect mortality or cost outcomes.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "Time to de-escalation and escalation improved, but the study was not powered to detect mortality or cost outcomes.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-FABRE:P00001:C01",
+            content="Diagnostic stewardship for blood culture utilization focuses on improving antimicrobial decision making and avoiding unnecessary downstream testing.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-FABRE:P00001",
+                    "parent_content": "Diagnostic stewardship for blood culture utilization focuses on improving antimicrobial decision making and avoiding unnecessary downstream testing.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?",
+        limit=3,
+    )
+
+    assert {chunk.doc_id for chunk in result} == {
+        "RAPID",
+        "Single site RCT",
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    }
+
+
+def test_retrieval_service_expands_search_text_for_decision_making_vs_clinical_outcomes_query() -> None:
+    captured_queries: list[str] = []
+
+    def embedding_fn(texts: list[str]) -> list[list[float]]:
+        captured_queries.extend(texts)
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+    chunks = [
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Rapid testing improved antimicrobial decision making.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Rapid testing improved antimicrobial decision making.",
+                },
+            ),
+        )
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=embedding_fn)
+
+    service.retrieve(
+        query="What themes across these papers suggest that rapid diagnostics improve antimicrobial decision-making more reliably than they improve hard clinical outcomes?",
+        limit=1,
+    )
+
+    assert len(captured_queries) == 1
+    assert "diagnostic stewardship" in captured_queries[0]
+    assert "blood culture utilization" in captured_queries[0]
+
+
 def test_retrieval_service_prefers_results_for_limit_of_detection_workflow_query() -> None:
     chunks = [
         Chunk(
@@ -3536,6 +3894,73 @@ def test_retrieval_service_prefers_results_for_limit_of_detection_workflow_query
     assert [(chunk.doc_id, chunk.source) for chunk in result] == [
         ("Culture-Free Lipidomics-Based Screening Test", "Results")
     ]
+
+
+def test_retrieval_service_keeps_multiple_same_doc_chunks_for_assay_optimization_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-CF:M00001:C01",
+            content="Urine cultures confirmed gram-positive bacteria, and each sample was treated with lysozyme at the optimal concentration previously determined from contrived LOD tests.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Materials and Methods",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CF:M00001",
+                    "parent_content": "Urine cultures confirmed gram-positive bacteria, and each sample was treated with lysozyme at the optimal concentration previously determined from contrived LOD tests.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CF:R00001:C01",
+            content="Optimal sensitivity was achieved by treating 1 mL of urine pellets with 100 ug lysozyme and incubating for 60 minutes, resulting in improved cardiolipin detection.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Results",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CF:R00001",
+                    "parent_content": "Optimal sensitivity was achieved by treating 1 mL of urine pellets with 100 ug lysozyme and incubating for 60 minutes, resulting in improved cardiolipin detection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-NARTEY:D00001:C01",
+            content="Adding sonication increased sensitivity for gram-positive bacteria in a later cohort, but this sentence does not give the FLAT optimization parameters.",
+            metadata=ChunkMetadata(
+                doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-NARTEY:D00001",
+                    "parent_content": "Adding sonication increased sensitivity for gram-positive bacteria in a later cohort, but this sentence does not give the FLAT optimization parameters.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What lysozyme concentration and incubation time gave optimal cardiolipin detection in the FLAT assay?",
+        limit=2,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("Culture-Free Lipidomics-Based Screening Test", "Materials and Methods"),
+        ("Culture-Free Lipidomics-Based Screening Test", "Results"),
+    ]
+    assert "100 ug lysozyme" in result[1].content
+    assert "60 minutes" in result[1].content
 
 
 def test_retrieval_service_filters_non_infectious_metric_tables_for_broad_cross_doc_metric_queries() -> None:
@@ -3829,9 +4254,657 @@ def test_retrieval_service_excludes_non_domain_retrospective_noise_for_classific
         limit=4,
     )
 
-    assert [chunk.doc_id for chunk in result] == [
-        "RAPID",
+    assert set(chunk.doc_id for chunk in result) == {
         "Single site RCT",
+        "RAPID",
+        "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+    }
+
+
+def test_retrieval_service_limits_classification_queries_to_one_chunk_per_doc() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT-A:P00001:C01",
+            content="We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT-A:P00001",
+                    "parent_content": "We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT-B:P00002:C01",
+            content="This trial was not powered to detect mortality differences.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=9,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT-B:P00002",
+                    "parent_content": "This trial was not powered to detect mortality differences.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="Strengths of this study include its pragmatic trial design.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "Strengths of this study include its pragmatic trial design.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-REVIEW:P00001:C01",
+            content="In total, 18 studies were reviewed in full.",
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-REVIEW:P00001",
+                    "parent_content": "In total, 18 studies were reviewed in full.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=4,
+    )
+
+    assert len({chunk.doc_id for chunk in result}) == len(result)
+
+
+def test_retrieval_service_expands_search_text_for_classification_queries() -> None:
+    captured_queries: list[str] = []
+
+    def embedding_fn(texts: list[str]) -> list[list[float]]:
+        captured_queries.extend(texts)
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+                },
+            ),
+        )
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=embedding_fn)
+
+    service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=1,
+    )
+
+    assert len(captured_queries) == 1
+    assert "diagnostic stewardship" in captured_queries[0]
+    assert "blood culture" in captured_queries[0]
+    assert "method development" in captured_queries[0]
+    assert "consecutive samples" in captured_queries[0]
+    assert "flat assay" in captured_queries[0]
+
+
+def test_retrieval_service_prefers_domain_reviews_over_hepcidin_noise_for_classification_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "We report the first prospective RCT to demonstrate benefit of an rmPCR-based blood culture diagnostic test.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-FABRE:P00001:C01",
+            content="This review discusses diagnostic stewardship and blood culture utilization in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-FABRE:P00001",
+                    "parent_content": "This review discusses diagnostic stewardship and blood culture utilization in the hospital setting.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-HEP:P00001:C01",
+            content="This review summarizes hepcidin biology and inflammatory regulation in anemia of chronic disease.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-HEP:P00001",
+                    "parent_content": "This review summarizes hepcidin biology and inflammatory regulation in anemia of chronic disease.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=3,
+    )
+
+    assert set(chunk.doc_id for chunk in result) == {
+        "Single site RCT",
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+    }
+
+
+def test_retrieval_service_boosts_cohort_style_results_for_classification_queries() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-NARTEY:P00001:C01",
+            content=(
+                "A total of 435 samples were collected for this study. Of those, 33 were excluded, "
+                "leaving 402 urine samples for clinical validation of the lipidomics workflow."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+                chunk_type="text",
+                parent_header="RESULTS",
+                page_number=4,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-NARTEY:P00001",
+                    "parent_content": (
+                        "A total of 435 samples were collected for this study. Of those, 33 were excluded, "
+                        "leaving 402 urine samples for clinical validation of the lipidomics workflow."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-HEP:P00001:C01",
+            content="This review summarizes hepcidin biology in anemia of chronic disease.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-HEP:P00001",
+                    "parent_content": "This review summarizes hepcidin biology in anemia of chronic disease.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which of these studies are randomized controlled trials, and which are observational or review papers?",
+        limit=2,
+    )
+
+    assert [chunk.doc_id for chunk in result] == [
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+    ]
+
+
+def test_retrieval_service_prefers_abstract_over_conclusion_for_anemia_focus_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-ANEMIA-ABS:P00001:C01",
+            content=(
+                "Patients with infections, chronic inflammatory disorders, and cancers have anemia of chronic "
+                "disease/inflammation. Hepcidin is elevated and contributes to iron-restricted erythropoiesis."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hep anemia",
+                chunk_type="text",
+                parent_header="Abstract",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ANEMIA-ABS:P00001",
+                    "parent_content": (
+                        "Patients with infections, chronic inflammatory disorders, and cancers have anemia of chronic "
+                        "disease/inflammation. Hepcidin is elevated and contributes to iron-restricted erythropoiesis."
+                    ),
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-ANEMIA-CONC:P00002:C01",
+            content=(
+                "Recent research on the hepcidin-ferroportin axis has clarified the pathogenesis of iron-related "
+                "conditions and may enable new tests and treatments."
+            ),
+            metadata=ChunkMetadata(
+                doc_id="hep anemia",
+                chunk_type="text",
+                parent_header="CONCLUSIONS",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ANEMIA-CONC:P00002",
+                    "parent_content": (
+                        "Recent research on the hepcidin-ferroportin axis has clarified the pathogenesis of iron-related "
+                        "conditions and may enable new tests and treatments."
+                    ),
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What were the main findings on hepcidin and anaemia of chronic disease in the paper focused on that topic?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("hep anemia", "Abstract"),
+    ]
+
+
+def test_retrieval_service_prefers_hepcidin_standardization_paper_for_disambiguation_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-AUNE:P00001:C01",
+            content="This proficiency testing study proposes assay standardization across laboratories using a high-level calibrator and reference material.",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE:P00001",
+                    "parent_content": "This proficiency testing study proposes assay standardization across laboratories using a high-level calibrator and reference material.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-JMSACL:P00001:C01",
+            content="This observational paper interprets hepcidin-25 in renal dysfunction and inflammation.",
+            metadata=ChunkMetadata(
+                doc_id="jmsacl",
+                chunk_type="text",
+                parent_header="2. Materials and Methods",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-JMSACL:P00001",
+                    "parent_content": "This observational paper interprets hepcidin-25 in renal dysfunction and inflammation.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCM:P00001:C01",
+            content="We developed an HPLC/MS/MS assay with simple sample preparation for hepcidin measurement.",
+            metadata=ChunkMetadata(
+                doc_id="RCM publication",
+                chunk_type="text",
+                parent_header="5 | RESULTS AND DISCUSSION",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCM:P00001",
+                    "parent_content": "We developed an HPLC/MS/MS assay with simple sample preparation for hepcidin measurement.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which hepcidin paper in the indexed set focuses on proficiency testing and assay standardization rather than CKD pathophysiology or assay implementation?",
+        limit=3,
+    )
+
+    assert result[0].doc_id == "Aune-2020-Optimizing hepcidin measurement with"
+
+
+def test_retrieval_service_prefers_non_discussion_chunk_for_hepcidin_standardization_disambiguation() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-AUNE-INTRO:P00001:C01",
+            content="Introduction to a proficiency testing framework for hepcidin assay standardization across laboratories.",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE-INTRO:P00001",
+                    "parent_content": "Introduction to a proficiency testing framework for hepcidin assay standardization across laboratories.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-AUNE-DISC:P00002:C01",
+            content="Discussion of worldwide standardization enabled by a two-level commutable reference material.",
+            metadata=ChunkMetadata(
+                doc_id="Aune-2020-Optimizing hepcidin measurement with",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-AUNE-DISC:P00002",
+                    "parent_content": "Discussion of worldwide standardization enabled by a two-level commutable reference material.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which hepcidin paper in the indexed set focuses on proficiency testing and assay standardization rather than CKD pathophysiology or assay implementation?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("Aune-2020-Optimizing hepcidin measurement with", "Introduction"),
+    ]
+
+
+def test_retrieval_service_prefers_non_discussion_chunk_for_hepcidin_acute_phase_disambiguation() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-ACUTE-INTRO:P00001:C01",
+            content="Introduction to serum hepcidin as an acute phase marker in febrile children with infection.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=1,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ACUTE-INTRO:P00001",
+                    "parent_content": "Introduction to serum hepcidin as an acute phase marker in febrile children with infection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-ACUTE-DISC:P00002:C01",
+            content="Discussion of hepcidin rising during acute infection and falling post-infection in children.",
+            metadata=ChunkMetadata(
+                doc_id="hepcidin acute phase",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-ACUTE-DISC:P00002",
+                    "parent_content": "Discussion of hepcidin rising during acute infection and falling post-infection in children.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed hepcidin paper is about acute infection in febrile children rather than chronic kidney disease or iron-disorder review topics?",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("hepcidin acute phase", "Introduction"),
+    ]
+
+
+def test_retrieval_service_prefers_methods_for_single_doc_cohort_or_design_query() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-CHEN-METHODS:P00001:C01",
+            content="Patients and methods. We analyzed a cohort of healthy controls, PDAC, and autoimmune pancreatitis patients using an UHPLC-MS/MS workflow for IgG4 glycosylation.",
+            metadata=ChunkMetadata(
+                doc_id="Chen_Michael_IntJMolSci_2021",
+                chunk_type="text",
+                parent_header="Materials and Methods",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CHEN-METHODS:P00001",
+                    "parent_content": "Patients and methods. We analyzed a cohort of healthy controls, PDAC, and autoimmune pancreatitis patients using an UHPLC-MS/MS workflow for IgG4 glycosylation.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-CHEN-CONC:P00002:C01",
+            content="The developed method generated IgG4 glycosylation profiles that separated AIP from comparator groups.",
+            metadata=ChunkMetadata(
+                doc_id="Chen_Michael_IntJMolSci_2021",
+                chunk_type="text",
+                parent_header="5. Conclusions",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-CHEN-CONC:P00002",
+                    "parent_content": "The developed method generated IgG4 glycosylation profiles that separated AIP from comparator groups.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="What patient cohort or analytical design did the Chen IgG4 glycosylation study use for autoimmune pancreatitis?",
+        doc_id="Chen_Michael_IntJMolSci_2021",
+        limit=1,
+    )
+
+    assert [(chunk.doc_id, chunk.source) for chunk in result] == [
+        ("Chen_Michael_IntJMolSci_2021", "Materials and Methods"),
+    ]
+
+
+def test_retrieval_service_prefers_bloodstream_rapid_diagnostics_over_urine_or_bal_noise() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="The single-site randomized trial reduced vancomycin exposure and improved escalation and de-escalation timing in bloodstream infection management.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=7,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "The single-site randomized trial reduced vancomycin exposure and improved escalation and de-escalation timing in bloodstream infection management.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RAPID:P00001:C01",
+            content="RAPID improved organism ID and phenotypic AST turnaround compared with standard of care in bloodstream infection.",
+            metadata=ChunkMetadata(
+                doc_id="RAPID",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=6,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RAPID:P00001",
+                    "parent_content": "RAPID improved organism ID and phenotypic AST turnaround compared with standard of care in bloodstream infection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-FLAT:P00001:C01",
+            content="The FLAT assay detects urine lipidomics biomarkers for direct pathogen detection.",
+            metadata=ChunkMetadata(
+                doc_id="Culture-Free Lipidomics-Based Screening Test",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-FLAT:P00001",
+                    "parent_content": "The FLAT assay detects urine lipidomics biomarkers for direct pathogen detection.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-BAL:P00001:C01",
+            content="PCR/ESI-MS enables BAL pathogen detection directly from bronchoalveolar lavage samples.",
+            metadata=ChunkMetadata(
+                doc_id="BAL SM",
+                chunk_type="text",
+                parent_header="Introduction",
+                page_number=2,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-BAL:P00001",
+                    "parent_content": "PCR/ESI-MS enables BAL pathogen detection directly from bronchoalveolar lavage samples.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed rapid-diagnostics papers report turnaround or stewardship improvements in bloodstream infection management rather than urine lipidomics or BAL pathogen detection?",
+        limit=4,
+    )
+
+    assert set(chunk.doc_id for chunk in result[:2]) == {"Single site RCT", "RAPID"}
+
+
+def test_retrieval_service_prefers_review_policy_docs_over_primary_study_noise() -> None:
+    chunks = [
+        Chunk(
+            id="DOC-FABRE:P00001:C01",
+            content="This review discusses diagnostic stewardship and blood culture utilization in the hospital setting.",
+            metadata=ChunkMetadata(
+                doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+                chunk_type="text",
+                parent_header="Discussion",
+                page_number=5,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-FABRE:P00001",
+                    "parent_content": "This review discusses diagnostic stewardship and blood culture utilization in the hospital setting.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-IJGM:P00001:C01",
+            content="We reviewed the laboratory workup for blood culture-negative endocarditis and diagnostic approaches.",
+            metadata=ChunkMetadata(
+                doc_id="IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
+                chunk_type="text",
+                parent_header="Methods",
+                page_number=3,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-IJGM:P00001",
+                    "parent_content": "We reviewed the laboratory workup for blood culture-negative endocarditis and diagnostic approaches.",
+                },
+            ),
+        ),
+        Chunk(
+            id="DOC-RCT:P00001:C01",
+            content="This randomized trial reports patient outcomes and stewardship timing changes.",
+            metadata=ChunkMetadata(
+                doc_id="Single site RCT",
+                chunk_type="text",
+                parent_header="DISCUSSION",
+                page_number=8,
+                extra={
+                    "content_role": "child",
+                    "section_role": "body",
+                    "parent_id": "DOC-RCT:P00001",
+                    "parent_content": "This randomized trial reports patient outcomes and stewardship timing changes.",
+                },
+            ),
+        ),
+    ]
+    repo = FakeVectorRepository(chunks)
+    service = RetrievalService(repo=repo, embedding_fn=lambda texts: [[0.1, 0.2, 0.3] for _ in texts])
+
+    result = service.retrieve(
+        query="Which indexed reviews focus on diagnostic stewardship or laboratory workup policy rather than primary observational assay cohorts?",
+        limit=3,
+    )
+
+    assert [chunk.doc_id for chunk in result[:2]] == [
+        "fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
         "IJGM-393329-blood-culture-negative-endocarditis--a-review-of-laboratory-",
     ]
 

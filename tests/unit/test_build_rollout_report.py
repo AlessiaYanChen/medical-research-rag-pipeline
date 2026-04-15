@@ -8,6 +8,7 @@ from scripts.build_rollout_report import (
     FAIL_STATUS,
     PASS_STATUS,
     REVIEW_REQUIRED_STATUS,
+    build_promotion_command,
     build_eval_gate,
     build_manual_spot_check_gate,
     build_rebuild_gate,
@@ -259,6 +260,117 @@ def test_build_rollout_report_combines_gate_states() -> None:
     assert report["audit_gate"]["status"] == PASS_STATUS
     assert report["evaluation_gates"][0]["status"] == PASS_STATUS
     assert report["manual_spot_check_gate"]["status"] == FAIL_STATUS
+    assert report["promotion_command"] == ""
+
+
+def test_build_promotion_command_only_returns_value_for_passing_report() -> None:
+    assert build_promotion_command(
+        overall_status=FAIL_STATUS,
+        source_collection="medical_research_chunks_docling_v2_batch1",
+        promotion_alias="medical_research_chunks_active",
+        qdrant_url="http://localhost:6333",
+        promotion_source_manifest="",
+        promotion_registry="data/kb_registry.json",
+        promotion_json_out="",
+    ) == ""
+
+    command = build_promotion_command(
+        overall_status=PASS_STATUS,
+        source_collection="medical_research_chunks_docling_v2_batch1",
+        promotion_alias="medical_research_chunks_active",
+        qdrant_url="http://localhost:6333",
+        promotion_source_manifest="data/ingestion_manifests/stage_manifest.json",
+        promotion_registry="data/kb_registry.json",
+        promotion_json_out="data/eval/results/promotion.json",
+    )
+
+    assert "scripts/promote_collection_alias.py" in command
+    assert "--source-collection medical_research_chunks_docling_v2_batch1" in command
+    assert "--alias medical_research_chunks_active" in command
+    assert "--source-manifest data/ingestion_manifests/stage_manifest.json" in command
+    assert "--json-out data/eval/results/promotion.json" in command
+
+
+def test_build_rollout_report_includes_promotion_command_when_passed() -> None:
+    report = build_rollout_report(
+        collection="medical_research_chunks_docling_v2_batch1",
+        stage_label="stage-1-20-pdfs",
+        target_pdf_count=20,
+        max_metric_drop=0.02,
+        manifest_payload={
+            "collection": "medical_research_chunks_docling_v2_batch1",
+            "doc_count": 20,
+            "chunk_count": 4000,
+            "parser": "docling",
+        },
+        manifest_path=Path("manifest.json"),
+        rebuild_failure_payload=None,
+        rebuild_failure_path=Path("failures.json"),
+        audit_payload={
+            "issue_count": 0,
+            "cleanup_plan_count": 0,
+            "manifest_version_issues": [],
+        },
+        audit_path=Path("audit.json"),
+        eval_inputs=[
+            {
+                "label": "stable",
+                "candidate_path": Path("stable.json"),
+                "candidate_payload": {
+                    "summary": {
+                        "expected_doc_hit_rate": 1.0,
+                        "expected_header_hit_rate": 1.0,
+                        "top1_expected_doc_hit_rate": 1.0,
+                        "top1_expected_header_hit_rate": 1.0,
+                        "average_doc_precision": 1.0,
+                        "average_header_precision": 1.0,
+                        "cross_document_average_doc_precision": 1.0,
+                    }
+                },
+                "baseline_path": Path("stable_baseline.json"),
+                "baseline_payload": {
+                    "summary": {
+                        "expected_doc_hit_rate": 1.0,
+                        "expected_header_hit_rate": 1.0,
+                        "top1_expected_doc_hit_rate": 1.0,
+                        "top1_expected_header_hit_rate": 1.0,
+                        "average_doc_precision": 1.0,
+                        "average_header_precision": 1.0,
+                        "cross_document_average_doc_precision": 1.0,
+                    }
+                },
+            }
+        ],
+        manual_spot_check_path=Path("manual_checks.json"),
+        promotion_alias="medical_research_chunks_active",
+        qdrant_url="http://localhost:6333",
+        promotion_source_manifest="data/ingestion_manifests/stage_manifest.json",
+        promotion_registry="data/kb_registry.json",
+        promotion_json_out="data/eval/results/promotion.json",
+    )
+
+    report["manual_spot_check_gate"] = {
+        "status": PASS_STATUS,
+        "path": "manual_checks.json",
+        "checks_total": 1,
+        "pass_count": 1,
+        "fail_count": 0,
+        "checks": [{"query": "test", "status": "pass", "repeated": False}],
+        "issues": [],
+    }
+    report["overall_status"] = PASS_STATUS
+    report["promotion_command"] = build_promotion_command(
+        overall_status=PASS_STATUS,
+        source_collection="medical_research_chunks_docling_v2_batch1",
+        promotion_alias="medical_research_chunks_active",
+        qdrant_url="http://localhost:6333",
+        promotion_source_manifest="data/ingestion_manifests/stage_manifest.json",
+        promotion_registry="data/kb_registry.json",
+        promotion_json_out="data/eval/results/promotion.json",
+    )
+
+    assert report["promotion_alias"] == "medical_research_chunks_active"
+    assert "scripts/promote_collection_alias.py" in report["promotion_command"]
 
 
 def test_load_manual_spot_checks_rejects_invalid_status(tmp_path: Path) -> None:

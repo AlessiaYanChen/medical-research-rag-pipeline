@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the medical research RAG pipeline reliable enough for a medium-scale corpus of roughly `100 PDFs`, then scale toward roughly `300 PDFs` without noisy retrieval, weak grounding, or unclear rollback paths.
+Make the medical research RAG pipeline reliable and benchmark-honest on the current `20`-PDF stage-1 corpus, then use that smaller corpus as the proving ground for any later expansion toward `100+` PDFs.
 
 ## Current State
 
@@ -11,7 +11,7 @@ Make the medical research RAG pipeline reliable enough for a medium-scale corpus
 - Current small-corpus baseline collection: `medical_research_chunks_docling_v1`
 - Current stage-1 rollout collection: `medical_research_chunks_docling_v2_batch1`
 - Stage-1 formal gate status: `pass`
-- Stage-1 substantive risk: manual UI spot-check completion is still in progress for the newly added papers, even though stage-coverage retrieval now exercises the full `20`-PDF corpus
+- Stage-1 synthesis validation: complete — answer quality baseline exists, the known-gap false-confidence gate is clear, the stage-1 synthesis gate passes, and the synthesis spot checks passed `6/8` with no hepcidin mis-attribution
 
 ## Collection Roles
 
@@ -45,9 +45,9 @@ Current retrieval gate policy:
 
 ## Active Risks
 
-1. Same-topic ambiguity: the hepcidin cluster is still the clearest early multi-paper disambiguation risk; one residual top-1 ambiguity is under watch.
-2. Answer reliability: the app measures retrieval quality but not final synthesis quality.
-3. Operational drift: dependencies are unpinned, so parser or reranker behavior can shift silently.
+1. Same-topic ambiguity: the hepcidin cluster is still the clearest early multi-paper disambiguation risk; one residual top-1 ambiguity is under watch at the synthesis level.
+2. Residual synthesis watch items: the stage-1 synthesis gate is clear. `AQ10` improved in the `2026-04-10` follow-up reruns, while `AQ13` still remains the main study-design classification watch item for Stage 2.
+3. Ingestion metadata hardening is still the main operational risk before any corpus expansion beyond the current `20`-PDF stage.
 
 ## Phase Status
 
@@ -69,7 +69,7 @@ Outcome:
 
 Status: Deferred
 
-Use only if benchmark evidence shows the current metadata-first retrieval path has stopped holding.
+Use only if benchmark evidence shows the current metadata-first retrieval path has stopped holding. Do not reopen this phase for the current `20`-PDF corpus unless a measured benchmark gap clearly requires it.
 
 ### Phase 3B: Recall Extensions
 
@@ -79,10 +79,21 @@ Hybrid retrieval, sparse retrieval, query expansion, and similar recall extensio
 
 ### Phase 4: Metadata and Ingestion Hardening
 
-Status: Complete
+Status: In Progress
 
-Outcome:
+Outcome so far:
 - rebuild, audit, manifest, duplicate detection, and repair tooling are in place
+- shared ingestion runtime helpers now live under `src/app/ingestion`, so rebuild, repair, UI ingest, and the end-to-end flow no longer depend on a test-named script for runtime behavior
+- Qdrant write failures now fail loud instead of logging and continuing, which closes the silent partial-write hole during rebuild and single-document repair
+- single-document repair now snapshots and restores the prior Qdrant points on replacement-write failure, reducing the chance of a failed repair leaving the collection without the original document
+- collection rebuild now defaults to a fresh-target safety check and requires an explicit override before recreating an existing collection, while alias promotion is available as a separate step after staged validation
+- rollout reporting can now carry the follow-up promotion command when a staged collection fully passes its gates, making the checklist handoff from validation to cutover explicit
+
+Next hardening work for the `20`-PDF corpus:
+- add richer ingestion metadata such as `ingestion_version` and `chunker_version`
+- add a stronger registry-vs-Qdrant reconciler workflow for post-ingest sanity checks
+- add chunk-count-per-doc sanity checks so parsing pathologies are caught early
+- keep human-readable `doc_id` values for UI and evaluation, while treating a content hash as the canonical dedup and file-identity signal
 
 ### Phase 4B: Parser Bakeoff
 
@@ -99,7 +110,7 @@ Outcome:
 Status: In Progress
 
 Objective:
-- prove the `Docling` production line remains reliable through staged `20`, `50`, and `100` PDF rollouts
+- prove the current `20`-PDF `Docling` artifact is stable enough to serve as the benchmark and ingestion reference point before any broader rollout work resumes
 
 Current checkpoint:
 - stage 1 (`20 PDFs`) passed its formal rollout gate on `medical_research_chunks_docling_v2_batch1`
@@ -121,7 +132,7 @@ Stage-2 readiness rule:
 
 - keep `runtime_queries.json` limited to real user/runtime questions
 - put synthetic corpus-coverage probes into a separate evaluation dataset
-- stage-1 coverage gap is now closed; stage 2 may begin
+- stage-1 retrieval coverage gap is closed; the synthesis validation gate in `docs/stage1_synthesis_validation.md` is now passed, and broader stage-2 work should keep `AQ13` visible as the remaining synthesis watch item
 
 ### Phase 5: Corpus Rollout
 
@@ -135,7 +146,31 @@ Phase gate:
 
 ## Next Priorities
 
-Immediate stabilization work:
+Immediate focus for the current `20`-PDF stage:
+
+1. Harden ingestion metadata and reconciliation before any new PDF expansion work: version stamps, richer file identity, registry-vs-Qdrant diffing, and chunk-count sanity checks.
+2. Inspect the remaining `AQ13` miss once more before any further retrieval tuning. Only change retrieval if a narrow cause is confirmed.
+3. Inspect the remaining top-1 header misses before any further retrieval tuning. Treat `top1_expected_header_hit_rate` as a watch metric, not a cue for proactive heuristic changes.
+4. Keep Phase 3 deferred and keep document locking as the narrow query-disambiguation tool for the `20`-PDF corpus.
+5. Freeze embedding configuration until the benchmark is larger and can detect regressions honestly.
+
+Detailed stage-1 query expansion matrix:
+- `docs/stage1_benchmark_expansion_plan.md`
+
+Current benchmark read after stage-1 coverage expansion:
+- `data/eval/stage1_coverage_queries.json` now contains `88` retrieval queries across all `20` stage-1 papers.
+- Current `2026-04-10` rerun on `medical_research_chunks_docling_v2_batch1`:
+  - `expected_doc_hit_rate = 1.0`
+  - `top1_expected_doc_hit_rate = 1.0`
+  - `average_doc_precision = 1.0`
+  - `cross_document_average_doc_precision = 1.0`
+  - `expected_header_hit_rate = 1.0`
+  - `top1_expected_header_hit_rate = 0.8182`
+  - `average_header_precision = 0.793`
+- On the expanded stage-1 set, document recall, cross-document precision, and at-least-one-hit header coverage are now clean. Remaining retrieval work is mostly top-1 section selection rather than coverage gaps.
+- Operational next step on the `20`-PDF corpus: complete ingestion metadata hardening before any Stage-2 rebuild or corpus expansion work.
+
+Previously completed stabilization work:
 
 1. ~~Pin dependencies to reduce parser and reranker drift risk.~~ Complete — all packages pinned in `requirements.txt`, including `docling` which was previously missing from the file.
 
@@ -145,14 +180,30 @@ Order of work (stage-1 coverage gap is now closed):
 2. ~~Move toward structured answer output with chunk-level citations.~~ Complete — `ReasoningService.research()` now returns `ResearchAnswer` (insight, evidence_basis, citations). Citations are the actual retrieved chunks, not LLM-generated text. UI renders them as collapsible expanders.
 3. ~~Add a typed abstention or confidence signal.~~ Complete — `ConfidenceLevel` enum (HIGH/MEDIUM/LOW/INSUFFICIENT) derived from retrieval signals (chunk count, distinct docs, "Insufficient evidence" in insight). UI shows a coloured banner per level.
 4. ~~Add a small answer-quality evaluation layer separate from retrieval evaluation.~~ Complete — `src/app/evaluation/answer_quality_eval.py` evaluates abstention accuracy, confidence thresholds, and doc-ID coverage in evidence basis. Runner at `scripts/evaluate_answer_quality.py`. Query format: `data/eval/answer_quality_queries.json`.
-5. ~~Improve the UI collection-selection and rollback workflow.~~ Complete - collection roles now render in the UI, switching collections clears stale session state, and rollback ingestion is soft-blocked in `scripts/ui_app.py`.
-6. ~~Add basic observability for latency and retrieved-chunk inspection.~~ Complete — retrieval now exposes `RetrievalResult` diagnostics (`latency_ms`, `initial_candidate_count`) and the Streamlit UI surfaces retrieval and synthesis latency alongside retrieved context and answer confidence.
+5. ~~Improve the UI collection-selection and rollback workflow.~~ Complete — `COLLECTION_ROLES` map and `get_collection_role()` helper added; switching collections resets stale session state; rollback collection (`medical_research_chunks_v1`) soft-blocks ingestion. `pytest.ini` added to fix Windows temp-dir permission errors in CI.
+6. ~~Add basic observability for latency and retrieved-chunk inspection.~~ Complete — `RetrievalResult` dataclass exposes `latency_ms` and `initial_candidate_count` via `retrieve_with_diagnostics()`; UI shows retrieval and synthesis latency captions.
+
+## Stage-1 Synthesis Validation (pre–Stage-2 gate)
+
+Full plan in `docs/stage1_synthesis_validation.md`. Must complete before the 50-PDF rebuild.
+
+1. Create and expand `data/eval/answer_quality_queries.json` to cover factual answers, known-gap abstentions, hepcidin disambiguation, and plausible-but-absent false-positive traps. Status: complete for the initial expanded stage-1 set.
+   - Current expanded run: `31` queries, `abstain_accuracy = 1.0`, `confidence_meets_minimum_rate = 0.8125`, `average_doc_id_coverage = 0.9821` in `data/eval/results/answer_quality_eval_stage1_expanded_absent_answer_v3.json`.
+2. Run answer quality baseline on `medical_research_chunks_docling_v2_batch1`. Status: complete, with baseline metrics recorded in `data/eval/results/answer_quality_eval_stage1_baseline.json`.
+3. Run known-gap abstention check through synthesis. Status: complete, with no known-gap query returning `HIGH` confidence in `data/eval/results/answer_quality_eval_known_gaps_stage1_after_abstention_pass2.json`.
+4. Cross-document synthesis UI spot checks (8 queries). Status: complete, with `6/8` pass and no hepcidin mis-attribution recorded in `docs/manual_spot_checks_synthesis_2026-04-01.md`.
+5. Build `scripts/run_synthesis_gate.py` with pass/fail thresholds. Status: complete, and the stage-1 gate passes in `data/eval/results/synthesis_gate_report_stage1.json`.
+
+Latest follow-up read on `2026-04-10` after targeted retrieval adjustments:
+- `data/eval/results/answer_quality_eval_stage1_watch_items_v8.json` restored `abstain_accuracy = 1.0`, kept `confidence_meets_minimum_rate = 0.8125`, and raised `average_doc_id_coverage` to `0.9911`.
+- `AQ08`, `AQ10`, `AQ19`, and `AQ23` are all in a healthy state again.
+- `AQ13` improved to `6/7` expected evidence docs with correct `RAPID` coverage, but it still misses the Nartey urine paper and remains the only active synthesis watch item from this follow-up pass.
 
 ## Future Considerations
 
 - Hybrid or sparse retrieval only if benchmark evidence shows lexical recall failures.
 - Multi-turn conversation support only after grounding and answer reliability are stronger.
-- Larger-scale corpus rollout only after the `100`-PDF line is operationally stable.
+- Larger-scale corpus rollout only after the `20`-PDF benchmark is harder, the ingestion metadata is better hardened, and the smaller-corpus signal remains clean.
 
 ## Checkpoint History
 

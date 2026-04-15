@@ -134,6 +134,26 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Optional Markdown output path. Defaults to data/eval/results/rollout_report_<collection>.md.",
     )
+    parser.add_argument(
+        "--promotion-alias",
+        default="",
+        help="Optional stable alias name to advertise as the rollout promotion target when the report passes.",
+    )
+    parser.add_argument(
+        "--promotion-source-manifest",
+        default="",
+        help="Optional manifest path override to include in the generated promotion command.",
+    )
+    parser.add_argument(
+        "--promotion-registry",
+        default="data/kb_registry.json",
+        help="Registry path to include in the generated promotion command.",
+    )
+    parser.add_argument(
+        "--promotion-json-out",
+        default="",
+        help="Optional JSON path to include in the generated promotion command output.",
+    )
     return parser.parse_args()
 
 
@@ -418,6 +438,38 @@ def determine_overall_status(gates: list[dict[str, Any]]) -> str:
     return PASS_STATUS
 
 
+def build_promotion_command(
+    *,
+    overall_status: str,
+    source_collection: str,
+    promotion_alias: str,
+    qdrant_url: str,
+    promotion_source_manifest: str,
+    promotion_registry: str,
+    promotion_json_out: str,
+) -> str:
+    if overall_status != PASS_STATUS or not promotion_alias.strip():
+        return ""
+
+    parts = [
+        r".\.venv\Scripts\python.exe",
+        "scripts/promote_collection_alias.py",
+        "--source-collection",
+        source_collection,
+        "--alias",
+        promotion_alias.strip(),
+        "--qdrant-url",
+        qdrant_url,
+        "--registry",
+        promotion_registry,
+    ]
+    if promotion_source_manifest.strip():
+        parts.extend(["--source-manifest", promotion_source_manifest.strip()])
+    if promotion_json_out.strip():
+        parts.extend(["--json-out", promotion_json_out.strip()])
+    return " ".join(parts)
+
+
 def build_rollout_report(
     *,
     collection: str,
@@ -432,6 +484,11 @@ def build_rollout_report(
     audit_path: Path,
     eval_inputs: list[dict[str, Any]],
     manual_spot_check_path: Path | None,
+    promotion_alias: str = "",
+    qdrant_url: str = "http://localhost:6333",
+    promotion_source_manifest: str = "",
+    promotion_registry: str = "data/kb_registry.json",
+    promotion_json_out: str = "",
 ) -> dict[str, Any]:
     rebuild_gate = build_rebuild_gate(
         collection=collection,
@@ -456,12 +513,23 @@ def build_rollout_report(
     manual_gate = build_manual_spot_check_gate(manual_spot_check_path)
     all_gates = [rebuild_gate, audit_gate, *eval_gates, manual_gate]
     overall_status = determine_overall_status(all_gates)
+    promotion_command = build_promotion_command(
+        overall_status=overall_status,
+        source_collection=collection,
+        promotion_alias=promotion_alias,
+        qdrant_url=qdrant_url,
+        promotion_source_manifest=promotion_source_manifest,
+        promotion_registry=promotion_registry,
+        promotion_json_out=promotion_json_out,
+    )
     return {
         "collection": collection,
         "stage_label": stage_label,
         "target_pdf_count": target_pdf_count,
         "max_metric_drop": max_metric_drop,
         "overall_status": overall_status,
+        "promotion_alias": promotion_alias.strip(),
+        "promotion_command": promotion_command,
         "rebuild_gate": rebuild_gate,
         "audit_gate": audit_gate,
         "evaluation_gates": eval_gates,
@@ -479,6 +547,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
     target_pdf_count = int(report.get("target_pdf_count", 0) or 0)
     if target_pdf_count > 0:
         lines.append(f"- Target PDF count: `{target_pdf_count}`")
+    promotion_alias = str(report.get("promotion_alias", "")).strip()
+    promotion_command = str(report.get("promotion_command", "")).strip()
+    if promotion_alias:
+        lines.append(f"- Promotion alias: `{promotion_alias}`")
     lines.extend(
         [
             "",
@@ -569,6 +641,28 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         lines.append(
             f"- `{check['status']}` query: {check['query']} | repeated: `{repeated}`"
         )
+    if promotion_alias:
+        lines.extend(
+            [
+                "",
+                "## Promotion",
+                "",
+                f"- Promotion alias: `{promotion_alias}`",
+            ]
+        )
+        if promotion_command:
+            lines.extend(
+                [
+                    "- Promotion command:",
+                    "```powershell",
+                    promotion_command,
+                    "```",
+                ]
+            )
+        else:
+            lines.append(
+                f"- Promotion command withheld because overall status is `{report['overall_status']}`."
+            )
     lines.append("")
     return "\n".join(lines)
 
@@ -649,6 +743,11 @@ def main() -> int:
         audit_path=audit_path,
         eval_inputs=eval_inputs,
         manual_spot_check_path=manual_path,
+        promotion_alias=args.promotion_alias,
+        qdrant_url="http://localhost:6333",
+        promotion_source_manifest=args.promotion_source_manifest,
+        promotion_registry=args.promotion_registry,
+        promotion_json_out=args.promotion_json_out,
     )
     markdown = render_markdown_report(report)
     write_json(report, json_out)

@@ -5,8 +5,12 @@ from src.app.services.reasoning_service import (
     ConfidenceLevel,
     ResearchAnswer,
     ReasoningService,
+    _build_forced_abstention_answer,
+    _citations_contain_quantitative_intervention_evidence,
     _compute_confidence,
     _parse_llm_response,
+    _should_force_exact_intervention_metric_abstention,
+    _should_force_known_gap_abstention,
 )
 
 
@@ -168,6 +172,223 @@ def test_reasoning_service_attaches_confidence() -> None:
     service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
     result = service.research(query="What is the effect?", limit=6)
     assert result.confidence == ConfidenceLevel.LOW  # 1 chunk, 1 doc
+
+
+def test_quantitative_intervention_evidence_detects_matching_marker_and_numeric_value() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Results",
+            doc_id="DOC-1",
+            content="Lysozyme treatment increased gram-positive detection from 8% to 51%.",
+            chunk_type="text",
+            content_role="child",
+        )
+    ]
+
+    assert _citations_contain_quantitative_intervention_evidence(citations, "lysozyme") is True
+
+
+def test_reasoning_service_forces_abstention_when_exact_intervention_metric_is_missing() -> None:
+    citations = [
+        RetrievedChunk(
+            source="RESULTS",
+            doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+            content="Only 8% of the 402 samples known to be Gram positive were detected by FLAT. Sonication increased detection to 51%.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="Results",
+            doc_id="Culture-Free Lipidomics-Based Screening Test",
+            content="The optimized FLAT method incorporating lysozyme treatment significantly enhanced the detection of gram-positive uropathogens.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="What was the detection rate for gram-positive bacteria before and after lysozyme treatment in the FLAT study?",
+        limit=6,
+    )
+
+    assert _should_force_exact_intervention_metric_abstention(
+        query="What was the detection rate for gram-positive bacteria before and after lysozyme treatment in the FLAT study?",
+        citations=citations,
+    ) is True
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert "Insufficient evidence." in result.insight
+    assert llm.last_prompt is None
+
+
+def test_build_forced_abstention_answer_lists_supporting_sources() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Results",
+            doc_id="DOC-1",
+            content="Qualitative lysozyme improvement only.",
+            chunk_type="text",
+            content_role="child",
+        )
+    ]
+
+    result = _build_forced_abstention_answer(
+        query="What was the detection rate before and after lysozyme treatment?",
+        citations=citations,
+    )
+
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert "DOC-1, Results" in result.evidence_basis
+
+
+def test_reasoning_service_forces_abstention_for_species_specific_mz_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Materials and Methods",
+            doc_id="Culture-Free Lipidomics-Based Screening Test",
+            content="Gram-positive biomarkers were detected in the m/z 1000-1400 range.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="Discussion",
+            doc_id="nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",
+            content="Cardiolipin and lipid A biomarkers occur broadly between m/z 1000 and 2400.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="What cardiolipin m/z values identify S. aureus in the FLAT assay?",
+        limit=6,
+    )
+
+    assert _should_force_known_gap_abstention(
+        query="What cardiolipin m/z values identify S. aureus in the FLAT assay?",
+        citations=citations,
+    ) is True
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
+
+
+def test_reasoning_service_forces_abstention_for_figure_interpretation_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Results",
+            doc_id="BAL SM",
+            content="Figure 1 is referenced, but the retrieved text does not describe the plotted distribution.",
+            chunk_type="text",
+            content_role="child",
+        )
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="What does the distribution of species per BAL sample look like in Figure 1?",
+        limit=6,
+    )
+
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
+
+
+def test_reasoning_service_forces_abstention_for_specific_scenario_list_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Discussion",
+            doc_id="fabre-et-al-blood-culture-utilization-in-the-hospital-setting-a-call-for-diagnostic-stewardship",
+            content="Repeat blood cultures were often inappropriate after prior negative cultures without new signs of infection.",
+            chunk_type="text",
+            content_role="child",
+        )
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="According to the Fabre et al. minireview, what are three specific clinical scenarios where initial blood cultures are considered to have 'Low diagnostic value'?",
+        limit=6,
+    )
+
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
+
+
+def test_reasoning_service_forces_abstention_for_missing_named_comparator_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="RESULTS",
+            doc_id="RAPID",
+            content="RAPID reduced time to first antibiotic change compared with standard of care.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="RESULTS",
+            doc_id="Single site RCT",
+            content="Rapid multiplex PCR reduced time to organism identification after positive Gram stain.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="How did RAPID compare with the BioFire BCID2 platform for organism identification turnaround time?",
+        limit=6,
+    )
+
+    assert _should_force_known_gap_abstention(
+        query="How did RAPID compare with the BioFire BCID2 platform for organism identification turnaround time?",
+        citations=citations,
+    ) is True
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
+
+
+def test_reasoning_service_forces_abstention_for_exact_subgroup_summary_query() -> None:
+    citations = [
+        RetrievedChunk(
+            source="Results",
+            doc_id="jmsacl",
+            content="CKD stage 4+ had the highest hepcidin-25 concentration, but the subgroup median eGFR was not reported.",
+            chunk_type="text",
+            content_role="child",
+        ),
+        RetrievedChunk(
+            source="Results",
+            doc_id="hepcidin ckd",
+            content="Ferritin was the only independent predictor of hepcidin-25, and no significant correlation with eGFR was found.",
+            chunk_type="text",
+            content_role="child",
+        ),
+    ]
+    retrieval = FakeRetrievalService(citations)
+    llm = FakeLLM()
+    service = ReasoningService(retrieval_service=retrieval, llm_client=llm)
+
+    result = service.research(
+        query="What was the exact median eGFR of the subgroup with the highest hepcidin-25 concentration in the CKD hepcidin paper?",
+        limit=6,
+    )
+
+    assert _should_force_known_gap_abstention(
+        query="What was the exact median eGFR of the subgroup with the highest hepcidin-25 concentration in the CKD hepcidin paper?",
+        citations=citations,
+    ) is True
+    assert result.confidence == ConfidenceLevel.INSUFFICIENT
+    assert llm.last_prompt is None
 
 
 def test_parse_llm_response_with_section_label_text() -> None:

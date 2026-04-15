@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import Any
+import re
+import unicodedata
 
 from src.app.services.reasoning_service import ConfidenceLevel, ResearchAnswer
 
@@ -83,10 +85,10 @@ def evaluate_answer_quality(query: AnswerQualityQuery, answer: ResearchAnswer) -
             _CONFIDENCE_ORDER[answer.confidence] >= _CONFIDENCE_ORDER[query.expected_confidence_min]
         )
 
-    evidence_basis_lower = answer.evidence_basis.lower()
+    evidence_basis_normalized = _normalize_match_text(answer.evidence_basis)
     expected_doc_ids_found = [
         doc_id for doc_id in query.expected_doc_ids
-        if doc_id.lower() in evidence_basis_lower
+        if _normalize_match_text(doc_id) in evidence_basis_normalized
     ]
     doc_id_coverage: float | None = None
     if query.expected_doc_ids:
@@ -150,3 +152,10 @@ def _average(values: Any) -> float | None:
     if not items:
         return None
     return round(sum(items) / len(items), 4)
+
+
+def _normalize_match_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKC", str(text)).casefold()
+    normalized = re.sub(r"[\u2010\u2011\u2012\u2013\u2014\u2212]+", "-", normalized)
+    normalized = re.sub(r"[*_`]+", "", normalized)
+    return " ".join(normalized.split())

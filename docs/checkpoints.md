@@ -60,9 +60,23 @@ It is a record of how the repo moved from small-corpus retrieval tuning into sta
 - `ConfidenceLevel` enum added (HIGH/MEDIUM/LOW/INSUFFICIENT), derived from retrieval signals with no extra LLM call.
 - UI updated: Evidence Basis and Citations are collapsible expanders; a coloured confidence banner appears above each insight.
 
+## April 1, 2026 (UI and observability — PRs #1 and #2)
+
+- `RetrievalResult` dataclass added to `retrieval_service.py` exposing `latency_ms` and `initial_candidate_count` via `retrieve_with_diagnostics()`. Initial implementation had a double-search bug (fixed in follow-up commit `1bc5ce8` by introducing `_retrieve()` as a shared private method).
+- UI updated: retrieval and synthesis latency captions added; `last_answer` session state consolidated into `last_retrieval_result`.
+- `COLLECTION_ROLES` map and `get_collection_role()` helper added to `ui_app.py`; switching collections clears stale session state; rollback collection soft-blocks ingestion.
+- `pytest.ini` added (`--basetemp=.pytest_tmp_run`) resolving 39 pre-existing Windows temp-dir permission errors in test collection.
+- `src/domain/models/__init__.py` added; `.gitignore` negation rules fixed to stop excluding `src/domain/models/`.
+
+## April 1, 2026 (stage-1 synthesis validation plan)
+
+- `docs/stage1_synthesis_validation.md` created: step-by-step plan for validating the synthesis pipeline on the 20-PDF corpus before Stage 2.
+- Plan covers: answer quality baseline dataset (Codex), baseline eval run (manual), known-gap abstention check (manual), cross-doc synthesis UI spot checks (manual), synthesis gate script (Codex).
+- Stage-2 readiness gate updated: 8 criteria, all must pass before the 50-PDF rebuild begins.
+
 ## Current Interpretation
 
-- The formal stage-1 rollout gate is passing and stage-1 is fully de-risked.
-- The stage-1 coverage gap is closed.
-- The remaining watch item is the hepcidin cluster top-1 ambiguity; it has not produced confirmed retrieval failures.
-- Next work: UI collection-selection and rollback workflow, then basic observability for latency and retrieved-chunk inspection.
+- The formal stage-1 rollout gate is passing; stage-1 is fully de-risked at the retrieval level.
+- The synthesis pipeline (prompt hardening, `ResearchAnswer`, `ConfidenceLevel`) is built and tested in unit tests but has not yet been validated against the live 20-PDF corpus.
+- Active risk: synthesis validation gap — `data/eval/answer_quality_queries.json` and `scripts/run_synthesis_gate.py` do not yet exist.
+- Next work: complete the 5-step synthesis validation plan in `docs/stage1_synthesis_validation.md`, then begin Stage 2 (50-PDF rebuild).

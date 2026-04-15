@@ -25,12 +25,13 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue  # noqa: E40
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import normalize_doc_id  # noqa: E402
+from src.app.ingestion.file_identity_utils import compute_file_identity  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
 from src.app.ingestion.manifest_utils import build_manifest_doc_entry, upsert_manifest_doc_entry  # noqa: E402
 from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
+from src.app.ingestion.runtime_utils import normalize_tables  # noqa: E402
 from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 from src.app.ingestion.versioning_utils import validate_manifest_compatibility  # noqa: E402
-from scripts.test_e2e_flow import normalize_tables  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -177,6 +178,80 @@ def write_failure_report(
     return path
 
 
+def backup_existing_doc_points(
+    *,
+    client: QdrantClient,
+    collection_name: str,
+    doc_id: str,
+    batch_size: int = 256,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    offset: Any = None
+    query_filter = Filter(
+        must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
+    )
+
+    while True:
+        points, next_offset = client.scroll(
+            collection_name=collection_name,
+            scroll_filter=query_filter,
+            limit=batch_size,
+            with_payload=True,
+            with_vectors=True,
+            offset=offset,
+        )
+        if not points:
+            break
+
+        for point in points:
+            records.append(
+                {
+                    "point_id": str(getattr(point, "id", "")),
+                    "payload": dict(getattr(point, "payload", {}) or {}),
+                    "vector": getattr(point, "vector", None),
+                }
+            )
+
+        if next_offset is None:
+            break
+        offset = next_offset
+
+    return records
+
+
+def restore_doc_points(
+    *,
+    client: QdrantClient,
+    collection_name: str,
+    records: list[dict[str, Any]],
+) -> None:
+    if not records:
+        return
+
+    try:
+        from qdrant_client.models import PointStruct  # type: ignore
+    except Exception:  # noqa: BLE001
+        points = [
+            {
+                "id": record["point_id"],
+                "payload": dict(record["payload"]),
+                "vector": record["vector"],
+            }
+            for record in records
+        ]
+    else:
+        points = [
+            PointStruct(
+                id=record["point_id"],
+                payload=dict(record["payload"]),
+                vector=record["vector"],
+            )
+            for record in records
+        ]
+
+    client.upsert(collection_name=collection_name, points=points, wait=True)
+
+
 def report_failure(
     *,
     pdf_path: Path,
@@ -279,6 +354,7 @@ def main() -> int:
                     doc_id=normalized_doc_id,
                     source_file=pdf_path.name,
                     local_file=str(pdf_path),
+                    source_sha256=str(compute_file_identity(pdf_path)["source_sha256"]),
                     existing_entries=list(loaded_manifest.get("docs", []))
                     if isinstance(loaded_manifest.get("docs", []), list)
                     else [],
@@ -334,6 +410,7 @@ def main() -> int:
             manifest_path=args.manifest,
         )
     try:
+        file_identity = compute_file_identity(pdf_path)
         normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
         chunks = chunker.chunk_document(
             doc_id=normalized_doc_id,
@@ -341,6 +418,8 @@ def main() -> int:
             markdown_text=parsed.markdown_text,
             tables=normalized_tables,
             local_file=str(pdf_path),
+            source_sha256=str(file_identity["source_sha256"]),
+            file_size_bytes=int(file_identity["file_size_bytes"]),
         )
     except Exception as exc:  # noqa: BLE001
         return report_failure(
@@ -364,6 +443,7 @@ def main() -> int:
             doc_id=normalized_doc_id,
             source_file=pdf_path.name,
             local_file=str(pdf_path),
+            source_sha256=str(file_identity["source_sha256"]),
             existing_entries=fetch_collection_doc_identities(client, collection_name=args.collection),
             context=f"Qdrant collection '{args.collection}'",
             allowed_doc_ids={normalized_doc_id},
@@ -378,6 +458,12 @@ def main() -> int:
             failure_report_out=args.failure_report_out,
             manifest_path=args.manifest,
         )
+
+    backup_records = backup_existing_doc_points(
+        client=client,
+        collection_name=args.collection,
+        doc_id=normalized_doc_id,
+    )
 
     try:
         client.delete(
@@ -400,6 +486,29 @@ def main() -> int:
     try:
         repository.upsert_chunks(chunks)
     except Exception as exc:  # noqa: BLE001
+        rollback_error: Exception | None = None
+        try:
+            restore_doc_points(
+                client=client,
+                collection_name=args.collection,
+                records=backup_records,
+            )
+        except Exception as restore_exc:  # noqa: BLE001
+            rollback_error = restore_exc
+
+        if rollback_error is not None:
+            return report_failure(
+                pdf_path=pdf_path,
+                doc_id=normalized_doc_id,
+                collection=args.collection,
+                stage="rollback_old_doc",
+                error=(
+                    "replacement write failed and rollback restore also failed: "
+                    f"upsert_new_doc={exc}; rollback_old_doc={rollback_error}"
+                ),
+                failure_report_out=args.failure_report_out,
+                manifest_path=args.manifest,
+            )
         return report_failure(
             pdf_path=pdf_path,
             doc_id=normalized_doc_id,
@@ -422,6 +531,8 @@ def main() -> int:
                 ingestion_version=UnifiedChunker.INGESTION_VERSION,
                 chunking_version=UnifiedChunker.CHUNKING_VERSION,
                 parser_name=args.parser,
+                source_sha256=str(file_identity["source_sha256"]),
+                file_size_bytes=int(file_identity["file_size_bytes"]),
             )
             upsert_manifest_doc_entry(
                 manifest_path=args.manifest,

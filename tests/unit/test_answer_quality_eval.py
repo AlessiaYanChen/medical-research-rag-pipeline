@@ -141,6 +141,23 @@ def test_evaluate_doc_id_coverage_case_insensitive() -> None:
     assert result["doc_id_coverage"] == 1.0
 
 
+def test_evaluate_doc_id_coverage_matches_unicode_dash_variants() -> None:
+    query = _make_query(
+        expected_doc_ids=("nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population",)
+    )
+    answer = _make_answer(
+        evidence_basis=(
+            "• nartey‑et‑al‑2024‑a‑lipidomics‑based‑method‑to‑eliminate‑negative‑urine‑culture‑in‑general‑population"
+            " — Discussion"
+        )
+    )
+    result = evaluate_answer_quality(query, answer)
+    assert result["doc_id_coverage"] == 1.0
+    assert result["expected_doc_ids_found"] == [
+        "nartey-et-al-2024-a-lipidomics-based-method-to-eliminate-negative-urine-culture-in-general-population"
+    ]
+
+
 # --- build_answer_quality_summary ---
 
 def test_summary_abstain_accuracy() -> None:
