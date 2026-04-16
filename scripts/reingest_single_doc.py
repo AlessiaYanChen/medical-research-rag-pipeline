@@ -23,7 +23,11 @@ from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import FieldCondition, Filter, MatchValue  # noqa: E402
 
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
-from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
+from src.app.ingestion.dedup_utils import (  # noqa: E402
+    ensure_doc_identity_is_available,
+    fetch_collection_doc_identities,
+    resolve_canonical_doc_id,
+)
 from src.app.ingestion.doc_id_utils import normalize_doc_id  # noqa: E402
 from src.app.ingestion.file_identity_utils import compute_file_identity  # noqa: E402
 from src.app.adapters.vectorstores.qdrant_repository import QdrantRepository  # noqa: E402
@@ -318,6 +322,11 @@ def main() -> int:
             failure_report_out=args.failure_report_out,
             manifest_path=args.manifest,
         )
+    file_identity = compute_file_identity(pdf_path)
+    normalized_source_sha256 = str(file_identity["source_sha256"])
+    canonical_doc_id = normalized_doc_id
+
+    manifest_entries: list[dict[str, Any]] = []
     if args.manifest.strip():
         manifest_path = Path(args.manifest)
         if manifest_path.exists():
@@ -349,22 +358,26 @@ def main() -> int:
                     failure_report_out=args.failure_report_out,
                     manifest_path=args.manifest,
                 )
+            manifest_entries = list(loaded_manifest.get("docs", [])) if isinstance(loaded_manifest.get("docs", []), list) else []
+            canonical_doc_id = resolve_canonical_doc_id(
+                requested_doc_id=canonical_doc_id,
+                source_sha256=normalized_source_sha256,
+                existing_entries=manifest_entries,
+            )
             try:
                 ensure_doc_identity_is_available(
-                    doc_id=normalized_doc_id,
+                    doc_id=canonical_doc_id,
                     source_file=pdf_path.name,
                     local_file=str(pdf_path),
-                    source_sha256=str(compute_file_identity(pdf_path)["source_sha256"]),
-                    existing_entries=list(loaded_manifest.get("docs", []))
-                    if isinstance(loaded_manifest.get("docs", []), list)
-                    else [],
+                    source_sha256=normalized_source_sha256,
+                    existing_entries=manifest_entries,
                     context=f"Manifest '{manifest_path}'",
-                    allowed_doc_ids={normalized_doc_id},
+                    allowed_doc_ids={canonical_doc_id},
                 )
             except ValueError as exc:
                 return report_failure(
                     pdf_path=pdf_path,
-                    doc_id=normalized_doc_id,
+                    doc_id=canonical_doc_id,
                     collection=args.collection,
                     stage="manifest_validation",
                     error=exc,
@@ -393,6 +406,14 @@ def main() -> int:
             manifest_path=args.manifest,
         )
 
+    client = QdrantClient(url=args.qdrant_url)
+    collection_entries = fetch_collection_doc_identities(client, collection_name=args.collection)
+    canonical_doc_id = resolve_canonical_doc_id(
+        requested_doc_id=canonical_doc_id,
+        source_sha256=normalized_source_sha256,
+        existing_entries=collection_entries,
+    )
+
     document_parser = build_parser(args.parser)
     chunker = UnifiedChunker(max_chars=args.max_chars, overlap_paragraphs=args.overlap_paragraphs)
 
@@ -410,21 +431,20 @@ def main() -> int:
             manifest_path=args.manifest,
         )
     try:
-        file_identity = compute_file_identity(pdf_path)
         normalized_tables = normalize_tables(parsed.tables, file_name=pdf_path.name)
         chunks = chunker.chunk_document(
-            doc_id=normalized_doc_id,
+            doc_id=canonical_doc_id,
             source_file=pdf_path.name,
             markdown_text=parsed.markdown_text,
             tables=normalized_tables,
             local_file=str(pdf_path),
-            source_sha256=str(file_identity["source_sha256"]),
+            source_sha256=normalized_source_sha256,
             file_size_bytes=int(file_identity["file_size_bytes"]),
         )
     except Exception as exc:  # noqa: BLE001
         return report_failure(
             pdf_path=pdf_path,
-            doc_id=normalized_doc_id,
+            doc_id=canonical_doc_id,
             collection=args.collection,
             stage="chunk",
             error=exc,
@@ -432,7 +452,6 @@ def main() -> int:
             manifest_path=args.manifest,
         )
 
-    client = QdrantClient(url=args.qdrant_url)
     repository = QdrantRepository(
         qdrant_client=client,
         collection_name=args.collection,
@@ -440,18 +459,18 @@ def main() -> int:
     )
     try:
         ensure_doc_identity_is_available(
-            doc_id=normalized_doc_id,
+            doc_id=canonical_doc_id,
             source_file=pdf_path.name,
             local_file=str(pdf_path),
-            source_sha256=str(file_identity["source_sha256"]),
-            existing_entries=fetch_collection_doc_identities(client, collection_name=args.collection),
+            source_sha256=normalized_source_sha256,
+            existing_entries=collection_entries,
             context=f"Qdrant collection '{args.collection}'",
-            allowed_doc_ids={normalized_doc_id},
+            allowed_doc_ids={canonical_doc_id},
         )
     except ValueError as exc:
         return report_failure(
             pdf_path=pdf_path,
-            doc_id=normalized_doc_id,
+            doc_id=canonical_doc_id,
             collection=args.collection,
             stage="validate_collection_identity",
             error=exc,
@@ -462,21 +481,21 @@ def main() -> int:
     backup_records = backup_existing_doc_points(
         client=client,
         collection_name=args.collection,
-        doc_id=normalized_doc_id,
+        doc_id=canonical_doc_id,
     )
 
     try:
         client.delete(
             collection_name=args.collection,
             points_selector=Filter(
-                must=[FieldCondition(key="doc_id", match=MatchValue(value=normalized_doc_id))]
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=canonical_doc_id))]
             ),
             wait=True,
         )
     except Exception as exc:  # noqa: BLE001
         return report_failure(
             pdf_path=pdf_path,
-            doc_id=normalized_doc_id,
+            doc_id=canonical_doc_id,
             collection=args.collection,
             stage="delete_old_doc",
             error=exc,
@@ -499,7 +518,7 @@ def main() -> int:
         if rollback_error is not None:
             return report_failure(
                 pdf_path=pdf_path,
-                doc_id=normalized_doc_id,
+                doc_id=canonical_doc_id,
                 collection=args.collection,
                 stage="rollback_old_doc",
                 error=(
@@ -511,7 +530,7 @@ def main() -> int:
             )
         return report_failure(
             pdf_path=pdf_path,
-            doc_id=normalized_doc_id,
+            doc_id=canonical_doc_id,
             collection=args.collection,
             stage="upsert_new_doc",
             error=exc,
@@ -553,7 +572,10 @@ def main() -> int:
                 manifest_path=args.manifest,
             )
 
-    print(f"Reingested doc_id: {normalized_doc_id}")
+    if canonical_doc_id != normalized_doc_id:
+        print(f"Requested doc_id: {normalized_doc_id}")
+        print(f"Canonical doc_id: {canonical_doc_id}")
+    print(f"Reingested doc_id: {canonical_doc_id}")
     print(f"Parser: {args.parser}")
     print(f"Collection: {args.collection}")
     print(f"Chunks: {len(chunks)}")

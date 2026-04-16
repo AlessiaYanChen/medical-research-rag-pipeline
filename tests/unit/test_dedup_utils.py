@@ -8,6 +8,8 @@ from src.app.ingestion.dedup_utils import (
     DuplicateDocumentError,
     ensure_doc_identity_is_available,
     fetch_collection_doc_identities,
+    find_existing_doc_by_source_sha256,
+    resolve_canonical_doc_id,
     validate_unique_doc_identities,
 )
 
@@ -87,7 +89,7 @@ def test_ensure_doc_identity_is_available_rejects_other_doc_with_same_local_file
 
 
 def test_ensure_doc_identity_is_available_rejects_other_doc_with_same_source_sha256() -> None:
-    with pytest.raises(DuplicateDocumentError, match="source_sha256 'abc123' is already registered"):
+    with pytest.raises(DuplicateDocumentError, match="canonical doc_id 'DOC-1'"):
         ensure_doc_identity_is_available(
             doc_id="DOC-2",
             source_file="renamed.pdf",
@@ -103,6 +105,44 @@ def test_ensure_doc_identity_is_available_rejects_other_doc_with_same_source_sha
             ],
             context="Registry collection 'medical_research_chunks_v1'",
         )
+
+
+def test_find_existing_doc_by_source_sha256_returns_existing_entry() -> None:
+    entry = find_existing_doc_by_source_sha256(
+        [
+            {
+                "doc_id": "DOC-1",
+                "source_file": "doc.pdf",
+                "local_file": "C:/docs/doc.pdf",
+                "source_sha256": "abc123",
+            }
+        ],
+        source_sha256="abc123",
+    )
+
+    assert entry == {
+        "doc_id": "DOC-1",
+        "source_file": "doc.pdf",
+        "local_file": "C:/docs/doc.pdf",
+        "source_sha256": "abc123",
+    }
+
+
+def test_resolve_canonical_doc_id_prefers_existing_hash_matched_doc_id() -> None:
+    canonical_doc_id = resolve_canonical_doc_id(
+        requested_doc_id="DOC-RENAMED",
+        source_sha256="abc123",
+        existing_entries=[
+            {
+                "doc_id": "DOC-1",
+                "source_file": "doc.pdf",
+                "local_file": "C:/docs/doc.pdf",
+                "source_sha256": "abc123",
+            }
+        ],
+    )
+
+    assert canonical_doc_id == "DOC-1"
 
 
 class _FakeScrollClient:

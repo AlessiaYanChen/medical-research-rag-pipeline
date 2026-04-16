@@ -128,8 +128,47 @@ def ensure_doc_identity_is_available(
         existing_source_sha256 = entry["source_sha256"]
         if normalized_source_sha256 and _normalize_identity_text(existing_source_sha256) == normalized_source_sha256:
             raise DuplicateDocumentError(
-                f"{context}: source_sha256 '{source_sha256}' is already registered to doc_id '{existing_doc_id}'."
+                f"{context}: source_sha256 '{source_sha256}' is already registered to canonical doc_id "
+                f"'{existing_doc_id}'. Use the single-document repair flow to update the existing document."
             )
+
+
+def find_existing_doc_by_source_sha256(
+    existing_entries: list[dict[str, Any]],
+    *,
+    source_sha256: str,
+    local_file_keys: tuple[str, ...] = ("local_file", "pdf_path"),
+) -> dict[str, str] | None:
+    normalized_source_sha256 = _normalize_identity_text(source_sha256)
+    if not normalized_source_sha256:
+        return None
+
+    for entry in _iter_doc_identities(existing_entries, local_file_keys=local_file_keys):
+        existing_doc_id = entry["doc_id"]
+        if not existing_doc_id:
+            continue
+        existing_source_sha256 = entry["source_sha256"]
+        if normalized_source_sha256 == _normalize_identity_text(existing_source_sha256):
+            return entry
+    return None
+
+
+def resolve_canonical_doc_id(
+    *,
+    requested_doc_id: str,
+    source_sha256: str,
+    existing_entries: list[dict[str, Any]],
+    local_file_keys: tuple[str, ...] = ("local_file", "pdf_path"),
+) -> str:
+    matched_entry = find_existing_doc_by_source_sha256(
+        existing_entries,
+        source_sha256=source_sha256,
+        local_file_keys=local_file_keys,
+    )
+    if matched_entry is None:
+        return str(requested_doc_id).strip()
+    matched_doc_id = str(matched_entry.get("doc_id", "")).strip()
+    return matched_doc_id or str(requested_doc_id).strip()
 
 
 def fetch_collection_doc_identities(
