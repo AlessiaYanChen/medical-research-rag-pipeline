@@ -13,11 +13,13 @@ def build_doc_identity(
     doc_id: str,
     source_file: str = "",
     local_file: str = "",
+    source_sha256: str = "",
 ) -> dict[str, str]:
     return {
         "doc_id": str(doc_id).strip(),
         "source_file": str(source_file).strip(),
         "local_file": str(local_file).strip(),
+        "source_sha256": str(source_sha256).strip(),
     }
 
 
@@ -30,6 +32,7 @@ def validate_unique_doc_identities(
     seen_doc_ids: dict[str, str] = {}
     seen_source_files: dict[str, str] = {}
     seen_local_files: dict[str, str] = {}
+    seen_source_hashes: dict[str, str] = {}
 
     for entry in _iter_doc_identities(entries, local_file_keys=local_file_keys):
         doc_id = entry["doc_id"]
@@ -63,12 +66,23 @@ def validate_unique_doc_identities(
                 )
             seen_local_files[normalized_local_file] = doc_id
 
+        source_sha256 = entry["source_sha256"]
+        if source_sha256:
+            normalized_source_sha256 = _normalize_identity_text(source_sha256)
+            if normalized_source_sha256 in seen_source_hashes:
+                raise DuplicateDocumentError(
+                    f"{context}: source_sha256 '{source_sha256}' is already registered to doc_id "
+                    f"'{seen_source_hashes[normalized_source_sha256]}'."
+                )
+            seen_source_hashes[normalized_source_sha256] = doc_id
+
 
 def ensure_doc_identity_is_available(
     *,
     doc_id: str,
     source_file: str = "",
     local_file: str = "",
+    source_sha256: str = "",
     existing_entries: list[dict[str, Any]],
     context: str,
     allowed_doc_ids: set[str] | None = None,
@@ -82,6 +96,7 @@ def ensure_doc_identity_is_available(
     normalized_doc_id = _normalize_identity_text(doc_id)
     normalized_source_file = _normalize_identity_text(source_file)
     normalized_local_file = _normalize_identity_path(local_file)
+    normalized_source_sha256 = _normalize_identity_text(source_sha256)
 
     for entry in _iter_doc_identities(existing_entries, local_file_keys=local_file_keys):
         existing_doc_id = entry["doc_id"]
@@ -108,6 +123,12 @@ def ensure_doc_identity_is_available(
         if normalized_local_file and _normalize_identity_path(existing_local_file) == normalized_local_file:
             raise DuplicateDocumentError(
                 f"{context}: local_file '{local_file}' is already registered to doc_id '{existing_doc_id}'."
+            )
+
+        existing_source_sha256 = entry["source_sha256"]
+        if normalized_source_sha256 and _normalize_identity_text(existing_source_sha256) == normalized_source_sha256:
+            raise DuplicateDocumentError(
+                f"{context}: source_sha256 '{source_sha256}' is already registered to doc_id '{existing_doc_id}'."
             )
 
 
@@ -143,10 +164,13 @@ def fetch_collection_doc_identities(
             entry = identities.setdefault(doc_id, build_doc_identity(doc_id=doc_id))
             source_file = str(payload.get("source_file", "")).strip()
             local_file = str(payload.get("local_file", "")).strip()
+            source_sha256 = str(payload.get("source_sha256", "")).strip()
             if source_file and not entry["source_file"]:
                 entry["source_file"] = source_file
             if local_file and not entry["local_file"]:
                 entry["local_file"] = local_file
+            if source_sha256 and not entry["source_sha256"]:
+                entry["source_sha256"] = source_sha256
 
         if next_offset is None:
             break
@@ -175,6 +199,7 @@ def _iter_doc_identities(
                 doc_id=str(entry.get("doc_id", "")).strip(),
                 source_file=str(entry.get("source_file", "")).strip(),
                 local_file=local_file,
+                source_sha256=str(entry.get("source_sha256", "")).strip(),
             )
         )
     return identities

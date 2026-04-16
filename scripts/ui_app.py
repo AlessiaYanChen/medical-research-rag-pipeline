@@ -30,6 +30,7 @@ from qdrant_client import QdrantClient  # noqa: E402
 from src.app.adapters.embeddings.openai_embedding_adapter import OpenAIEmbeddingAdapter  # noqa: E402
 from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, fetch_collection_doc_identities  # noqa: E402
 from src.app.ingestion.doc_id_utils import doc_id_from_path  # noqa: E402
+from src.app.ingestion.file_identity_utils import compute_file_identity  # noqa: E402
 from src.app.ingestion.parser_factory import DEFAULT_PARSER_NAME, PARSER_CHOICES, build_parser  # noqa: E402
 from src.app.ingestion.runtime_utils import ensure_collection, normalize_tables  # noqa: E402
 from src.app.ingestion.registry_utils import (  # noqa: E402
@@ -99,12 +100,14 @@ def ingest_pdf(
     overlap_paragraphs: int,
     embedding_fn: OpenAIEmbeddingAdapter,
 ) -> dict[str, object]:
+    file_identity = compute_file_identity(pdf_path)
     existing_registry_docs = list(get_collection_docs(collection_name).values())
     try:
         ensure_doc_identity_is_available(
             doc_id=doc_id,
             source_file=pdf_path.name,
             local_file=str(pdf_path),
+            source_sha256=str(file_identity["source_sha256"]),
             existing_entries=existing_registry_docs,
             context=f"Registry collection '{collection_name}'",
         )
@@ -117,6 +120,7 @@ def ingest_pdf(
             doc_id=doc_id,
             source_file=pdf_path.name,
             local_file=str(pdf_path),
+            source_sha256=str(file_identity["source_sha256"]),
             existing_entries=fetch_collection_doc_identities(client, collection_name=collection_name),
             context=f"Qdrant collection '{collection_name}'",
         )
@@ -134,6 +138,8 @@ def ingest_pdf(
         markdown_text=parsed_document.markdown_text,
         tables=normalized_tables,
         local_file=str(pdf_path),
+        source_sha256=str(file_identity["source_sha256"]),
+        file_size_bytes=int(file_identity["file_size_bytes"]),
     )
 
     if not chunks:
@@ -158,9 +164,12 @@ def ingest_pdf(
         "text_chunks": text_chunk_count,
         "table_chunks": table_chunk_count,
         "ingestion_version": UnifiedChunker.INGESTION_VERSION,
+        "chunker_version": UnifiedChunker.CHUNKER_VERSION,
         "chunking_version": UnifiedChunker.CHUNKING_VERSION,
         "parser": parser_name,
         "source_file": pdf_path.name,
+        "source_sha256": str(file_identity["source_sha256"]),
+        "file_size_bytes": int(file_identity["file_size_bytes"]),
     }
 
 

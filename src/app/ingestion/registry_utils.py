@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.app.ingestion.dedup_utils import ensure_doc_identity_is_available, validate_unique_doc_identities
+from src.app.ingestion.versioning_utils import build_version_metadata, resolve_chunker_version
 
 
 def default_manifest_path_for_collection(collection_name: str) -> Path:
@@ -68,22 +69,32 @@ def sync_collection_from_manifest(
                 "chunks": int(item.get("chunk_count", 0)),
                 "text_chunks": int(item.get("text_chunk_count", 0)),
                 "table_chunks": int(item.get("table_chunk_count", 0)),
-                "ingestion_version": str(
-                    item.get("ingestion_version", manifest_payload.get("ingestion_version", ""))
-                ).strip(),
-                "chunking_version": str(
-                    item.get("chunking_version", manifest_payload.get("chunking_version", ""))
-                ).strip(),
                 "parser": str(item.get("parser", manifest_payload.get("parser", ""))).strip(),
+                "source_sha256": str(item.get("source_sha256", "")).strip(),
+                "file_size_bytes": int(item.get("file_size_bytes", 0) or 0),
             }
+            docs[doc_id].update(
+                build_version_metadata(
+                    ingestion_version=str(
+                        item.get("ingestion_version", manifest_payload.get("ingestion_version", ""))
+                    ).strip(),
+                    chunker_version=str(
+                        item.get("chunker_version", item.get("chunking_version", resolve_chunker_version(manifest_payload)))
+                    ).strip(),
+                )
+            )
 
     collection_entry["docs"] = docs
     collection_entry["manifest_path"] = str(effective_manifest_path)
     collection_entry["doc_count"] = len(docs)
     collection_entry["chunk_count"] = sum(item["chunks"] for item in docs.values())
-    collection_entry["ingestion_version"] = str(manifest_payload.get("ingestion_version", "")).strip()
-    collection_entry["chunking_version"] = str(manifest_payload.get("chunking_version", "")).strip()
     collection_entry["parser"] = str(manifest_payload.get("parser", "")).strip()
+    collection_entry.update(
+        build_version_metadata(
+            ingestion_version=str(manifest_payload.get("ingestion_version", "")).strip(),
+            chunker_version=resolve_chunker_version(manifest_payload),
+        )
+    )
     return collection_entry
 
 
@@ -118,10 +129,16 @@ def upsert_collection_doc(
         "chunks": int(summary.get("chunks", 0)),
         "text_chunks": int(summary.get("text_chunks", 0)),
         "table_chunks": int(summary.get("table_chunks", 0)),
-        "ingestion_version": str(summary.get("ingestion_version", "")).strip(),
-        "chunking_version": str(summary.get("chunking_version", "")).strip(),
         "parser": str(summary.get("parser", "")).strip(),
+        "source_sha256": str(summary.get("source_sha256", "")).strip(),
+        "file_size_bytes": int(summary.get("file_size_bytes", 0) or 0),
     }
+    docs[doc_id].update(
+        build_version_metadata(
+            ingestion_version=str(summary.get("ingestion_version", "")).strip(),
+            chunker_version=str(summary.get("chunker_version", summary.get("chunking_version", ""))).strip(),
+        )
+    )
 
     effective_manifest_path = Path(manifest_path) if manifest_path is not None else default_manifest_path_for_collection(collection_name)
     if effective_manifest_path.exists():
@@ -129,9 +146,18 @@ def upsert_collection_doc(
 
     collection_entry["doc_count"] = len(docs)
     collection_entry["chunk_count"] = sum(int(item.get("chunks", 0)) for item in docs.values())
-    collection_entry["ingestion_version"] = str(summary.get("ingestion_version", collection_entry.get("ingestion_version", ""))).strip()
-    collection_entry["chunking_version"] = str(summary.get("chunking_version", collection_entry.get("chunking_version", ""))).strip()
     collection_entry["parser"] = str(summary.get("parser", collection_entry.get("parser", ""))).strip()
+    collection_entry.update(
+        build_version_metadata(
+            ingestion_version=str(summary.get("ingestion_version", collection_entry.get("ingestion_version", ""))).strip(),
+            chunker_version=str(
+                summary.get(
+                    "chunker_version",
+                    summary.get("chunking_version", collection_entry.get("chunker_version", collection_entry.get("chunking_version", ""))),
+                )
+            ).strip(),
+        )
+    )
     return collection_entry
 
 
@@ -168,6 +194,7 @@ def _normalize_collection_entry(collection_entry: dict[str, Any]) -> None:
         "doc_count",
         "chunk_count",
         "ingestion_version",
+        "chunker_version",
         "chunking_version",
         "parser",
     }

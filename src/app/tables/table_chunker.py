@@ -14,6 +14,7 @@ class UnifiedChunker:
     DEFAULT_OPENING_HEADER = "Document Metadata/Abstract"
     DEFAULT_OPENING_HEADER_ROLE = "opening_metadata"
     INGESTION_VERSION = "ingestion_v2"
+    CHUNKER_VERSION = "chunking_v2"
     CHUNKING_VERSION = "chunking_v2"
 
     def __init__(
@@ -37,7 +38,10 @@ class UnifiedChunker:
         document_path: str | Path | None = None,
         local_file: str | None = None,
         ingestion_version: str | None = None,
+        chunker_version: str | None = None,
         chunking_version: str | None = None,
+        source_sha256: str | None = None,
+        file_size_bytes: int | None = None,
     ) -> list[Chunk]:
         if tables is not None:
             table_artifacts = tables
@@ -48,7 +52,9 @@ class UnifiedChunker:
 
         effective_local_file = local_file or ""
         effective_ingestion_version = ingestion_version or self.INGESTION_VERSION
-        effective_chunking_version = chunking_version or self.CHUNKING_VERSION
+        effective_chunking_version = chunker_version or chunking_version or self.CHUNKER_VERSION
+        effective_source_sha256 = str(source_sha256 or "").strip()
+        effective_file_size_bytes = int(file_size_bytes) if file_size_bytes is not None else None
 
         loaded_table_artifacts_count = len(table_artifacts)
         blocks = self._split_blocks(markdown_text)
@@ -84,6 +90,8 @@ class UnifiedChunker:
                     local_file=effective_local_file,
                     ingestion_version=effective_ingestion_version,
                     chunking_version=effective_chunking_version,
+                    source_sha256=effective_source_sha256,
+                    file_size_bytes=effective_file_size_bytes,
                     paragraphs=pending_paragraphs,
                     parent_id_start=parent_counter + 1,
                 )
@@ -118,6 +126,8 @@ class UnifiedChunker:
                     local_file=effective_local_file,
                     ingestion_version=effective_ingestion_version,
                     chunking_version=effective_chunking_version,
+                    source_sha256=effective_source_sha256,
+                    file_size_bytes=effective_file_size_bytes,
                     paragraphs=pending_paragraphs,
                     parent_id_start=parent_counter + 1,
                 )
@@ -143,6 +153,8 @@ class UnifiedChunker:
                         local_file=effective_local_file,
                         ingestion_version=effective_ingestion_version,
                         chunking_version=effective_chunking_version,
+                        source_sha256=effective_source_sha256,
+                        file_size_bytes=effective_file_size_bytes,
                     )
                 )
                 continue
@@ -167,6 +179,8 @@ class UnifiedChunker:
                     local_file=effective_local_file,
                     ingestion_version=effective_ingestion_version,
                     chunking_version=effective_chunking_version,
+                    source_sha256=effective_source_sha256,
+                    file_size_bytes=effective_file_size_bytes,
                 )
             )
 
@@ -179,6 +193,8 @@ class UnifiedChunker:
             local_file=effective_local_file,
             ingestion_version=effective_ingestion_version,
             chunking_version=effective_chunking_version,
+            source_sha256=effective_source_sha256,
+            file_size_bytes=effective_file_size_bytes,
             paragraphs=pending_paragraphs,
             parent_id_start=parent_counter + 1,
         )
@@ -348,6 +364,8 @@ class UnifiedChunker:
         local_file: str,
         ingestion_version: str,
         chunking_version: str,
+        source_sha256: str,
+        file_size_bytes: int | None,
         paragraphs: list[str],
         parent_id_start: int,
     ) -> tuple[list[Chunk], int]:
@@ -387,6 +405,8 @@ class UnifiedChunker:
                     local_file=local_file,
                     ingestion_version=ingestion_version,
                     chunking_version=chunking_version,
+                    source_sha256=source_sha256,
+                    file_size_bytes=file_size_bytes,
                     section_role=self._classify_section_role(parent_header),
                     content_role=self._classify_parent_content_role(parent_header, parent_content),
                 )
@@ -411,6 +431,8 @@ class UnifiedChunker:
         local_file: str,
         ingestion_version: str,
         chunking_version: str,
+        source_sha256: str,
+        file_size_bytes: int | None,
         section_role: str,
         content_role: str,
     ) -> list[Chunk]:
@@ -435,7 +457,10 @@ class UnifiedChunker:
                         "section_role": section_role,
                         "source_file": source_file,
                         "local_file": local_file,
+                        "source_sha256": source_sha256,
+                        "file_size_bytes": file_size_bytes,
                         "ingestion_version": ingestion_version,
+                        "chunker_version": chunking_version,
                         "chunking_version": chunking_version,
                         "header_original": original_parent_header,
                         "header_canonical": parent_header,
@@ -471,6 +496,8 @@ class UnifiedChunker:
         local_file: str,
         ingestion_version: str,
         chunking_version: str,
+        source_sha256: str,
+        file_size_bytes: int | None,
     ) -> Chunk:
         table_payload = self._table_payload(table_artifact)
         table_semantics = self._classify_table_semantics(table_artifact=table_artifact, table_payload=table_payload)
@@ -499,7 +526,10 @@ class UnifiedChunker:
                     "section_role": section_role,
                     "source_file": source_file,
                     "local_file": local_file,
+                    "source_sha256": source_sha256,
+                    "file_size_bytes": file_size_bytes,
                     "ingestion_version": ingestion_version,
+                    "chunker_version": chunking_version,
                     "chunking_version": chunking_version,
                     "header_original": original_parent_header,
                     "header_canonical": parent_header,

@@ -45,6 +45,8 @@ def test_build_manifest_doc_entry_counts_text_and_table_chunks() -> None:
         ingestion_version="ingestion_v2",
         chunking_version="chunking_v2",
         parser_name="docling",
+        source_sha256="abc123",
+        file_size_bytes=2048,
     )
 
     assert entry["doc_id"] == "DOC-1"
@@ -52,8 +54,11 @@ def test_build_manifest_doc_entry_counts_text_and_table_chunks() -> None:
     assert entry["text_chunk_count"] == 1
     assert entry["table_chunk_count"] == 1
     assert entry["ingestion_version"] == "ingestion_v2"
+    assert entry["chunker_version"] == "chunking_v2"
     assert entry["chunking_version"] == "chunking_v2"
     assert entry["parser"] == "docling"
+    assert entry["source_sha256"] == "abc123"
+    assert entry["file_size_bytes"] == 2048
 
 
 def test_write_rebuild_manifest_writes_consistent_totals(tmp_path: Path) -> None:
@@ -86,6 +91,7 @@ def test_write_rebuild_manifest_writes_consistent_totals(tmp_path: Path) -> None
     assert payload["doc_count"] == 1
     assert payload["chunk_count"] == 2
     assert payload["parser"] == "docling"
+    assert payload["chunker_version"] == "chunking_v2"
     assert payload["docs"][0]["doc_id"] == "DOC-1"
     assert payload["docs"][0]["parser"] == "docling"
 
@@ -130,6 +136,7 @@ def test_upsert_manifest_doc_entry_replaces_existing_doc_and_recalculates_totals
     assert payload["doc_count"] == 1
     assert payload["chunk_count"] == 2
     assert payload["parser"] == "docling"
+    assert payload["chunker_version"] == "chunking_v2"
     assert payload["docs"][0]["doc_id"] == "DOC-1"
     assert payload["docs"][0]["text_chunk_count"] == 1
     assert payload["docs"][0]["parser"] == "docling"

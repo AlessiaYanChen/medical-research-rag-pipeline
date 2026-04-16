@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.app.ingestion.dedup_utils import validate_unique_doc_identities
+from src.app.ingestion.versioning_utils import build_version_metadata
 from src.domain.models.chunk import Chunk
 
 
@@ -17,20 +18,31 @@ def build_manifest_doc_entry(
     ingestion_version: str,
     chunking_version: str,
     parser_name: str = "",
+    source_sha256: str = "",
+    file_size_bytes: int | None = None,
 ) -> dict[str, Any]:
     text_chunks = sum(chunk.metadata.chunk_type == "text" for chunk in chunks)
     table_chunks = sum(chunk.metadata.chunk_type == "table" for chunk in chunks)
-    return {
+    payload = {
         "doc_id": doc_id,
         "source_file": source_file,
         "local_file": local_file,
         "chunk_count": len(chunks),
         "text_chunk_count": text_chunks,
         "table_chunk_count": table_chunks,
-        "ingestion_version": ingestion_version,
-        "chunking_version": chunking_version,
         "parser": str(parser_name).strip(),
     }
+    payload.update(
+        build_version_metadata(
+            ingestion_version=ingestion_version,
+            chunker_version=chunking_version,
+        )
+    )
+    if str(source_sha256).strip():
+        payload["source_sha256"] = str(source_sha256).strip()
+    if file_size_bytes is not None:
+        payload["file_size_bytes"] = int(file_size_bytes)
+    return payload
 
 
 def write_rebuild_manifest(
@@ -53,11 +65,15 @@ def write_rebuild_manifest(
         "glob": glob_pattern,
         "doc_count": len(docs),
         "chunk_count": sum(int(doc["chunk_count"]) for doc in docs),
-        "ingestion_version": ingestion_version,
-        "chunking_version": chunking_version,
         "parser": str(parser_name).strip(),
         "docs": docs,
     }
+    payload.update(
+        build_version_metadata(
+            ingestion_version=ingestion_version,
+            chunker_version=chunking_version,
+        )
+    )
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
@@ -79,9 +95,13 @@ def upsert_manifest_doc_entry(
         payload = {}
 
     payload["collection"] = collection
-    payload["ingestion_version"] = ingestion_version
-    payload["chunking_version"] = chunking_version
     payload["parser"] = str(parser_name).strip()
+    payload.update(
+        build_version_metadata(
+            ingestion_version=ingestion_version,
+            chunker_version=chunking_version,
+        )
+    )
 
     docs = payload.get("docs")
     if not isinstance(docs, list):
