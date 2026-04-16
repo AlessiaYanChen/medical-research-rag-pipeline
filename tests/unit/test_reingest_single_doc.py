@@ -259,6 +259,9 @@ def test_main_reports_rollback_failure_when_restore_fails(tmp_path: Path, monkey
         def __init__(self, **_: object) -> None:
             pass
 
+        def collection_exists(self, collection_name: str) -> bool:
+            return collection_name == "medical_research_chunks_v1"
+
         def scroll(self, **_: object) -> tuple[list[object], None]:
             return (
                 [
@@ -328,3 +331,145 @@ def test_main_reports_rollback_failure_when_restore_fails(tmp_path: Path, monkey
     assert payload["failure"]["stage"] == "rollback_old_doc"
     assert "simulated write failure" in payload["failure"]["error"]
     assert "simulated rollback failure" in payload["failure"]["error"]
+
+
+def test_main_reuses_canonical_doc_id_when_hash_matches_existing_doc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    pdf_path = tmp_path / "renamed-study.pdf"
+    pdf_path.write_text("placeholder", encoding="utf-8")
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "collection": "medical_research_chunks_v1",
+                "ingestion_version": "ingestion_v2",
+                "chunker_version": "chunking_v2",
+                "docs": [
+                    {
+                        "doc_id": "DOC-7",
+                        "source_file": "study.pdf",
+                        "local_file": "C:/docs/study.pdf",
+                        "source_sha256": "abc",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    captured_chunk_doc_ids: list[str] = []
+    deleted_doc_ids: list[str] = []
+
+    class FakeEmbeddingAdapter:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def __call__(self, texts: list[str]) -> list[list[float]]:
+            return [[0.0, 0.0, 0.0] for _ in texts]
+
+    class FakeParser:
+        def parse(self, path: Path) -> object:
+            assert path == pdf_path
+            return type("ParsedDocument", (), {"markdown_text": "content", "tables": []})()
+
+    class FakeChunker:
+        INGESTION_VERSION = "ingestion_v2"
+        CHUNKING_VERSION = "chunking_v2"
+
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def chunk_document(self, **kwargs: object) -> list[Chunk]:
+            captured_chunk_doc_ids.append(str(kwargs["doc_id"]))
+            return [
+                Chunk(
+                    id=f"{kwargs['doc_id']}:00001",
+                    content="content",
+                    metadata=ChunkMetadata(
+                        doc_id=str(kwargs["doc_id"]),
+                        chunk_type="text",
+                        parent_header="Results",
+                    ),
+                )
+            ]
+
+    class FakeClient:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def collection_exists(self, collection_name: str) -> bool:
+            return collection_name == "medical_research_chunks_v1"
+
+        def scroll(self, **_: object) -> tuple[list[object], None]:
+            return (
+                [
+                    type(
+                        "Point",
+                        (),
+                        {
+                            "id": "old-point-id",
+                            "payload": {
+                                "chunk_id": "DOC-7:00001",
+                                "doc_id": "DOC-7",
+                                "chunk_type": "text",
+                                "parent_header": "Results",
+                                "source_sha256": "abc",
+                                "content": "old content",
+                            },
+                            "vector": [0.1, 0.2, 0.3],
+                        },
+                    )()
+                ],
+                None,
+            )
+
+        def delete(self, *, points_selector: object, **_: object) -> None:
+            deleted_doc_ids.append(str(points_selector.must[0].match.value))
+
+        def upsert(self, **_: object) -> None:
+            pass
+
+    class SuccessfulRepository:
+        def __init__(self, **_: object) -> None:
+            pass
+
+        def upsert_chunks(self, chunks: list[Chunk]) -> None:
+            assert [chunk.metadata.doc_id for chunk in chunks] == ["DOC-7"]
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "reingest_single_doc.py",
+            "--doc-id",
+            "DOC-RENAMED",
+            "--pdf",
+            str(pdf_path),
+            "--collection",
+            "medical_research_chunks_v1",
+            "--manifest",
+            str(manifest_path),
+            "--embedding-api-key",
+            "test-key",
+        ],
+    )
+    monkeypatch.setattr(reingest_single_doc, "OpenAIEmbeddingAdapter", FakeEmbeddingAdapter)
+    monkeypatch.setattr(reingest_single_doc, "build_parser", lambda _: FakeParser())
+    monkeypatch.setattr(reingest_single_doc, "normalize_tables", lambda tables, file_name: [])
+    monkeypatch.setattr(reingest_single_doc, "UnifiedChunker", FakeChunker)
+    monkeypatch.setattr(reingest_single_doc, "QdrantClient", FakeClient)
+    monkeypatch.setattr(reingest_single_doc, "QdrantRepository", SuccessfulRepository)
+    monkeypatch.setattr(reingest_single_doc, "compute_file_identity", lambda _: {"source_sha256": "abc", "file_size_bytes": 12})
+    monkeypatch.setattr(reingest_single_doc, "ensure_doc_identity_is_available", lambda **_: None)
+    monkeypatch.setattr(
+        reingest_single_doc,
+        "upsert_manifest_doc_entry",
+        lambda **_: None,
+    )
+
+    exit_code = reingest_single_doc.main()
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert captured_chunk_doc_ids == ["DOC-7"]
+    assert deleted_doc_ids == ["DOC-7"]
+    assert "Requested doc_id: DOC-RENAMED" in output
+    assert "Canonical doc_id: DOC-7" in output
