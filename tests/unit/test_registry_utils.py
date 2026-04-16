@@ -26,6 +26,7 @@ def test_sync_collection_from_manifest_hydrates_registry_docs(tmp_path: Path) ->
             {
                 "collection": "medical_research_chunks_v1",
                 "ingestion_version": "ingestion_v2",
+                "chunker_version": "chunking_v2",
                 "chunking_version": "chunking_v2",
                 "parser": "docling",
                 "docs": [
@@ -33,6 +34,8 @@ def test_sync_collection_from_manifest_hydrates_registry_docs(tmp_path: Path) ->
                         "doc_id": "DOC-1",
                         "source_file": "doc1.pdf",
                         "local_file": "C:/docs/doc1.pdf",
+                        "source_sha256": "abc123",
+                        "file_size_bytes": 2048,
                         "chunk_count": 4,
                         "text_chunk_count": 3,
                         "table_chunk_count": 1,
@@ -54,9 +57,13 @@ def test_sync_collection_from_manifest_hydrates_registry_docs(tmp_path: Path) ->
     assert docs["DOC-1"]["pdf_path"] == "C:/docs/doc1.pdf"
     assert docs["DOC-1"]["chunks"] == 4
     assert docs["DOC-1"]["parser"] == "docling"
+    assert docs["DOC-1"]["source_sha256"] == "abc123"
+    assert docs["DOC-1"]["file_size_bytes"] == 2048
+    assert docs["DOC-1"]["chunker_version"] == "chunking_v2"
     assert registry["collections"]["medical_research_chunks_v1"]["doc_count"] == 1
     assert registry["collections"]["medical_research_chunks_v1"]["chunk_count"] == 4
     assert registry["collections"]["medical_research_chunks_v1"]["parser"] == "docling"
+    assert registry["collections"]["medical_research_chunks_v1"]["chunker_version"] == "chunking_v2"
 
 
 def test_upsert_collection_doc_recalculates_collection_totals() -> None:
@@ -72,8 +79,11 @@ def test_upsert_collection_doc_recalculates_collection_totals() -> None:
             "text_chunks": 3,
             "table_chunks": 1,
             "ingestion_version": "ingestion_v2",
+            "chunker_version": "chunking_v2",
             "chunking_version": "chunking_v2",
             "parser": "docling",
+            "source_sha256": "abc123",
+            "file_size_bytes": 2048,
         },
     )
     upsert_collection_doc(
@@ -86,8 +96,11 @@ def test_upsert_collection_doc_recalculates_collection_totals() -> None:
             "text_chunks": 6,
             "table_chunks": 0,
             "ingestion_version": "ingestion_v2",
+            "chunker_version": "chunking_v2",
             "chunking_version": "chunking_v2",
             "parser": "docling",
+            "source_sha256": "def456",
+            "file_size_bytes": 4096,
         },
     )
 
@@ -95,7 +108,10 @@ def test_upsert_collection_doc_recalculates_collection_totals() -> None:
     assert collection_entry["doc_count"] == 2
     assert collection_entry["chunk_count"] == 10
     assert collection_entry["parser"] == "docling"
+    assert collection_entry["chunker_version"] == "chunking_v2"
     assert collection_entry["docs"]["DOC-2"]["pdf_path"] == "C:/docs/doc2.pdf"
+    assert collection_entry["docs"]["DOC-2"]["source_sha256"] == "def456"
+    assert collection_entry["docs"]["DOC-2"]["file_size_bytes"] == 4096
 
 
 def test_sync_collection_from_manifest_replaces_legacy_flat_doc_entries(tmp_path: Path) -> None:
@@ -105,6 +121,7 @@ def test_sync_collection_from_manifest_replaces_legacy_flat_doc_entries(tmp_path
             {
                 "collection": "medical_research_chunks_v1",
                 "ingestion_version": "ingestion_v2",
+                "chunker_version": "chunking_v2",
                 "chunking_version": "chunking_v2",
                 "parser": "docling",
                 "docs": [
@@ -160,6 +177,7 @@ def test_upsert_collection_doc_rejects_duplicate_pdf_path_for_other_doc() -> Non
             "text_chunks": 3,
             "table_chunks": 1,
             "ingestion_version": "ingestion_v2",
+            "chunker_version": "chunking_v2",
             "chunking_version": "chunking_v2",
             "parser": "docling",
         },
@@ -177,6 +195,7 @@ def test_upsert_collection_doc_rejects_duplicate_pdf_path_for_other_doc() -> Non
                 "text_chunks": 3,
                 "table_chunks": 1,
                 "ingestion_version": "ingestion_v2",
+                "chunker_version": "chunking_v2",
                 "chunking_version": "chunking_v2",
                 "parser": "docling",
             },

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import statistics
 from pathlib import Path
 from typing import Any
 
@@ -82,14 +83,18 @@ def build_qdrant_doc_identities(records: list[dict[str, Any]]) -> list[dict[str,
                 "doc_id": doc_id,
                 "source_file": "",
                 "local_file": "",
+                "source_sha256": "",
             },
         )
         source_file = str(payload_dict.get("source_file", "")).strip()
         local_file = str(payload_dict.get("local_file", "")).strip()
+        source_sha256 = str(payload_dict.get("source_sha256", "")).strip()
         if source_file and not entry["source_file"]:
             entry["source_file"] = source_file
         if local_file and not entry["local_file"]:
             entry["local_file"] = local_file
+        if source_sha256 and not entry["source_sha256"]:
+            entry["source_sha256"] = source_sha256
     return sorted(identities.values(), key=lambda item: item["doc_id"].lower())
 
 
@@ -110,6 +115,7 @@ def build_manifest_doc_identities(manifest_payload: dict[str, Any]) -> list[dict
                 "doc_id": doc_id,
                 "source_file": str(item.get("source_file", "")).strip(),
                 "local_file": str(item.get("local_file", "")).strip(),
+                "source_sha256": str(item.get("source_sha256", "")).strip(),
             }
         )
     return identities
@@ -132,6 +138,7 @@ def build_registry_doc_identities(collection_entry: dict[str, Any]) -> list[dict
                 "doc_id": normalized_doc_id,
                 "source_file": str(item.get("source_file", "")).strip(),
                 "local_file": str(item.get("pdf_path", item.get("local_file", ""))).strip(),
+                "source_sha256": str(item.get("source_sha256", "")).strip(),
             }
         )
     return sorted(identities, key=lambda item: item["doc_id"].lower())
@@ -146,6 +153,7 @@ def find_duplicate_identity_issues(
     issues.extend(_find_duplicate_identity_issues_for_field(entries, source_name=source_name, field="doc_id"))
     issues.extend(_find_duplicate_identity_issues_for_field(entries, source_name=source_name, field="source_file"))
     issues.extend(_find_duplicate_identity_issues_for_field(entries, source_name=source_name, field="local_file"))
+    issues.extend(_find_duplicate_identity_issues_for_field(entries, source_name=source_name, field="source_sha256"))
     return issues
 
 
@@ -162,7 +170,7 @@ def build_duplicate_cleanup_plan(
     ]
 
     plan: list[dict[str, Any]] = []
-    for field in ("source_file", "local_file"):
+    for field in ("source_file", "local_file", "source_sha256"):
         grouped = _group_entries_by_identity_value(combined_entries, field=field)
         for normalized_value, entries in sorted(grouped.items()):
             unique_doc_ids = sorted({str(entry.get("doc_id", "")).strip() for entry in entries if str(entry.get("doc_id", "")).strip()})
@@ -275,13 +283,187 @@ def reconcile_collection_state(
     ):
         issues.extend(find_duplicate_identity_issues(entries, source_name=source_name))
 
+    issues.extend(
+        find_doc_metadata_mismatch_issues(
+            qdrant_identities=qdrant_identities or [],
+            manifest_identities=manifest_identities or [],
+            registry_identities=registry_identities or [],
+        )
+    )
+
+    for source_name, summary in (
+        ("qdrant", qdrant_docs),
+        ("manifest", manifest_docs),
+        ("registry", registry_docs),
+    ):
+        issues.extend(find_chunk_count_sanity_issues(summary, source_name=source_name))
+
     issue_counter = Counter(issue["issue_type"] for issue in issues)
+    repair_plan = build_reconciliation_repair_plan(issues)
     return {
         "docs_total": len(all_doc_ids),
         "issue_count": len(issues),
         "issue_types": dict(issue_counter),
         "issues": issues,
+        "repair_plan_count": len(repair_plan),
+        "repair_plan": repair_plan,
     }
+
+
+def find_chunk_count_sanity_issues(
+    doc_summary: dict[str, dict[str, int]],
+    *,
+    source_name: str,
+) -> list[dict[str, Any]]:
+    if not doc_summary:
+        return []
+
+    issues: list[dict[str, Any]] = []
+    chunk_counts = [
+        int(summary.get("chunks", 0))
+        for summary in doc_summary.values()
+        if isinstance(summary, dict)
+    ]
+    positive_chunk_counts = [count for count in chunk_counts if count > 0]
+    median_chunk_count = statistics.median(positive_chunk_counts) if positive_chunk_counts else 0.0
+    low_outlier_threshold = max(1, int(median_chunk_count * 0.2)) if median_chunk_count else 0
+    high_outlier_threshold = int(median_chunk_count * 5) if median_chunk_count else 0
+    enable_outlier_checks = len(positive_chunk_counts) >= 5 and median_chunk_count > 0
+
+    for doc_id, summary in sorted(doc_summary.items()):
+        if not isinstance(summary, dict):
+            continue
+        chunks = int(summary.get("chunks", 0))
+        text_chunks = int(summary.get("text_chunks", 0))
+        table_chunks = int(summary.get("table_chunks", 0))
+        checks: list[str] = []
+
+        if chunks <= 0:
+            checks.append("no_chunks")
+        if text_chunks < 0 or table_chunks < 0:
+            checks.append("negative_chunk_count")
+        if text_chunks + table_chunks != chunks:
+            checks.append("count_breakdown_mismatch")
+        if chunks > 0 and text_chunks <= 0:
+            checks.append("no_text_chunks")
+        if enable_outlier_checks and chunks > 0:
+            if chunks <= low_outlier_threshold:
+                checks.append("unusually_low_chunk_count")
+            if chunks >= high_outlier_threshold:
+                checks.append("unusually_high_chunk_count")
+
+        if checks:
+            issues.append(
+                {
+                    "issue_type": "chunk_count_sanity",
+                    "source": source_name,
+                    "doc_id": doc_id,
+                    "checks": checks,
+                    "summary": {
+                        "chunks": chunks,
+                        "text_chunks": text_chunks,
+                        "table_chunks": table_chunks,
+                    },
+                    "median_chunk_count": median_chunk_count,
+                    "low_outlier_threshold": low_outlier_threshold,
+                    "high_outlier_threshold": high_outlier_threshold,
+                }
+            )
+
+    return issues
+
+
+def find_doc_metadata_mismatch_issues(
+    *,
+    qdrant_identities: list[dict[str, Any]],
+    manifest_identities: list[dict[str, Any]],
+    registry_identities: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    by_source = {
+        "qdrant": _index_identities_by_doc_id(qdrant_identities),
+        "manifest": _index_identities_by_doc_id(manifest_identities),
+        "registry": _index_identities_by_doc_id(registry_identities),
+    }
+    all_doc_ids = sorted(set().union(*[set(items.keys()) for items in by_source.values()]))
+    issues: list[dict[str, Any]] = []
+
+    for doc_id in all_doc_ids:
+        present_sources = {
+            source_name: items[doc_id]
+            for source_name, items in by_source.items()
+            if doc_id in items
+        }
+        if len(present_sources) < 2:
+            continue
+
+        mismatched_fields: list[str] = []
+        field_values: dict[str, dict[str, str]] = {}
+        for field in ("source_file", "local_file", "source_sha256"):
+            source_values = {
+                source_name: str(entry.get(field, "")).strip()
+                for source_name, entry in present_sources.items()
+            }
+            non_empty_values = {value for value in source_values.values() if value}
+            if len(non_empty_values) > 1:
+                mismatched_fields.append(field)
+                field_values[field] = source_values
+
+        if mismatched_fields:
+            issues.append(
+                {
+                    "issue_type": "metadata_mismatch",
+                    "doc_id": doc_id,
+                    "fields": mismatched_fields,
+                    "sources": field_values,
+                }
+            )
+
+    return issues
+
+
+def build_reconciliation_repair_plan(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    plan: list[dict[str, Any]] = []
+    for issue in issues:
+        issue_type = str(issue.get("issue_type", "")).strip()
+        if issue_type == "missing_doc":
+            present_in = [str(item).strip() for item in issue.get("present_in", []) if str(item).strip()]
+            if "manifest" in present_in and "registry" not in present_in:
+                plan.append(
+                    {
+                        "action": "sync_registry_from_manifest",
+                        "doc_id": str(issue.get("doc_id", "")).strip(),
+                        "reason": "manifest and registry are out of sync for an otherwise indexed document",
+                    }
+                )
+        elif issue_type == "metadata_mismatch":
+            plan.append(
+                {
+                    "action": "review_doc_metadata",
+                    "doc_id": str(issue.get("doc_id", "")).strip(),
+                    "fields": list(issue.get("fields", [])),
+                    "reason": "doc metadata differs across sources and needs canonical reconciliation",
+                }
+            )
+        elif issue_type == "count_mismatch":
+            plan.append(
+                {
+                    "action": "review_doc_counts",
+                    "doc_id": str(issue.get("doc_id", "")).strip(),
+                    "fields": list(issue.get("fields", [])),
+                    "reason": "chunk counts disagree across sources for the same doc_id",
+                }
+            )
+        elif issue_type == "chunk_count_sanity":
+            plan.append(
+                {
+                    "action": "inspect_parser_output",
+                    "doc_id": str(issue.get("doc_id", "")).strip(),
+                    "source": str(issue.get("source", "")).strip(),
+                    "checks": list(issue.get("checks", [])),
+                    "reason": "chunk profile looks structurally implausible for this document",
+                }
+            )
+    return plan
 
 
 def _find_duplicate_identity_issues_for_field(
@@ -330,6 +512,18 @@ def _annotate_source(entries: list[dict[str, Any]], *, source_name: str) -> list
             continue
         annotated.append({**entry, "source": source_name})
     return annotated
+
+
+def _index_identities_by_doc_id(entries: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    indexed: dict[str, dict[str, Any]] = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        doc_id = str(entry.get("doc_id", "")).strip()
+        if not doc_id or doc_id in indexed:
+            continue
+        indexed[doc_id] = entry
+    return indexed
 
 
 def _group_entries_by_identity_value(

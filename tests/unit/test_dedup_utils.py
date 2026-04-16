@@ -31,6 +31,27 @@ def test_validate_unique_doc_identities_rejects_duplicate_source_file() -> None:
         )
 
 
+def test_validate_unique_doc_identities_rejects_duplicate_source_sha256() -> None:
+    with pytest.raises(DuplicateDocumentError, match="source_sha256 'abc123' is already registered"):
+        validate_unique_doc_identities(
+            [
+                {
+                    "doc_id": "DOC-1",
+                    "source_file": "doc1.pdf",
+                    "local_file": "C:/docs/doc-one.pdf",
+                    "source_sha256": "abc123",
+                },
+                {
+                    "doc_id": "DOC-2",
+                    "source_file": "doc2.pdf",
+                    "local_file": "C:/docs/doc-two.pdf",
+                    "source_sha256": "abc123",
+                },
+            ],
+            context="Rebuild manifest",
+        )
+
+
 def test_ensure_doc_identity_is_available_allows_same_doc_id_for_repair() -> None:
     ensure_doc_identity_is_available(
         doc_id="DOC-1",
@@ -59,6 +80,25 @@ def test_ensure_doc_identity_is_available_rejects_other_doc_with_same_local_file
                     "doc_id": "DOC-1",
                     "source_file": "doc.pdf",
                     "local_file": "C:/docs/doc.pdf",
+                }
+            ],
+            context="Registry collection 'medical_research_chunks_v1'",
+        )
+
+
+def test_ensure_doc_identity_is_available_rejects_other_doc_with_same_source_sha256() -> None:
+    with pytest.raises(DuplicateDocumentError, match="source_sha256 'abc123' is already registered"):
+        ensure_doc_identity_is_available(
+            doc_id="DOC-2",
+            source_file="renamed.pdf",
+            local_file="C:/docs/renamed.pdf",
+            source_sha256="abc123",
+            existing_entries=[
+                {
+                    "doc_id": "DOC-1",
+                    "source_file": "doc.pdf",
+                    "local_file": "C:/docs/doc.pdf",
+                    "source_sha256": "abc123",
                 }
             ],
             context="Registry collection 'medical_research_chunks_v1'",
@@ -100,6 +140,7 @@ class _FakeScrollClient:
                             "doc_id": "DOC-2",
                             "source_file": "doc2.pdf",
                             "local_file": "C:/docs/doc2.pdf",
+                            "source_sha256": "hash-2",
                         }
                     ),
                     SimpleNamespace(
@@ -107,6 +148,7 @@ class _FakeScrollClient:
                             "doc_id": "DOC-1",
                             "source_file": "doc1.pdf",
                             "local_file": "C:/docs/doc1.pdf",
+                            "source_sha256": "hash-1",
                         }
                     ),
                 ],
@@ -136,11 +178,13 @@ def test_fetch_collection_doc_identities_reduces_qdrant_points_to_doc_summaries(
             "doc_id": "DOC-1",
             "source_file": "doc1.pdf",
             "local_file": "C:/docs/doc1.pdf",
+            "source_sha256": "hash-1",
         },
         {
             "doc_id": "DOC-2",
             "source_file": "doc2.pdf",
             "local_file": "C:/docs/doc2.pdf",
+            "source_sha256": "hash-2",
         },
     ]
     assert client.calls[0]["with_payload"] is True

@@ -217,6 +217,16 @@ def main() -> int:
                 f"- duplicate_identity: source={issue['source']} "
                 f"field={issue['field']} value={issue['value']} doc_ids={issue['doc_ids']}"
             )
+        elif issue["issue_type"] == "chunk_count_sanity":
+            print(
+                f"- chunk_count_sanity: source={issue['source']} doc_id={issue['doc_id']} "
+                f"checks={issue['checks']} summary={issue['summary']}"
+            )
+        elif issue["issue_type"] == "metadata_mismatch":
+            print(
+                f"- metadata_mismatch: doc_id={issue['doc_id']} "
+                f"fields={issue['fields']} sources={issue['sources']}"
+            )
         else:
             print(
                 f"- count_mismatch: {issue['doc_id']} "
@@ -233,6 +243,18 @@ def main() -> int:
             print(
                 f"- cleanup_plan: manual_review field={step['field']} "
                 f"value={step['value']} doc_ids={step['doc_ids']}"
+            )
+    for step in payload.get("repair_plan", []):
+        if step["action"] == "sync_registry_from_manifest":
+            print(f"- repair_plan: sync_registry_from_manifest doc_id={step['doc_id']}")
+        elif step["action"] == "review_doc_metadata":
+            print(f"- repair_plan: review_doc_metadata doc_id={step['doc_id']} fields={step['fields']}")
+        elif step["action"] == "review_doc_counts":
+            print(f"- repair_plan: review_doc_counts doc_id={step['doc_id']} fields={step['fields']}")
+        elif step["action"] == "inspect_parser_output":
+            print(
+                f"- repair_plan: inspect_parser_output doc_id={step['doc_id']} "
+                f"source={step['source']} checks={step['checks']}"
             )
     if args.json_out.strip():
         print(f"JSON output: {Path(args.json_out)}")

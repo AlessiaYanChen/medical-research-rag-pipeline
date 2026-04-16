@@ -42,6 +42,8 @@ See details on page 7 for expanded stratification notes.
         source_file="RAPID.pdf",
         markdown_text=markdown,
         tables=tables,
+        source_sha256="abc123",
+        file_size_bytes=2048,
     )
 
     assert all(isinstance(chunk, Chunk) for chunk in chunks)
@@ -60,7 +62,10 @@ See details on page 7 for expanded stratification notes.
     text_chunks = [chunk for chunk in chunks if chunk.metadata.chunk_type == "text"]
     assert all(chunk.metadata.extra["content_role"] == "child" for chunk in text_chunks)
     assert all(chunk.metadata.extra["source_file"] == "RAPID.pdf" for chunk in text_chunks)
+    assert all(chunk.metadata.extra["source_sha256"] == "abc123" for chunk in text_chunks)
+    assert all(chunk.metadata.extra["file_size_bytes"] == 2048 for chunk in text_chunks)
     assert all(chunk.metadata.extra["ingestion_version"] == UnifiedChunker.INGESTION_VERSION for chunk in text_chunks)
+    assert all(chunk.metadata.extra["chunker_version"] == UnifiedChunker.CHUNKER_VERSION for chunk in text_chunks)
     assert all(chunk.metadata.extra["chunking_version"] == UnifiedChunker.CHUNKING_VERSION for chunk in text_chunks)
     assert all(chunk.metadata.extra["parent_id"].startswith("DOC-001:P") for chunk in text_chunks)
     assert all(chunk.metadata.extra["parent_content"] for chunk in text_chunks)

@@ -88,11 +88,11 @@ Outcome so far:
 - single-document repair now snapshots and restores the prior Qdrant points on replacement-write failure, reducing the chance of a failed repair leaving the collection without the original document
 - collection rebuild now defaults to a fresh-target safety check and requires an explicit override before recreating an existing collection, while alias promotion is available as a separate step after staged validation
 - rollout reporting can now carry the follow-up promotion command when a staged collection fully passes its gates, making the checklist handoff from validation to cutover explicit
+- rebuild, UI ingest, and single-document repair now stamp `ingestion_version`, `chunker_version`, `source_sha256`, and `file_size_bytes` consistently into chunk metadata, rebuild manifests, and registry entries while keeping the legacy `chunking_version` field for compatibility
+- `scripts/audit_collection_state.py` now also flags chunk-count sanity failures such as empty docs, broken text/table breakdowns, and extreme per-doc chunk-count outliers so parser pathologies surface before rollout promotion
+- `scripts/audit_collection_state.py` now also reports per-doc metadata mismatches across Qdrant, manifest, and registry plus a small repair-plan payload for registry sync, metadata review, count review, and parser inspection follow-up
 
 Next hardening work for the `20`-PDF corpus:
-- add richer ingestion metadata such as `ingestion_version` and `chunker_version`
-- add a stronger registry-vs-Qdrant reconciler workflow for post-ingest sanity checks
-- add chunk-count-per-doc sanity checks so parsing pathologies are caught early
 - keep human-readable `doc_id` values for UI and evaluation, while treating a content hash as the canonical dedup and file-identity signal
 
 ### Phase 4B: Parser Bakeoff
