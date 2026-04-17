@@ -17,7 +17,6 @@ _ensure_project_root_on_path()
 
 from qdrant_client import QdrantClient  # noqa: E402
 from qdrant_client.models import (  # noqa: E402
-    ChangeAliasesOperation,
     CreateAlias,
     CreateAliasOperation,
     DeleteAlias,
@@ -121,7 +120,7 @@ def promote_alias(
             )
         )
     )
-    client.update_collection_aliases(ChangeAliasesOperation(actions=actions))
+    client.update_collection_aliases(actions)
 
 
 def main() -> int:
