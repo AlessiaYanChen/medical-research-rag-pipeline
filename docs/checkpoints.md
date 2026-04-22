@@ -74,6 +74,13 @@ It is a record of how the repo moved from small-corpus retrieval tuning into sta
 - Plan covers: answer quality baseline dataset (Codex), baseline eval run (manual), known-gap abstention check (manual), cross-doc synthesis UI spot checks (manual), synthesis gate script (Codex).
 - Stage-2 readiness gate updated: 8 criteria, all must pass before the 50-PDF rebuild begins.
 
+## April 22, 2026
+
+- The promoted active collection is now the stable alias `medical_research_chunks_docling_active`.
+- `medical_research_chunks_docling_v2_batch1` remains the recorded stage-1 artifact name for historical reports and archived reruns.
+- The candidate rebuild/audit flow was rerun successfully, the stage-1 candidate passed the synthesis gate, and the alias was promoted to the validated collection.
+- Operator defaults and docs should now treat the alias as the active collection unless a historical replay explicitly needs the stage-1 artifact name.
+
 ## Current Interpretation
 
 - The formal stage-1 rollout gate is passing; stage-1 is fully de-risked at the retrieval level.

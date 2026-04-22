@@ -335,7 +335,7 @@ python scripts/evaluate_answer_quality.py \
 
 ## Step 4 — Cross-document synthesis UI spot checks `[MANUAL]`
 
-Run the following 8 queries through the Streamlit UI (`streamlit run scripts/ui_app.py`), using collection `medical_research_chunks_docling_v2_batch1`. For each, record: query, confidence level, insight summary (1–2 sentences), whether both expected papers appear in Evidence Basis.
+Run the following 8 queries through the Streamlit UI (`streamlit run scripts/ui_app.py`), using the active stage-1 collection. Prefer the promoted alias `medical_research_chunks_docling_active`; `medical_research_chunks_docling_v2_batch1` remains the historical stage-1 artifact name for archived reruns. For each, record: query, confidence level, insight summary (1–2 sentences), whether both expected papers appear in Evidence Basis.
 
 | ID | Query (from manual test pack) | Pass criterion |
 |----|-------------------------------|----------------|

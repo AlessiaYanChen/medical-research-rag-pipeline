@@ -3,13 +3,13 @@
 A modular Retrieval-Augmented Generation (RAG) system for medical research PDFs. The current implementation ingests PDFs, extracts narrative text and tables, normalizes tabular artifacts, chunks documents in a structure-aware way, stores chunks in Qdrant, retrieves evidence from the knowledge base, and optionally synthesizes research answers with an LLM.
 
 Current project focus:
-- the active proving ground is the stage-1 `20`-PDF collection, not broader corpus-scale architecture
+- the active proving ground is the promoted stage-1 `20`-PDF alias `medical_research_chunks_docling_active`, not broader corpus-scale architecture
 - the next bottleneck is benchmark quality, not raw document-hit retrieval
 - metadata and ingestion hardening now matter more than new retrieval stages
 - the immediate next benchmark task is absent-answer and false-positive coverage in the answer-quality layer
 
 Current benchmark status:
-- stage-1 retrieval coverage on the active `20`-PDF `medical_research_chunks_docling_v2_batch1` collection is now tracked with an `88`-query benchmark in `data/eval/stage1_coverage_queries.json`
+- stage-1 retrieval coverage on the active `20`-PDF alias `medical_research_chunks_docling_active` is now tracked with an `88`-query benchmark in `data/eval/stage1_coverage_queries.json`
 - current `2026-04-10` stage-1 coverage rerun metrics:
   - expected doc hit rate: `1.0`
   - top-1 expected doc hit rate: `1.0`
@@ -91,7 +91,7 @@ Current benchmark status:
 - current OOD debugging confirmed the stewardship-review miss was not a candidate-recall problem: the Fabre paper was already present in early candidates, and a narrow document-level disambiguation step was enough to resolve `O03` and `O10` without broader ranking changes
 - before any further retrieval changes, the repo should diagnose and explain any header-precision or table-hit drift on the stable 26-query and expanded 43-query benchmarks before stacking new behavior on top
 - parser experimentation should happen inside this repo as an isolated bakeoff workflow, not as a separate project and not by destabilizing the active `Docling` ingestion path
-- current operational stance: use `Docling` for new ingestion, keep `medical_research_chunks_docling_v1` as the small-corpus active baseline, and keep `Marker` plus `medical_research_chunks_v1` as rollback only
+- current operational stance: use `Docling` for new ingestion, use `medical_research_chunks_docling_active` as the active promoted alias, retain `medical_research_chunks_docling_v2_batch1` as the recorded stage-1 artifact, keep `medical_research_chunks_docling_v1` as the older small-corpus baseline, and keep `Marker` plus `medical_research_chunks_v1` as rollback only
 - the next major step is better signal on the current `20`-PDF stage: harder benchmarks, better absent-answer coverage, and stronger ingestion sanity checks
 - with the current `20`-PDF corpus, benchmark expansion and ingestion metadata hardening matter more than new retrieval stages; document-level candidate retrieval remains deferred
 

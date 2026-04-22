@@ -51,10 +51,12 @@ from src.app.tables.table_chunker import UnifiedChunker  # noqa: E402
 UPLOAD_DIR = Path("data/raw_pdfs/uploaded")
 REGISTRY_PATH = Path("data/kb_registry.json")
 DEFAULT_QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-DEFAULT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_v2_batch1")
+DEFAULT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION", "medical_research_chunks_docling_active")
 DEFAULT_EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "azure_openai")
 COLLECTION_ROLES: dict[str, str] = {
+    "medical_research_chunks_docling_active": "Active Docling alias",
     "medical_research_chunks_docling_v2_batch1": "Stage-1 artifact (20 PDFs) - passing",
+    "medical_research_chunks_docling_v2_candidate": "Staged candidate collection",
     "medical_research_chunks_docling_v1": "Baseline small corpus",
     "medical_research_chunks_v1": "Marker rollback - read-only",
 }
